@@ -1,4 +1,5 @@
 #include "internal.hpp"
+#include "sha256.hpp"
 
 /*------------------------------------------------------------------------*/
 
@@ -238,10 +239,14 @@ const char *Parser::parse_dimacs_non_profiled (int &vars, int strict) {
     if (ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r')
       continue;
     if (ch == 'c') {
-      while ((ch = parse_char ()) != '\n' && ch != EOF)
-        ;
-      if (ch == EOF)
+      string line;
+      while ((ch = parse_char ()) != '\n' && ch != EOF) {
+        line += ch;
+      }
+      SHA256::SHA256Propagator::add_comment_line (line);
+      if (ch == EOF) {
         break;
+      }
       continue;
     }
     if (ch == 'a' && found_inccnf_header)
