@@ -3,6 +3,7 @@
 // Do include 'internal.hpp' but try to minimize internal dependencies.
 
 #include "internal.hpp"
+#include "sha256.hpp"
 #include "signal.hpp" // Separate, only need for apps.
 
 /*------------------------------------------------------------------------*/
@@ -924,6 +925,7 @@ void App::init () {
 
   CaDiCaL::Options::reportdefault = 1;
   solver = new Solver ();
+  new SHA256::SHA256Propagator (solver);
   Signal::set (this);
 }
 

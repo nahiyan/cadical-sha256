@@ -8,5 +8,4 @@ SHA256Propagator::SHA256Propagator (CaDiCaL::Solver *solver) {
   this->solver = solver;
   this->solver->connect_external_propagator (this);
   printf ("Connected!");
-  // TODO: Read from comments of the encoding
 }
