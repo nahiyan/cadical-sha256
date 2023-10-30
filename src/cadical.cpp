@@ -925,7 +925,7 @@ void App::init () {
 
   CaDiCaL::Options::reportdefault = 1;
   solver = new Solver ();
-  new SHA256::SHA256Propagator (solver);
+  new SHA256::Propagator (solver);
   Signal::set (this);
 }
 
