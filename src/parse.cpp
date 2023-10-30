@@ -243,7 +243,7 @@ const char *Parser::parse_dimacs_non_profiled (int &vars, int strict) {
       while ((ch = parse_char ()) != '\n' && ch != EOF) {
         line += ch;
       }
-      SHA256::SHA256Propagator::add_comment_line (line);
+      SHA256::Propagator::parse_comment_line (line);
       if (ch == EOF) {
         break;
       }
