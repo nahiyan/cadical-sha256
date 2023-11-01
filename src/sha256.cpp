@@ -1,5 +1,9 @@
 #include "sha256.hpp"
-#include <cstdlib>
+#include "sha256_propagate.hpp"
+#include "sha256_tests.hpp"
+#include <cassert>
+#include <cstdio>
+#include <string>
 
 using namespace SHA256;
 using namespace std;
@@ -12,6 +16,11 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   printf ("Connected!\n");
   current_trail.push_back (std::vector<int> ());
   solver->add_observed_var (1);
+
+#ifndef NDEBUG
+  run_tests ();
+  exit (0);
+#endif
 }
 
 void Propagator::parse_comment_line (string line) {

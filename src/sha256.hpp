@@ -1,3 +1,6 @@
+#ifndef _sha256_hpp_INCLUDED
+#define _sha256_hpp_INCLUDED
+
 #include "cadical.hpp"
 #include <algorithm>
 #include <deque>
@@ -78,3 +81,5 @@ public:
   static void parse_comment_line (string line);
 };
 } // namespace SHA256
+
+#endif
