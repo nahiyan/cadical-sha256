@@ -14,7 +14,7 @@
 #define LIT_FALSE 1
 #define LIT_UNDEF 0
 
-inline bool is_prefix (std::string pre, std::string str) {
+inline bool has_prefix (std::string pre, std::string str) {
   return str.compare (0, pre.size (), pre) == false;
 }
 
@@ -29,9 +29,7 @@ inline std::string trim (std::string &str) {
 namespace SHA256 {
 struct Word {
   // f and g refer to the 2 blocks of SHA-256
-  uint32_t ids_f[32], ids_g[32];
-  // XORs
-  uint8_t diffs[32];
+  uint32_t ids_f[32], ids_g[32], diff_ids[32];
   // Differential characteristics
   char chars[32];
 };
@@ -63,7 +61,11 @@ class Propagator : CaDiCaL::ExternalPropagator {
   CaDiCaL::Solver *solver;
   std::deque<std::vector<int>> current_trail;
   static int order;
+  static State state;
   PartialAssignment partial_assignment;
+  void print_state ();
+  void refresh_state ();
+  static void add_observed_vars (Word *word, CaDiCaL::Solver *&solver);
 
 public:
   Propagator (CaDiCaL::Solver *solver);
@@ -78,7 +80,7 @@ public:
   bool cb_has_external_clause () { return false; }
   int cb_add_external_clause_lit () { return 0; }
   int cb_decide () { return 0; }
-  static void parse_comment_line (string line);
+  static void parse_comment_line (string line, CaDiCaL::Solver *&solver);
 };
 } // namespace SHA256
 
