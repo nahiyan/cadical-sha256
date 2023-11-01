@@ -57,6 +57,22 @@ void Propagator::parse_comment_line (string line,
       Word *word = NULL;
       if (prefix == "A_" || prefix == "DA_")
         word = &state.steps[step].a;
+      else if (prefix == "E_" || prefix == "DE_")
+        word = &state.steps[step].e;
+      else if (prefix == "W_" || prefix == "DW_")
+        word = &state.steps[step].w;
+      else if (prefix == "s0_" || prefix == "Ds0_")
+        word = &state.steps[step].s0;
+      else if (prefix == "s1_" || prefix == "Ds1_")
+        word = &state.steps[step].s1;
+      else if (prefix == "sigma0_" || prefix == "Dsigma0_")
+        word = &state.steps[step].sigma0;
+      else if (prefix == "sigma1_" || prefix == "Dsigma1_")
+        word = &state.steps[step].sigma1;
+      else if (prefix == "if_" || prefix == "Dif_")
+        word = &state.steps[step].ch;
+      else if (prefix == "maj_" || prefix == "Dmaj_")
+        word = &state.steps[step].maj;
 
       // Add the IDs
       for (int i = 31, id = value; i >= 0; i--, id++) {
@@ -69,7 +85,8 @@ void Propagator::parse_comment_line (string line,
       }
 
       // Add to observed vars
-      if (prefix[0] == 'D')
+      if (word->ids_f[0] != 0 && word->ids_g[0] != 0 &&
+          word->diff_ids[0] != 0)
         add_observed_vars (word, solver);
     }
   };
@@ -81,9 +98,34 @@ void Propagator::parse_comment_line (string line,
 
   // Determine the block
   bool is_f = key.back () == 'f';
+
   // A
   add_vars ("A_", key, value, is_f, solver);
   add_vars ("DA_", key, value, is_f, solver);
+  // E
+  add_vars ("E_", key, value, is_f, solver);
+  add_vars ("DE_", key, value, is_f, solver);
+  // W
+  add_vars ("W_", key, value, is_f, solver);
+  add_vars ("DW_", key, value, is_f, solver);
+  // s0
+  // add_vars ("s0_", key, value, is_f, solver);
+  // add_vars ("Ds0_", key, value, is_f, solver);
+  // // s1
+  // add_vars ("s1_", key, value, is_f, solver);
+  // add_vars ("Ds1_", key, value, is_f, solver);
+  // // sigma0
+  // add_vars ("sigma0_", key, value, is_f, solver);
+  // add_vars ("Dsigma0_", key, value, is_f, solver);
+  // // sigma1
+  // add_vars ("sigma1_", key, value, is_f, solver);
+  // add_vars ("Dsigma1_", key, value, is_f, solver);
+  // // if
+  // add_vars ("if_", key, value, is_f, solver);
+  // add_vars ("Dif_", key, value, is_f, solver);
+  // // maj
+  // add_vars ("maj_", key, value, is_f, solver);
+  // add_vars ("Dmaj_", key, value, is_f, solver);
 }
 
 void Propagator::notify_assignment (int lit, bool is_fixed) {
@@ -94,10 +136,6 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
 
   // Assign variables in the partial assignment
   partial_assignment.set (lit);
-
-  // printf ("Debug: %d %d %d %d\n", lit, is_fixed, partial_assignment.get
-  // (1),
-  //         partial_assignment.get (2));
 }
 
 void Propagator::notify_backtrack (size_t new_level) {
@@ -110,6 +148,7 @@ void Propagator::notify_backtrack (size_t new_level) {
   }
 
   // TODO: Refresh state
+  refresh_state ();
 }
 
 void Propagator::notify_new_decision_level () {
@@ -156,21 +195,52 @@ void Propagator::refresh_state () {
 
   for (int i = -4; i < Propagator::order; i++) {
     auto &step = Propagator::state.steps[STEP (i)];
-    for (int i = 0; i < 32; i++) {
-      get_chars (step.a, partial_assignment);
+    get_chars (step.a, partial_assignment);
+    get_chars (step.e, partial_assignment);
+    auto &step_ = Propagator::state.steps[i];
+    if (i >= 0) {
+      get_chars (step_.w, partial_assignment);
+      get_chars (step_.s0, partial_assignment);
+      get_chars (step_.s1, partial_assignment);
+      get_chars (step_.sigma0, partial_assignment);
+      get_chars (step_.sigma1, partial_assignment);
+      get_chars (step_.ch, partial_assignment);
+      get_chars (step_.maj, partial_assignment);
     }
   }
 }
 
 void Propagator::print_state () {
+  if (++tmp % 300 != 0)
+    return;
+
+  auto c_str = [] (char *chars) {
+    string s;
+    for (int i = 0; i < 32; i++) {
+      s += chars[i];
+    }
+    return s;
+  };
+
   for (int i = -4; i < Propagator::order; i++) {
-    auto step = Propagator::state.steps[STEP (i)];
-    printf ("%d\t%s", i, step.a.chars);
+    auto &step = Propagator::state.steps[STEP (i)];
+    printf ("%d", i);
+    printf (i < 0 || i > 9 ? " " : "  ");
+    printf ("%s %s", c_str (step.a.chars).c_str (),
+            c_str (step.e.chars).c_str ());
     if (i < 0) {
       printf ("\n");
       continue;
     }
+    auto &step_ = Propagator::state.steps[i];
+    printf (" %s", c_str (step_.w.chars).c_str ());
+    printf (" %s", c_str (step_.s0.chars).c_str ());
+    printf (" %s", c_str (step_.s1.chars).c_str ());
+    printf (" %s", c_str (step_.sigma0.chars).c_str ());
+    printf (" %s", c_str (step_.sigma1.chars).c_str ());
+    printf (" %s", c_str (step_.maj.chars).c_str ());
+    printf (" %s", c_str (step_.ch.chars).c_str ());
     printf ("\n");
   }
-  exit (0);
+  // exit (0);
 }
