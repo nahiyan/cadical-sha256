@@ -19,10 +19,6 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   run_tests ();
   exit (0);
 #endif
-
-  printf ("%d\n", -1 % 2);
-  exit (0);
-
   this->solver = solver;
   solver->connect_external_propagator (this);
   printf ("Connected!\n");
