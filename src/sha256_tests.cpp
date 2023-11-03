@@ -125,6 +125,15 @@ void test_derive_words () {
         derive_words ({"0nun1x--ux--n--nxxu0x--ux-uuxu0-"}, 3434604988);
     assert (expected == actual);
   }
+
+  {
+    vector<string> expected = {"xu-nnu--uxxu-xn1u---x-00x-u0-1--",
+                               "---------?0-?0--u-u-??n5-u------"};
+    auto actual = derive_words ({"xx-nnx--uxxu-xx1u---x-00x-u0-1--",
+                                 "---------?0-?0--u?A-???5-u---?--"},
+                                2896892384);
+    assert (expected == actual);
+  }
 }
 
 void test_rotate_word () {

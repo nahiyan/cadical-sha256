@@ -329,7 +329,6 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
     vector<uint8_t> bits;
   } stash;
   vector<Island> islands;
-  bool last_does_overflow = false;
   vector<int> overflow_brute_force_indices;
   for (int i = n - 1; i >= 0; i--) {
     // Skip if there's nothing in the stash and there's no variable either
@@ -346,11 +345,20 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
     // If it cannot overflow, it should be cut off
     bool island_ends = can_overflow ? false : true;
 
+    bool all_zero_diff = true;
+    for (auto &word : words)
+      all_zero_diff &= is_in (word[i], {'1', '0', '-'});
+    if (bit == 0 && all_zero_diff) {
+      island_ends = true;
+      if (can_overflow)
+        overflow_brute_force_indices.push_back (islands.size ());
+    }
+
     // Flush the stash
     if (i == 0) {
       island_ends = true;
-      if (can_overflow)
-        last_does_overflow = true;
+      if (can_overflow && can_overflow)
+        overflow_brute_force_indices.push_back (islands.size ());
     }
 
     if (island_ends) {
@@ -365,14 +373,13 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
   vector<char> var_values;
   int island_index = 0;
   for (auto &island : islands) {
-    bool is_last = island_index == int (islands.size ()) - 1;
     int64_t sum = 0;
     int n = island.bits.size ();
     for (int i = 0; i < n; i++)
       sum += island.bits[i] * int64_t (pow (2, i));
 
     string propagation;
-    if (is_last && last_does_overflow) {
+    if (is_in (island_index, overflow_brute_force_indices)) {
       int64_t min_gt = int64_t (pow (2, n)) - 1;
       propagation = brute_force (island.cols, -1, min_gt);
     } else {
