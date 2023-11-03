@@ -1,6 +1,7 @@
 #include "sha256_tests.hpp"
 #include "sha256.hpp"
 #include "sha256_propagate.hpp"
+#include "sha256_util.hpp"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
@@ -126,6 +127,16 @@ void test_derive_words () {
   }
 }
 
+void test_rotate_word () {
+  assert ("u10u101u0-0u1-nn-n-u-1u---11un0u" ==
+          rotate_word ((char *) "0u1-nn-n-u-1u---11un0uu10u101u0-", -10));
+  assert ("u0-0u1-nn-n-u-1u---11un0uu10u101" ==
+          rotate_word ((char *) "0u1-nn-n-u-1u---11un0uu10u101u0-", -3));
+  assert (
+      "0000u1-nn-n-u-1u---11un0uu10u101" ==
+      rotate_word ((char *) "0u1-nn-n-u-1u---11un0uu10u101u0-", -3, false));
+}
+
 void run_tests () {
   printf ("Running tests\n");
   test_int_diff ();
@@ -136,6 +147,7 @@ void run_tests () {
   test_brute_force ();
   test_apply_grounding ();
   test_derive_words ();
+  test_rotate_word ();
   printf ("All tests passed!\n");
 }
 } // namespace SHA256
