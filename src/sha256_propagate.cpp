@@ -1,10 +1,13 @@
 #include "sha256_propagate.hpp"
 #include "sha256.hpp"
+#include "sha256_util.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <fstream>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 using namespace std;
@@ -15,6 +18,8 @@ struct OrderedValue {
   uint8_t order; // Order will be 31 max and 8 bits can hold 0-255
 };
 
+unordered_map<string, string> io_prop_rules;
+
 // Function to calculate the Cartesian product of multiple vectors of
 // characters
 vector<string> cartesian_product (vector<std::vector<char>> input) {
@@ -24,9 +29,9 @@ vector<string> cartesian_product (vector<std::vector<char>> input) {
 
   while (true) {
     std::string currentProduct;
-    for (int i = 0; i < numVectors; ++i) {
+    for (int i = 0; i < numVectors; ++i)
       currentProduct.push_back (input[i][indices[i]]);
-    }
+
     result.push_back (currentProduct);
 
     int j = numVectors - 1;
@@ -35,9 +40,8 @@ vector<string> cartesian_product (vector<std::vector<char>> input) {
       j--;
     }
 
-    if (j < 0) {
+    if (j < 0)
       break;
-    }
 
     indices[j]++;
   }
@@ -48,11 +52,8 @@ vector<string> cartesian_product (vector<std::vector<char>> input) {
 bool is_in (char x, vector<char> chars) {
   return std::find (chars.begin (), chars.end (), x) != chars.end ();
 }
-
-// Euclidean mod
-int64_t e_mod (int64_t a, int64_t b) {
-  int64_t r = a % b;
-  return r >= 0 ? r : r + abs (b);
+bool is_in (int x, vector<int> y) {
+  return std::find (y.begin (), y.end (), x) != y.end ();
 }
 
 int64_t _int_diff (char *chars) {
@@ -165,9 +166,9 @@ vector<string> gen_vars (vector<string> words) {
   // Deal with the constants but treat them as derived variables
   for (int i = cols_count - 1; i >= 0; i--) {
     int sum = 0;
-    for (int j = 0; j < words_count; j++) {
+    for (int j = 0; j < words_count; j++)
       sum += words[j][i] == 'u' ? 1 : 0;
-    }
+
     assert (sum >= 0 && sum <= 2);
     if (sum == 2)
       var_cols[i - 1].push_back ('1');
@@ -307,12 +308,11 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
   int n = words[0].size (), m = words.size ();
   // Skip if all words are grounded
   bool all_grounded = true;
-  for (int i = 0; i < m; i++) {
-    for (int j = 0; j < n; j++) {
+  for (int i = 0; i < m; i++)
+    for (int j = 0; j < n; j++)
       if (!is_in (words[i][j], {'n', 'u', '1', '0', '-'}))
         all_grounded = false;
-    }
-  }
+
   if (all_grounded)
     return words;
 
@@ -394,6 +394,156 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
 
   auto derived_words = apply_grounding (words, var_cols, var_values);
   return derived_words;
+}
+
+void load_prop_rules (string path) {
+  ifstream rules_db (path);
+  int id;
+  string input, output;
+  while (rules_db >> id >> input >> output) {
+    string key = to_string (id) + input;
+    io_prop_rules.insert ({key, output});
+  }
+}
+
+string get_prop_rule (int id, string input) {
+  string key = to_string (id) + input;
+  return io_prop_rules[key];
+}
+
+string propagate (int id, vector<string> input_words, char *original) {
+  int n = input_words[0].size (), m = input_words.size ();
+  string output_word (n, '?');
+  for (int i = 0; i < n; i++) {
+    string key = "";
+    for (int j = 0; j < m; j++)
+      key += input_words[j][i];
+    string output = get_prop_rule (id, key);
+    if (output.size () == 0) {
+      output_word[i] = original[i];
+      continue;
+    }
+    output_word[i] = output[0];
+  }
+
+  return output_word;
+}
+
+void prop_with_int_diff (int equation_id, vector<string> words,
+                         State &state, int step) {
+  vector<int> underived_indices;
+  int words_count = words.size ();
+  vector<int64_t> word_diffs (words_count);
+  for (int i = 0; i < words_count; i++) {
+    // TODO: Convert all char* to string
+    string word = "";
+    for (int j = 0; j < 32; j++)
+      word.push_back (words[i][j]);
+    words[i] = word;
+
+    int64_t int_diff = _int_diff ((char *) words[i].c_str ());
+    // cout << step << " " << words[i] << " " << int_diff << endl;
+    if (int_diff != -1)
+      word_diffs[i] =
+          ((i == 0 || (equation_id == ADD_A_ID && i == 2)) ? 1 : -1) *
+          int_diff;
+    else
+      underived_indices.push_back (i);
+  }
+
+  int underived_count = underived_indices.size ();
+  if (underived_count != 1 && underived_count != 2)
+    return;
+  // cout << underived_count << endl;
+  int64_t constant = 0;
+  for (int i = 0; i < words_count; i++)
+    constant += is_in (i, underived_indices) ? 0 : word_diffs[i];
+  constant = e_mod (constant, int64_t (pow (2, 32)));
+
+  for (int i = 0; i < underived_count; i++) {
+    auto index = underived_indices[i];
+    if (index == 0 || (equation_id == ADD_A_ID && index == 2))
+      constant *= -1;
+  }
+  vector<string> underived_words;
+  for (int i = 0; i < underived_count; i++)
+    underived_words.push_back (words[underived_indices[i]]);
+  auto derived_words = derive_words (underived_words, constant);
+
+  auto set_word = [] (string &new_word, Word &old_word) {
+    char *chars = old_word.chars;
+    int n = new_word.size ();
+    for (int i = 0; i < n; i++)
+      chars[i] = new_word[i];
+  };
+
+  for (int i = 0; i < underived_count; i++) {
+    auto index = underived_indices[i];
+    string new_word = derived_words[i];
+    // cout << new_word << endl;
+    switch (equation_id) {
+    case ADD_W_ID:
+      switch (index) {
+      case 0:
+        set_word (new_word, state.steps[step].w);
+        break;
+      case 1:
+        set_word (new_word, state.steps[step].s1);
+        break;
+      case 2:
+        set_word (new_word, state.steps[step - 7].w);
+        break;
+      case 3:
+        set_word (new_word, state.steps[step].s0);
+        break;
+      case 4:
+        set_word (new_word, state.steps[step - 16].w);
+        break;
+      }
+      break;
+    case ADD_E_ID:
+      switch (index) {
+      case 0:
+        set_word (new_word, state.steps[ABS_STEP (step)].e);
+        break;
+      case 1:
+        set_word (new_word, state.steps[ABS_STEP (step - 4)].a);
+        break;
+      case 2:
+        set_word (new_word, state.steps[ABS_STEP (step - 4)].e);
+        break;
+      case 3:
+        set_word (new_word, state.steps[step].sigma1);
+        break;
+      case 4:
+        set_word (new_word, state.steps[step].ch);
+        break;
+      case 5:
+        set_word (new_word, state.steps[step].w);
+        break;
+      }
+      break;
+    case ADD_A_ID:
+      switch (index) {
+      case 0:
+        set_word (new_word, state.steps[ABS_STEP (step)].a);
+        break;
+      case 1:
+        set_word (new_word, state.steps[ABS_STEP (step)].e);
+        break;
+      case 2:
+        set_word (new_word, state.steps[ABS_STEP (step - 4)].a);
+        break;
+      case 3:
+        set_word (new_word, state.steps[step].sigma0);
+        break;
+      case 4:
+        set_word (new_word, state.steps[step].maj);
+        break;
+      }
+      break;
+    }
+  }
 }
 
 } // namespace SHA256
