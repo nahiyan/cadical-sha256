@@ -31,7 +31,7 @@ struct Word {
   // f and g refer to the 2 blocks of SHA-256
   uint32_t ids_f[32], ids_g[32], diff_ids[32];
   // Differential characteristics
-  char chars[32];
+  string chars;
 };
 
 struct Step {

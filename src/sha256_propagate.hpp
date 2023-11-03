@@ -37,7 +37,7 @@ vector<string> apply_grounding (vector<string> words,
                                 vector<char> values);
 vector<string> derive_words (vector<string> words, int64_t constant);
 void load_prop_rules (string path);
-string propagate (int id, vector<string> input_words, char *original);
+string propagate (int id, vector<string> input_words, string original);
 void prop_with_int_diff (int equation_id, vector<string> words,
                          State &state, int step);
 } // namespace SHA256

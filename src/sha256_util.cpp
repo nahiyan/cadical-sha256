@@ -10,8 +10,8 @@ int64_t e_mod (int64_t a, int64_t b) {
   return r >= 0 ? r : r + abs (b);
 }
 
-string rotate_word (char *word, int amount, bool is_circular) {
-  string rotated (strlen (word), '0');
+string rotate_word (string word, int amount, bool is_circular) {
+  string rotated (word);
   int n = rotated.size ();
   int m = -1;
   if (!is_circular)

@@ -330,6 +330,7 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
   } stash;
   vector<Island> islands;
   bool last_does_overflow = false;
+  vector<int> overflow_brute_force_indices;
   for (int i = n - 1; i >= 0; i--) {
     // Skip if there's nothing in the stash and there's no variable either
     if (stash.cols.size () == 0 && var_cols[i].size () == 0)
@@ -411,14 +412,14 @@ string get_prop_rule (int id, string input) {
   return io_prop_rules[key];
 }
 
-string propagate (int id, vector<string> input_words, char *original) {
+string propagate (int id, vector<string> input_words, string original) {
   int n = input_words[0].size (), m = input_words.size ();
   string output_word (n, '?');
   for (int i = 0; i < n; i++) {
-    string key = "";
+    string input = "";
     for (int j = 0; j < m; j++)
-      key += input_words[j][i];
-    string output = get_prop_rule (id, key);
+      input += input_words[j][i];
+    string output = get_prop_rule (id, input);
     if (output.size () == 0) {
       output_word[i] = original[i];
       continue;
@@ -435,12 +436,6 @@ void prop_with_int_diff (int equation_id, vector<string> words,
   int words_count = words.size ();
   vector<int64_t> word_diffs (words_count);
   for (int i = 0; i < words_count; i++) {
-    // TODO: Convert all char* to string
-    string word = "";
-    for (int j = 0; j < 32; j++)
-      word.push_back (words[i][j]);
-    words[i] = word;
-
     int64_t int_diff = _int_diff ((char *) words[i].c_str ());
     // cout << step << " " << words[i] << " " << int_diff << endl;
     if (int_diff != -1)
@@ -471,16 +466,12 @@ void prop_with_int_diff (int equation_id, vector<string> words,
   auto derived_words = derive_words (underived_words, constant);
 
   auto set_word = [] (string &new_word, Word &old_word) {
-    char *chars = old_word.chars;
-    int n = new_word.size ();
-    for (int i = 0; i < n; i++)
-      chars[i] = new_word[i];
+    old_word.chars = new_word;
   };
 
   for (int i = 0; i < underived_count; i++) {
     auto index = underived_indices[i];
     string new_word = derived_words[i];
-    // cout << new_word << endl;
     switch (equation_id) {
     case ADD_W_ID:
       switch (index) {

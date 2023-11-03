@@ -17,7 +17,7 @@ int counter = 0;
 Propagator::Propagator (CaDiCaL::Solver *solver) {
 #ifndef NDEBUG
   run_tests ();
-  exit (0);
+  // exit (0);
 #endif
   this->solver = solver;
   solver->connect_external_propagator (this);
@@ -149,18 +149,17 @@ void Propagator::notify_backtrack (size_t new_level) {
     current_trail.pop_back ();
   }
 
-  // TODO: Refresh state
   refresh_state ();
 }
 
 void Propagator::notify_new_decision_level () {
   current_trail.push_back (std::vector<int> ());
-  // TODO: Refresh state
   refresh_state ();
   print_state ();
 }
 
 void refresh_chars (Word &word, PartialAssignment &partial_assignment) {
+  word.chars = string (32, '?');
   for (int i = 0; i < 32; i++) {
     auto id_f = word.ids_f[i];
     auto id_g = word.ids_g[i];
@@ -170,9 +169,6 @@ void refresh_chars (Word &word, PartialAssignment &partial_assignment) {
                          partial_assignment.get (diff_id)};
 
     char &c = word.chars[i];
-
-    // printf ("%d %d %d\n", values[0], values[1], values[2]);
-
     if (values[0] == LIT_UNDEF && values[1] == LIT_UNDEF &&
         values[2] != LIT_UNDEF)
       c = values[2] == LIT_TRUE ? 'x' : '-';
@@ -196,12 +192,12 @@ void refresh_chars (Word &word, PartialAssignment &partial_assignment) {
 void Propagator::refresh_state () {
   for (int i = -4; i < Propagator::order; i++) {
     // step < 0
-    auto &step = Propagator::state.steps[ABS_STEP (i)];
+    auto &step = state.steps[ABS_STEP (i)];
     refresh_chars (step.a, partial_assignment);
     refresh_chars (step.e, partial_assignment);
 
     if (i >= 0) {
-      auto &step = Propagator::state.steps[i];
+      auto &step = state.steps[i];
       refresh_chars (step.w, partial_assignment);
       refresh_chars (step.sigma0, partial_assignment);
       refresh_chars (step.sigma1, partial_assignment);
@@ -214,25 +210,23 @@ void Propagator::refresh_state () {
 
         {
           // s0
-          char *word = Propagator::state.steps[i - 15].w.chars;
+          string word = state.steps[i - 15].w.chars;
           vector<string> inputs (3);
           inputs[0] = rotate_word (word, -7);
           inputs[1] = rotate_word (word, -18);
           inputs[2] = rotate_word (word, -3, false);
-          string output =
+          step.s0.chars =
               propagate (IO_PROP_XOR3_ID, inputs, step.s0.chars);
-          copy (output.begin (), output.end (), step.s0.chars);
         }
         {
           // s1
-          char *word = Propagator::state.steps[i - 2].w.chars;
+          string word = state.steps[i - 2].w.chars;
           vector<string> inputs (3);
           inputs[0] = rotate_word (word, -17);
           inputs[1] = rotate_word (word, -19);
           inputs[2] = rotate_word (word, -10, false);
-          string output =
+          step.s1.chars =
               propagate (IO_PROP_XOR3_ID, inputs, step.s1.chars);
-          copy (output.begin (), output.end (), step.s1.chars);
         }
 
         prop_with_int_diff (ADD_W_ID,
@@ -246,47 +240,42 @@ void Propagator::refresh_state () {
                             state, i);
       }
 
-      // TODO: Fix this
-      // {
-      //   // sigma0
-      //   char *word = Propagator::state.steps[STEP (i - 1)].a.chars;
-      //   vector<string> inputs (3);
-      //   inputs[0] = rotate_word (word, -2);
-      //   inputs[1] = rotate_word (word, -13);
-      //   inputs[2] = rotate_word (word, -22);
-      //   string output =
-      //       propagate (IO_PROP_XOR3_ID, inputs, step.sigma0.chars);
-      //   copy (output.begin (), output.end (), step.sigma0.chars);
-      // }
-      // {
-      //   // sigma1
-      //   char *word = Propagator::state.steps[STEP (i - 1)].e.chars;
-      //   vector<string> inputs (3);
-      //   inputs[0] = rotate_word (word, -6);
-      //   inputs[1] = rotate_word (word, -11);
-      //   inputs[2] = rotate_word (word, -25);
-      //   string output =
-      //       propagate (IO_PROP_XOR3_ID, inputs, step.sigma1.chars);
-      //   copy (output.begin (), output.end (), step.sigma1.chars);
-      // }
+      {
+        // sigma0
+        string word = state.steps[ABS_STEP (i - 1)].a.chars;
+        vector<string> inputs (3);
+        inputs[0] = rotate_word (word, -2);
+        inputs[1] = rotate_word (word, -13);
+        inputs[2] = rotate_word (word, -22);
+        step.sigma0.chars =
+            propagate (IO_PROP_XOR3_ID, inputs, step.sigma0.chars);
+      }
+      {
+        // sigma1
+        string word = state.steps[ABS_STEP (i - 1)].e.chars;
+        vector<string> inputs (3);
+        inputs[0] = rotate_word (word, -6);
+        inputs[1] = rotate_word (word, -11);
+        inputs[2] = rotate_word (word, -25);
+        step.sigma1.chars =
+            propagate (IO_PROP_XOR3_ID, inputs, step.sigma1.chars);
+      }
 
       {
         // maj
         vector<string> inputs (3);
-        inputs[0] = Propagator::state.steps[ABS_STEP (i - 1)].a.chars;
-        inputs[1] = Propagator::state.steps[ABS_STEP (i - 2)].a.chars;
-        inputs[2] = Propagator::state.steps[ABS_STEP (i - 3)].a.chars;
-        string output = propagate (IO_PROP_MAJ_ID, inputs, step.maj.chars);
-        copy (output.begin (), output.end (), step.maj.chars);
+        inputs[0] = state.steps[ABS_STEP (i - 1)].a.chars;
+        inputs[1] = state.steps[ABS_STEP (i - 2)].a.chars;
+        inputs[2] = state.steps[ABS_STEP (i - 3)].a.chars;
+        step.maj.chars = propagate (IO_PROP_MAJ_ID, inputs, step.maj.chars);
       }
       {
         // ch
         vector<string> inputs (3);
-        inputs[0] = Propagator::state.steps[ABS_STEP (i - 1)].e.chars;
-        inputs[1] = Propagator::state.steps[ABS_STEP (i - 2)].e.chars;
-        inputs[2] = Propagator::state.steps[ABS_STEP (i - 3)].e.chars;
-        string output = propagate (IO_PROP_CH_ID, inputs, step.ch.chars);
-        copy (output.begin (), output.end (), step.ch.chars);
+        inputs[0] = state.steps[ABS_STEP (i - 1)].e.chars;
+        inputs[1] = state.steps[ABS_STEP (i - 2)].e.chars;
+        inputs[2] = state.steps[ABS_STEP (i - 3)].e.chars;
+        step.ch.chars = propagate (IO_PROP_CH_ID, inputs, step.ch.chars);
       }
 
       prop_with_int_diff (ADD_E_ID,
@@ -316,34 +305,25 @@ void Propagator::print_state () {
   // if (++counter % 300 != 0)
   //   return;
 
-  auto c_str = [] (char *chars) {
-    string s;
-    for (int i = 0; i < 32; i++) {
-      s += chars[i];
-    }
-    return s;
-  };
-
   for (int i = -4; i < Propagator::order; i++) {
-    auto &step = Propagator::state.steps[ABS_STEP (i)];
+    auto &step = state.steps[ABS_STEP (i)];
     printf ("%d", i);
     printf (i < 0 || i > 9 ? " " : "  ");
-    printf ("%s %s", c_str (step.a.chars).c_str (),
-            c_str (step.e.chars).c_str ());
+    printf ("%s %s", step.a.chars.c_str (), step.e.chars.c_str ());
     if (i >= 0) {
-      auto &step_ = Propagator::state.steps[i];
-      printf (" %s", c_str (step_.w.chars).c_str ());
+      auto &step_ = state.steps[i];
+      printf (" %s", step_.w.chars.c_str ());
       if (i >= 16) {
-        printf (" %s", c_str (step_.s0.chars).c_str ());
-        printf (" %s", c_str (step_.s1.chars).c_str ());
+        printf (" %s", step_.s0.chars.c_str ());
+        printf (" %s", step_.s1.chars.c_str ());
       } else {
         printf ("                                 ");
         printf ("                                 ");
       }
-      printf (" %s", c_str (step_.sigma0.chars).c_str ());
-      printf (" %s", c_str (step_.sigma1.chars).c_str ());
-      printf (" %s", c_str (step_.maj.chars).c_str ());
-      printf (" %s", c_str (step_.ch.chars).c_str ());
+      printf (" %s", step_.sigma0.chars.c_str ());
+      printf (" %s", step_.sigma1.chars.c_str ());
+      printf (" %s", step_.maj.chars.c_str ());
+      printf (" %s", step_.ch.chars.c_str ());
     }
     printf ("\n");
   }
