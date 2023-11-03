@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-#define STEP(i) (i + 4)
+#define ABS_STEP(i) (i + 4)
 #define LIT_TRUE 2
 #define LIT_FALSE 1
 #define LIT_UNDEF 0
