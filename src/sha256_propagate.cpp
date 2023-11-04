@@ -404,14 +404,24 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
   return derived_words;
 }
 
-void load_prop_rules (string path) {
-  ifstream rules_db (path);
-  int id;
+void load_prop_rules (const char *path) {
+  ifstream db (path);
+  if (!db) {
+    printf ("Rules database not found. Can you ensure that '%s' "
+            "exists in the current working directory?\n",
+            path);
+    exit (1);
+  }
+  int id, count = 0;
   string input, output;
-  while (rules_db >> id >> input >> output) {
+  while (db >> id >> input >> output) {
     string key = to_string (id) + input;
     io_prop_rules.insert ({key, output});
+    count++;
   }
+
+  printf ("Loaded %d rules into %ld buckets\n", count,
+          io_prop_rules.bucket_count ());
 }
 
 string get_prop_rule (int id, string input) {
