@@ -1,4 +1,5 @@
 #include "sha256.hpp"
+#include "sha256_2_bit.hpp"
 #include "sha256_propagate.hpp"
 #include "sha256_tests.hpp"
 #include "sha256_util.hpp"
@@ -24,13 +25,14 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   printf ("Connected!\n");
   current_trail.push_back (std::vector<int> ());
   load_prop_rules ("prop-rules.db");
+  load_two_bit_rules ("2-bit-rules.db");
 }
 
-void Propagator::add_observed_vars (Word *word, CaDiCaL::Solver *&solver) {
+void Propagator::add_observed_vars (Word &word, CaDiCaL::Solver *&solver) {
   for (int i = 0; i < 32; i++) {
-    solver->add_observed_var (word->ids_f[i]);
-    solver->add_observed_var (word->ids_g[i]);
-    solver->add_observed_var (word->diff_ids[i]);
+    solver->add_observed_var (word.ids_f[i]);
+    solver->add_observed_var (word.ids_g[i]);
+    solver->add_observed_var (word.diff_ids[i]);
   }
 }
 
@@ -41,57 +43,18 @@ void Propagator::parse_comment_line (string line,
   int value;
   iss >> key >> value;
 
-  auto add_vars = [] (string prefix, string key, int value, bool is_f,
-                      CaDiCaL::Solver *&solver) {
-    if (has_prefix (prefix, key)) {
-      // Get the step number
-      regex pattern ("_(\\d+)_[fg]");
-      smatch match;
-      int step;
-      if (regex_search (key, match, pattern)) {
-        step = stoi (match[1].str ());
-      } else {
-        printf ("Warning: Failed to load IDs from %s\n", key.c_str ());
-        return;
-      }
-
-      // Get the word
-      Word *word = NULL;
-      if (prefix == "A_" || prefix == "DA_")
-        word = &state.steps[step].a;
-      else if (prefix == "E_" || prefix == "DE_")
-        word = &state.steps[step].e;
-      else if (prefix == "W_" || prefix == "DW_")
-        word = &state.steps[step].w;
-      else if (prefix == "s0_" || prefix == "Ds0_")
-        word = &state.steps[step].s0;
-      else if (prefix == "s1_" || prefix == "Ds1_")
-        word = &state.steps[step].s1;
-      else if (prefix == "sigma0_" || prefix == "Dsigma0_")
-        word = &state.steps[step].sigma0;
-      else if (prefix == "sigma1_" || prefix == "Dsigma1_")
-        word = &state.steps[step].sigma1;
-      else if (prefix == "if_" || prefix == "Dif_")
-        word = &state.steps[step].ch;
-      else if (prefix == "maj_" || prefix == "Dmaj_")
-        word = &state.steps[step].maj;
-
-      // Add the IDs
-      for (int i = 31, id = value; i >= 0; i--, id++) {
-        if (prefix[0] == 'D')
-          word->diff_ids[i] = id;
-        else if (is_f)
-          word->ids_f[i] = id;
-        else
-          word->ids_g[i] = id;
-      }
-
-      // Add to observed vars
-      if (word->ids_f[0] != 0 && word->ids_g[0] != 0 &&
-          word->diff_ids[0] != 0)
-        add_observed_vars (word, solver);
-    }
-  };
+  // Get the step
+  regex pattern ("(.+_)(\\d+)_[fg]");
+  smatch match;
+  int step;
+  string actual_prefix;
+  if (regex_search (key, match, pattern)) {
+    actual_prefix = match[1];
+    step = stoi (match[2].str ());
+  } else {
+    // printf ("Warning: Failed to load IDs from %s\n", key.c_str ());
+    return;
+  }
 
   // Determine the order
   if (has_prefix ("DW_", key))
@@ -101,33 +64,42 @@ void Propagator::parse_comment_line (string line,
   // Determine the block
   bool is_f = key.back () == 'f';
 
-  // A
-  add_vars ("A_", key, value, is_f, solver);
-  add_vars ("DA_", key, value, is_f, solver);
-  // E
-  add_vars ("E_", key, value, is_f, solver);
-  add_vars ("DE_", key, value, is_f, solver);
-  // W
-  add_vars ("W_", key, value, is_f, solver);
-  add_vars ("DW_", key, value, is_f, solver);
-  // s0
-  add_vars ("s0_", key, value, is_f, solver);
-  add_vars ("Ds0_", key, value, is_f, solver);
-  // s1
-  add_vars ("s1_", key, value, is_f, solver);
-  add_vars ("Ds1_", key, value, is_f, solver);
-  // sigma0
-  add_vars ("sigma0_", key, value, is_f, solver);
-  add_vars ("Dsigma0_", key, value, is_f, solver);
-  // sigma1
-  add_vars ("sigma1_", key, value, is_f, solver);
-  add_vars ("Dsigma1_", key, value, is_f, solver);
-  // if
-  add_vars ("if_", key, value, is_f, solver);
-  add_vars ("Dif_", key, value, is_f, solver);
-  // maj
-  add_vars ("maj_", key, value, is_f, solver);
-  add_vars ("Dmaj_", key, value, is_f, solver);
+  // Pair the prefixes with the words
+  vector<pair<string, Word &>> prefix_pairs = {
+      {"A_", state.steps[step].a},
+      {"E_", state.steps[step].e},
+      {"W_", state.steps[step].w},
+      {"s0_", state.steps[step].s0},
+      {"s1_", state.steps[step].s1},
+      {"sigma0_", state.steps[step].sigma0},
+      {"sigma1_", state.steps[step].sigma1},
+      {"maj_", state.steps[step].maj},
+      {"if_", state.steps[step].ch},
+  };
+
+  for (auto &pair : prefix_pairs) {
+    auto &word = pair.second;
+    string prefixes[] = {pair.first, 'D' + pair.first};
+
+    for (auto &prefix : prefixes) {
+      if (prefix != actual_prefix)
+        continue;
+
+      // Add the IDs
+      for (int i = 31, id = value; i >= 0; i--, id++) {
+        if (prefix[0] == 'D')
+          word.diff_ids[i] = id;
+        else if (is_f)
+          word.ids_f[i] = id;
+        else
+          word.ids_g[i] = id;
+      }
+
+      // Add to observed vars
+      if (word.ids_f[0] != 0 && word.ids_g[0] != 0 && word.diff_ids[0] != 0)
+        add_observed_vars (word, solver);
+    }
+  }
 }
 
 void Propagator::notify_assignment (int lit, bool is_fixed) {
