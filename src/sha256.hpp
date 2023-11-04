@@ -65,7 +65,6 @@ class Propagator : CaDiCaL::ExternalPropagator {
   PartialAssignment partial_assignment;
   void print_state ();
   void refresh_state ();
-  static void add_observed_vars (Word &word, CaDiCaL::Solver *&solver);
 
 public:
   Propagator (CaDiCaL::Solver *solver);

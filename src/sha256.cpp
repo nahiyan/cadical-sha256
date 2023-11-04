@@ -28,14 +28,6 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   load_two_bit_rules ("2-bit-rules.db");
 }
 
-void Propagator::add_observed_vars (Word &word, CaDiCaL::Solver *&solver) {
-  for (int i = 0; i < 32; i++) {
-    solver->add_observed_var (word.ids_f[i]);
-    solver->add_observed_var (word.ids_g[i]);
-    solver->add_observed_var (word.diff_ids[i]);
-  }
-}
-
 void Propagator::parse_comment_line (string line,
                                      CaDiCaL::Solver *&solver) {
   istringstream iss (line);
@@ -97,7 +89,11 @@ void Propagator::parse_comment_line (string line,
 
       // Add to observed vars
       if (word.ids_f[0] != 0 && word.ids_g[0] != 0 && word.diff_ids[0] != 0)
-        add_observed_vars (word, solver);
+        for (int i = 0; i < 32; i++) {
+          solver->add_observed_var (word.ids_f[i]);
+          solver->add_observed_var (word.ids_g[i]);
+          solver->add_observed_var (word.diff_ids[i]);
+        }
     }
   }
 }
