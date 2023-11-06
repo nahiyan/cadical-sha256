@@ -13,6 +13,7 @@ using namespace std;
 
 int Propagator::order = 0;
 State Propagator::state = State{};
+Operations Propagator::operations[64];
 int counter = 0;
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
@@ -35,6 +36,16 @@ void Propagator::parse_comment_line (string line,
   int value;
   iss >> key >> value;
 
+  // Determine the order
+  if (key == "order") {
+    order = value;
+
+    // Since this is the last comment, set the operations
+    set_operations ();
+
+    return;
+  }
+
   // Get the step
   regex pattern ("(.+_)(\\d+)_[fg]");
   smatch match;
@@ -47,11 +58,6 @@ void Propagator::parse_comment_line (string line,
     // printf ("Warning: Failed to load IDs from %s\n", key.c_str ());
     return;
   }
-
-  // Determine the order
-  if (has_prefix ("DW_", key))
-    Propagator::order =
-        max (std::stoi (key.substr (3)) + 1, Propagator::order);
 
   // Determine the block
   bool is_f = key.back () == 'f';
@@ -123,6 +129,7 @@ void Propagator::notify_backtrack (size_t new_level) {
 void Propagator::notify_new_decision_level () {
   current_trail.push_back (std::vector<int> ());
   refresh_state ();
+  derive_two_bit_equations (state, operations, order);
   print_state ();
 }
 
@@ -158,7 +165,7 @@ void refresh_chars (Word &word, PartialAssignment &partial_assignment) {
 }
 
 void Propagator::refresh_state () {
-  for (int i = -4; i < Propagator::order; i++) {
+  for (int i = -4; i < order; i++) {
     // step < 0
     auto &step = state.steps[ABS_STEP (i)];
     refresh_chars (step.a, partial_assignment);
@@ -172,59 +179,63 @@ void Propagator::refresh_state () {
       refresh_chars (step.ch, partial_assignment);
       refresh_chars (step.maj, partial_assignment);
 
+      // Operation inputs
+      for (int j = 0; j < 3; j++) {
+        refresh_chars (operations[i].sigma0.inputs[j], partial_assignment);
+        refresh_chars (operations[i].sigma1.inputs[j], partial_assignment);
+        refresh_chars (operations[i].maj.inputs[j], partial_assignment);
+        refresh_chars (operations[i].ch.inputs[j], partial_assignment);
+      }
+
       if (i >= 16) {
         refresh_chars (step.s0, partial_assignment);
         refresh_chars (step.s1, partial_assignment);
 
+        // Operation inputs
+        for (int j = 0; j < 3; j++) {
+          refresh_chars (operations[i].s0.inputs[j], partial_assignment);
+          refresh_chars (operations[i].s1.inputs[j], partial_assignment);
+        }
+
         {
           // s0
-          string word = state.steps[i - 15].w.chars;
           vector<string> inputs (3);
-          inputs[0] = rotate_word (word, -7);
-          inputs[1] = rotate_word (word, -18);
-          inputs[2] = rotate_word (word, -3, false);
+          for (int j = 0; j < 3; j++)
+            inputs[j] = operations[i].s0.inputs[j].chars;
           step.s0.chars =
               propagate (IO_PROP_XOR3_ID, inputs, step.s0.chars);
         }
         {
           // s1
-          string word = state.steps[i - 2].w.chars;
           vector<string> inputs (3);
-          inputs[0] = rotate_word (word, -17);
-          inputs[1] = rotate_word (word, -19);
-          inputs[2] = rotate_word (word, -10, false);
+          for (int j = 0; j < 3; j++)
+            inputs[j] = operations[i].s1.inputs[j].chars;
           step.s1.chars =
               propagate (IO_PROP_XOR3_ID, inputs, step.s1.chars);
         }
 
-        prop_with_int_diff (ADD_W_ID,
-                            {
-                                state.steps[i].w.chars,
-                                state.steps[i].s1.chars,
-                                state.steps[i - 7].w.chars,
-                                state.steps[i].s0.chars,
-                                state.steps[i - 16].w.chars,
-                            },
-                            state, i);
+        prop_with_int_diff (ADD_W_ID, {
+                                          &state.steps[i].w.chars,
+                                          &state.steps[i].s1.chars,
+                                          &state.steps[i - 7].w.chars,
+                                          &state.steps[i].s0.chars,
+                                          &state.steps[i - 16].w.chars,
+                                      });
       }
 
       {
         // sigma0
-        string word = state.steps[ABS_STEP (i - 1)].a.chars;
         vector<string> inputs (3);
-        inputs[0] = rotate_word (word, -2);
-        inputs[1] = rotate_word (word, -13);
-        inputs[2] = rotate_word (word, -22);
+        for (int j = 0; j < 3; j++)
+          inputs[j] = operations[i].sigma0.inputs[j].chars;
         step.sigma0.chars =
             propagate (IO_PROP_XOR3_ID, inputs, step.sigma0.chars);
       }
       {
         // sigma1
-        string word = state.steps[ABS_STEP (i - 1)].e.chars;
         vector<string> inputs (3);
-        inputs[0] = rotate_word (word, -6);
-        inputs[1] = rotate_word (word, -11);
-        inputs[2] = rotate_word (word, -25);
+        for (int j = 0; j < 3; j++)
+          inputs[j] = operations[i].sigma1.inputs[j].chars;
         step.sigma1.chars =
             propagate (IO_PROP_XOR3_ID, inputs, step.sigma1.chars);
       }
@@ -232,39 +243,35 @@ void Propagator::refresh_state () {
       {
         // maj
         vector<string> inputs (3);
-        inputs[0] = state.steps[ABS_STEP (i - 1)].a.chars;
-        inputs[1] = state.steps[ABS_STEP (i - 2)].a.chars;
-        inputs[2] = state.steps[ABS_STEP (i - 3)].a.chars;
+        for (int j = 0; j < 3; j++)
+          inputs[j] = operations[i].maj.inputs[j].chars;
         step.maj.chars = propagate (IO_PROP_MAJ_ID, inputs, step.maj.chars);
       }
       {
         // ch
         vector<string> inputs (3);
-        inputs[0] = state.steps[ABS_STEP (i - 1)].e.chars;
-        inputs[1] = state.steps[ABS_STEP (i - 2)].e.chars;
-        inputs[2] = state.steps[ABS_STEP (i - 3)].e.chars;
+        for (int j = 0; j < 3; j++)
+          inputs[j] = operations[i].ch.inputs[j].chars;
         step.ch.chars = propagate (IO_PROP_CH_ID, inputs, step.ch.chars);
       }
 
       prop_with_int_diff (ADD_E_ID,
                           {
-                              state.steps[ABS_STEP (i)].e.chars,
-                              state.steps[ABS_STEP (i - 4)].a.chars,
-                              state.steps[ABS_STEP (i - 4)].e.chars,
-                              state.steps[i].sigma1.chars,
-                              state.steps[i].ch.chars,
-                              state.steps[i].w.chars,
-                          },
-                          state, i);
+                              &state.steps[ABS_STEP (i)].e.chars,
+                              &state.steps[ABS_STEP (i - 4)].a.chars,
+                              &state.steps[ABS_STEP (i - 4)].e.chars,
+                              &state.steps[i].sigma1.chars,
+                              &state.steps[i].ch.chars,
+                              &state.steps[i].w.chars,
+                          });
       prop_with_int_diff (ADD_A_ID,
                           {
-                              state.steps[ABS_STEP (i)].a.chars,
-                              state.steps[ABS_STEP (i)].e.chars,
-                              state.steps[ABS_STEP (i - 4)].a.chars,
-                              state.steps[i].sigma0.chars,
-                              state.steps[i].maj.chars,
-                          },
-                          state, i);
+                              &state.steps[ABS_STEP (i)].a.chars,
+                              &state.steps[ABS_STEP (i)].e.chars,
+                              &state.steps[ABS_STEP (i - 4)].a.chars,
+                              &state.steps[i].sigma0.chars,
+                              &state.steps[i].maj.chars,
+                          });
     }
   }
 }

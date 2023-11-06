@@ -8,18 +8,14 @@
 
 namespace SHA256 {
 void test_int_diff () {
-  // printf ("Testing _int_diff\n");
-  assert (_int_diff ((char *) "0n0n001001u-1u1n01un010n01n00110") ==
-          2955087584);
-  assert (_int_diff ((char *) "nnnnn-nnnn--------nuu-----------") ==
-          71301120);
-  assert (_int_diff ((char *) "nnnnn-nnnA--------nuu-----------") == -1);
-  assert (_int_diff ((char *) "--------------------------------") == 0);
-  assert (_int_diff ((char *) "0n0n001001u") == 1409);
+  assert (_int_diff ("0n0n001001u-1u1n01un010n01n00110") == 2955087584);
+  assert (_int_diff ("nnnnn-nnnn--------nuu-----------") == 71301120);
+  assert (_int_diff ("nnnnn-nnnA--------nuu-----------") == -1);
+  assert (_int_diff ("--------------------------------") == 0);
+  assert (_int_diff ("0n0n001001u") == 1409);
 }
 
 void test_adjust_constant () {
-  // printf ("Testing adjust_gcs\n");
   assert (2196 == adjust_constant ("--xxxx-xx--x",
                                    adjust_constant ("--B--D-BBBB-", 1147)));
 }
@@ -138,12 +134,11 @@ void test_derive_words () {
 
 void test_rotate_word () {
   assert ("u10u101u0-0u1-nn-n-u-1u---11un0u" ==
-          rotate_word ((char *) "0u1-nn-n-u-1u---11un0uu10u101u0-", -10));
+          rotate_word ("0u1-nn-n-u-1u---11un0uu10u101u0-", -10));
   assert ("u0-0u1-nn-n-u-1u---11un0uu10u101" ==
-          rotate_word ((char *) "0u1-nn-n-u-1u---11un0uu10u101u0-", -3));
-  assert (
-      "0000u1-nn-n-u-1u---11un0uu10u101" ==
-      rotate_word ((char *) "0u1-nn-n-u-1u---11un0uu10u101u0-", -3, false));
+          rotate_word ("0u1-nn-n-u-1u---11un0uu10u101u0-", -3));
+  assert ("0000u1-nn-n-u-1u---11un0uu10u101" ==
+          rotate_word ("0u1-nn-n-u-1u---11un0uu10u101u0-", -3, false));
 }
 
 void run_tests () {

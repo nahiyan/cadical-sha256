@@ -56,11 +56,11 @@ bool is_in (int x, vector<int> y) {
   return std::find (y.begin (), y.end (), x) != y.end ();
 }
 
-int64_t _int_diff (char *chars) {
-  size_t n = strlen (chars);
+int64_t _int_diff (string word) {
+  size_t n = word.size ();
   int64_t value = 0;
   for (size_t i = 0; i < n; i++) {
-    char gc = chars[n - 1 - i];
+    char gc = word[n - 1 - i];
     if (!is_in (gc, {'u', 'n', '-', '1', '0'}))
       return -1;
 
@@ -306,13 +306,13 @@ vector<string> apply_grounding (vector<string> words,
 
 vector<string> derive_words (vector<string> words, int64_t constant) {
   int n = words[0].size (), m = words.size ();
+
   // Skip if all words are grounded
   bool all_grounded = true;
   for (int i = 0; i < m; i++)
     for (int j = 0; j < n; j++)
       if (!is_in (words[i][j], {'n', 'u', '1', '0', '-'}))
         all_grounded = false;
-
   if (all_grounded)
     return words;
 
@@ -447,14 +447,12 @@ string propagate (int id, vector<string> input_words, string original) {
   return output_word;
 }
 
-void prop_with_int_diff (int equation_id, vector<string> words,
-                         State &state, int step) {
+void prop_with_int_diff (int equation_id, vector<string *> words) {
   vector<int> underived_indices;
   int words_count = words.size ();
   vector<int64_t> word_diffs (words_count);
   for (int i = 0; i < words_count; i++) {
-    int64_t int_diff = _int_diff ((char *) words[i].c_str ());
-    // cout << step << " " << words[i] << " " << int_diff << endl;
+    int64_t int_diff = _int_diff ((char *) words[i]->c_str ());
     if (int_diff != -1)
       word_diffs[i] =
           ((i == 0 || (equation_id == ADD_A_ID && i == 2)) ? 1 : -1) *
@@ -466,7 +464,6 @@ void prop_with_int_diff (int equation_id, vector<string> words,
   int underived_count = underived_indices.size ();
   if (underived_count != 1 && underived_count != 2)
     return;
-  // cout << underived_count << endl;
   int64_t constant = 0;
   for (int i = 0; i < words_count; i++)
     constant += is_in (i, underived_indices) ? 0 : word_diffs[i];
@@ -479,78 +476,13 @@ void prop_with_int_diff (int equation_id, vector<string> words,
   }
   vector<string> underived_words;
   for (int i = 0; i < underived_count; i++)
-    underived_words.push_back (words[underived_indices[i]]);
+    underived_words.push_back (*words[underived_indices[i]]);
   auto derived_words = derive_words (underived_words, constant);
-
-  auto set_word = [] (string &new_word, Word &old_word) {
-    old_word.chars = new_word;
-  };
 
   for (int i = 0; i < underived_count; i++) {
     auto index = underived_indices[i];
     string new_word = derived_words[i];
-    switch (equation_id) {
-    case ADD_W_ID:
-      switch (index) {
-      case 0:
-        set_word (new_word, state.steps[step].w);
-        break;
-      case 1:
-        set_word (new_word, state.steps[step].s1);
-        break;
-      case 2:
-        set_word (new_word, state.steps[step - 7].w);
-        break;
-      case 3:
-        set_word (new_word, state.steps[step].s0);
-        break;
-      case 4:
-        set_word (new_word, state.steps[step - 16].w);
-        break;
-      }
-      break;
-    case ADD_E_ID:
-      switch (index) {
-      case 0:
-        set_word (new_word, state.steps[ABS_STEP (step)].e);
-        break;
-      case 1:
-        set_word (new_word, state.steps[ABS_STEP (step - 4)].a);
-        break;
-      case 2:
-        set_word (new_word, state.steps[ABS_STEP (step - 4)].e);
-        break;
-      case 3:
-        set_word (new_word, state.steps[step].sigma1);
-        break;
-      case 4:
-        set_word (new_word, state.steps[step].ch);
-        break;
-      case 5:
-        set_word (new_word, state.steps[step].w);
-        break;
-      }
-      break;
-    case ADD_A_ID:
-      switch (index) {
-      case 0:
-        set_word (new_word, state.steps[ABS_STEP (step)].a);
-        break;
-      case 1:
-        set_word (new_word, state.steps[ABS_STEP (step)].e);
-        break;
-      case 2:
-        set_word (new_word, state.steps[ABS_STEP (step - 4)].a);
-        break;
-      case 3:
-        set_word (new_word, state.steps[step].sigma0);
-        break;
-      case 4:
-        set_word (new_word, state.steps[step].maj);
-        break;
-      }
-      break;
-    }
+    *words[index] = new_word;
   }
 }
 

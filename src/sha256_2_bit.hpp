@@ -19,6 +19,8 @@ using namespace std;
 
 namespace SHA256 {
 void load_two_bit_rules (const char *filename);
+void derive_two_bit_equations (State &state, Operations *operations,
+                               int order);
 } // namespace SHA256
 
 #endif

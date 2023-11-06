@@ -24,7 +24,7 @@
 using namespace std;
 
 namespace SHA256 {
-int64_t _int_diff (char *chars);
+int64_t _int_diff (string word);
 int64_t adjust_constant (string word, int64_t constant,
                          vector<char> adjustable_gcs = {});
 bool is_congruent (int64_t a, int64_t b, int64_t m);
@@ -38,8 +38,7 @@ vector<string> apply_grounding (vector<string> words,
 vector<string> derive_words (vector<string> words, int64_t constant);
 void load_prop_rules (const char *path);
 string propagate (int id, vector<string> input_words, string original);
-void prop_with_int_diff (int equation_id, vector<string> words,
-                         State &state, int step);
+void prop_with_int_diff (int equation_id, vector<string *> words);
 } // namespace SHA256
 
 #endif

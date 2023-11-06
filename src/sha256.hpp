@@ -57,12 +57,47 @@ public:
   }
 };
 
+struct Operations {
+  struct S0 {
+    Word inputs[3];
+  } s0;
+  struct S1 {
+    Word inputs[3];
+  } s1;
+  struct Sigma0 {
+    Word inputs[3];
+  } sigma0;
+  struct Sigma1 {
+    Word inputs[3];
+  } sigma1;
+  struct Maj {
+    Word inputs[3];
+  } maj;
+  struct Ch {
+    Word inputs[3];
+  } ch;
+  struct AddT {
+    Word inputs[7];
+  } add_t;
+  struct AddE {
+    Word inputs[4];
+  } add_e;
+  struct AddW {
+    Word inputs[6];
+  } add_w;
+  struct AddA {
+    Word inputs[4];
+  } add_a;
+};
+
 class Propagator : CaDiCaL::ExternalPropagator {
   CaDiCaL::Solver *solver;
   std::deque<std::vector<int>> current_trail;
   static int order;
   static State state;
+  static Operations operations[64];
   PartialAssignment partial_assignment;
+  static void set_operations ();
   void print_state ();
   void refresh_state ();
 
