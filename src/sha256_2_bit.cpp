@@ -96,10 +96,7 @@ vector<Equation> derive_two_bit_equations (State &state,
                 equations, value, inputs, j,
                 {"W_" + to_string (i - 15) + "," + to_string (indices[0]),
                  "W_" + to_string (i - 15) + "," + to_string (indices[1]),
-                 j >= 3 ? "W_" + to_string (i - 15) + "," +
-                              to_string (indices[2])
-                        : "",
-                 ""});
+                 "W_" + to_string (i - 15) + "," + to_string (indices[2])});
         }
       }
       {
@@ -125,10 +122,7 @@ vector<Equation> derive_two_bit_equations (State &state,
                 equations, value, inputs, j,
                 {"W_" + to_string (i - 2) + "," + to_string (indices[0]),
                  "W_" + to_string (i - 2) + "," + to_string (indices[1]),
-                 j >= 3 ? "W_" + to_string (i - 2) + "," +
-                              to_string (indices[2])
-                        : "",
-                 ""});
+                 "W_" + to_string (i - 2) + "," + to_string (indices[2])});
         }
       }
     }
@@ -153,8 +147,7 @@ vector<Equation> derive_two_bit_equations (State &state,
               equations, value, inputs, j,
               {"A_" + to_string (i - 1) + "," + to_string (indices[0]),
                "A_" + to_string (i - 1) + "," + to_string (indices[1]),
-               "A_" + to_string (i - 1) + "," + to_string (indices[2]),
-               ""});
+               "A_" + to_string (i - 1) + "," + to_string (indices[2])});
       }
     }
     {
@@ -177,8 +170,7 @@ vector<Equation> derive_two_bit_equations (State &state,
               equations, value, inputs, j,
               {"E_" + to_string (i - 1) + "," + to_string (indices[0]),
                "E_" + to_string (i - 1) + "," + to_string (indices[1]),
-               "E_" + to_string (i - 1) + "," + to_string (indices[2]),
-               ""});
+               "E_" + to_string (i - 1) + "," + to_string (indices[2])});
       }
     }
     {
@@ -198,7 +190,7 @@ vector<Equation> derive_two_bit_equations (State &state,
               equations, value, inputs, j,
               {"A_" + to_string (i - 1) + "," + to_string (31 - j),
                "A_" + to_string (i - 2) + "," + to_string (31 - j),
-               "A_" + to_string (i - 3) + "," + to_string (31 - j), ""});
+               "A_" + to_string (i - 3) + "," + to_string (31 - j)});
       }
     }
     {
@@ -218,7 +210,7 @@ vector<Equation> derive_two_bit_equations (State &state,
               equations, value, inputs, j,
               {"E_" + to_string (i - 1) + "," + to_string (31 - j),
                "E_" + to_string (i - 2) + "," + to_string (31 - j),
-               "E_" + to_string (i - 3) + "," + to_string (31 - j), ""});
+               "E_" + to_string (i - 3) + "," + to_string (31 - j)});
       }
     }
   }
