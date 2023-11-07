@@ -73,6 +73,15 @@ void Propagator::parse_comment_line (string line,
       {"sigma1_", state.steps[step].sigma1},
       {"maj_", state.steps[step].maj},
       {"if_", state.steps[step].ch},
+      {"T_", state.steps[step].t},
+      {"K_", state.steps[step].k},
+      {"add.W.r0_", state.steps[step].add_w_r[0]},
+      {"add.W.r1_", state.steps[step].add_w_r[1]},
+      {"add.T.r0_", state.steps[step].add_t_r[0]},
+      {"add.T.r1_", state.steps[step].add_t_r[1]},
+      {"add.E.r0_", state.steps[step].add_e_r[0]},
+      {"add.A.r0_", state.steps[step].add_a_r[0]},
+      {"add.A.r1_", state.steps[step].add_a_r[1]},
   };
 
   for (auto &pair : prefix_pairs) {
@@ -178,6 +187,13 @@ void Propagator::refresh_state () {
       refresh_chars (step.sigma1, partial_assignment);
       refresh_chars (step.ch, partial_assignment);
       refresh_chars (step.maj, partial_assignment);
+      refresh_chars (step.k, partial_assignment);
+      refresh_chars (step.t, partial_assignment);
+      refresh_chars (step.add_t_r[0], partial_assignment);
+      refresh_chars (step.add_t_r[1], partial_assignment);
+      refresh_chars (step.add_e_r[0], partial_assignment);
+      refresh_chars (step.add_a_r[0], partial_assignment);
+      refresh_chars (step.add_a_r[1], partial_assignment);
 
       // Operation inputs
       for (int j = 0; j < 3; j++) {
@@ -190,6 +206,8 @@ void Propagator::refresh_state () {
       if (i >= 16) {
         refresh_chars (step.s0, partial_assignment);
         refresh_chars (step.s1, partial_assignment);
+        refresh_chars (step.add_w_r[0], partial_assignment);
+        refresh_chars (step.add_w_r[1], partial_assignment);
 
         // Operation inputs
         for (int j = 0; j < 3; j++) {
@@ -202,6 +220,7 @@ void Propagator::refresh_state () {
           vector<string> inputs (3);
           for (int j = 0; j < 3; j++)
             inputs[j] = operations[i].s0.inputs[j].chars;
+
           step.s0.chars =
               propagate (IO_PROP_XOR3_ID, inputs, step.s0.chars);
         }

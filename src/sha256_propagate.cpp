@@ -7,6 +7,7 @@
 #include <fstream>
 #include <set>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 
@@ -483,6 +484,68 @@ void prop_with_int_diff (int equation_id, vector<string *> words) {
     auto index = underived_indices[i];
     string new_word = derived_words[i];
     *words[index] = new_word;
+  }
+}
+
+void propagate_carries (State &state, Operations *all_operations,
+                        int order) {
+  auto get_value = [] (char diff_char, int block) {
+    if (diff_char == 'u')
+      return block == 0 ? '1' : '0';
+    else if (diff_char == 'n')
+      return block == 0 ? '0' : '1';
+    else if (diff_char == '0')
+      return '0';
+    else if (diff_char == '1')
+      return '1';
+    else if (diff_char == '3')
+      return block == 1 ? '0' : '?';
+    else if (diff_char == '5')
+      return block == 0 ? '0' : '?';
+    else if (diff_char == 'A')
+      return block == 0 ? '1' : '?';
+    else if (diff_char == 'C')
+      return block == 1 ? '1' : '?';
+    else
+      return '?';
+  };
+
+  for (int block = 0; block < 2; block++) {
+    for (int i = 0; i < order; i++) {
+      auto &operations = all_operations[i];
+      vector<tuple<Word *, Word *, int, int>> add_operations = {
+          {(Word *) operations.add_w.inputs,
+           (Word *) operations.add_w.carries, 4, 2},
+          {(Word *) operations.add_t.inputs,
+           (Word *) operations.add_t.carries, 5, 2},
+          {(Word *) operations.add_e.inputs,
+           (Word *) operations.add_e.carries, 2, 1},
+          {(Word *) operations.add_a.inputs,
+           (Word *) operations.add_a.carries, 3, 2}};
+
+      for (auto &operation : add_operations) {
+        auto &inputs = get<0> (operation);
+        auto &carries = get<1> (operation);
+        auto &inputs_count = get<2> (operation);
+        auto &carries_count = get<3> (operation);
+        for (int j = 31; j >= 0; j--) {
+          int count_1 = 0, count_0 = 0, count_u = 0;
+          for (int k = 0; k < inputs_count; k++) {
+            auto value = get_value (inputs[k].chars[j], block);
+            if (value == '?')
+              count_u++;
+            else if (value == '1')
+              count_1++;
+            else if (value == '0')
+              count_0++;
+          }
+          for (int k = 0; k < carries_count; k++) {
+            // TODO: Do it tomorrow
+            // TODO: Current column's addend will have T-2 and t-1
+          }
+        }
+      }
+    }
   }
 }
 

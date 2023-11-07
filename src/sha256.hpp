@@ -35,26 +35,12 @@ struct Word {
 };
 
 struct Step {
-  Word a, e, w, s0, s1, sigma0, sigma1, ch, maj;
+  Word a, e, w, s0, s1, sigma0, sigma1, ch, maj, k, t, add_w_r[2],
+      add_t_r[2], add_e_r[1], add_a_r[2];
 };
 
 struct State {
   Step steps[64 + 4];
-};
-
-class PartialAssignment {
-  uint8_t variables[50000];
-
-public:
-  void set (int lit) {
-    int id = abs (lit);
-    variables[id] = lit > 0 ? LIT_TRUE : LIT_FALSE;
-  }
-  uint8_t get (int id) { return variables[id]; }
-  void unset (int lit) {
-    int id = abs (lit);
-    variables[id] = LIT_UNDEF;
-  }
 };
 
 struct Operations {
@@ -76,18 +62,37 @@ struct Operations {
   struct Ch {
     Word inputs[3];
   } ch;
+  struct AddW {
+    Word *inputs[4];
+    Word *carries[2];
+  } add_w;
   struct AddT {
-    Word inputs[7];
+    Word *inputs[5];
+    Word *carries[2];
   } add_t;
   struct AddE {
-    Word inputs[4];
+    Word *inputs[2];
+    Word *carries[1];
   } add_e;
-  struct AddW {
-    Word inputs[6];
-  } add_w;
   struct AddA {
-    Word inputs[4];
+    Word *inputs[3];
+    Word *carries[2];
   } add_a;
+};
+
+class PartialAssignment {
+  uint8_t variables[50000];
+
+public:
+  void set (int lit) {
+    int id = abs (lit);
+    variables[id] = lit > 0 ? LIT_TRUE : LIT_FALSE;
+  }
+  uint8_t get (int id) { return variables[id]; }
+  void unset (int lit) {
+    int id = abs (lit);
+    variables[id] = LIT_UNDEF;
+  }
 };
 
 class Propagator : CaDiCaL::ExternalPropagator {

@@ -50,6 +50,15 @@ void Propagator::set_operations () {
                            : operations[i].s1.inputs[j].diff_ids);
         }
       }
+      {
+        // add.W
+        Word *words[] = {&state.steps[i].s1, &state.steps[i - 7].w,
+                         &state.steps[i].s0, &state.steps[i - 16].w};
+        for (int j = 0; j < 4; j++)
+          operations[i].add_w.inputs[j] = words[j];
+        for (int j = 0; j < 2; j++)
+          operations[i].add_w.carries[j] = &state.steps[i].add_w_r[j];
+      }
     }
 
     {
@@ -111,6 +120,39 @@ void Propagator::set_operations () {
           operations[i].ch.inputs[j].ids_g[k] = words[j].ids_g[k];
           operations[i].ch.inputs[j].diff_ids[k] = words[j].diff_ids[k];
         }
+    }
+    {
+      // add.T
+      Word *words[] = {
+          &state.steps[ABS_STEP (i - 4)].e,
+          &state.steps[i].sigma1,
+          &state.steps[i].ch,
+          &state.steps[i].k,
+          &state.steps[i].w,
+      };
+      for (int j = 0; j < 5; j++)
+        operations[i].add_t.inputs[j] = words[j];
+      for (int j = 0; j < 2; j++)
+        operations[i].add_t.carries[j] = &state.steps[i].add_t_r[j];
+    }
+    {
+      // add.E
+      Word *words[] = {
+          &state.steps[ABS_STEP (i - 4)].a,
+          &state.steps[i].t,
+      };
+      for (int j = 0; j < 2; j++)
+        operations[i].add_e.inputs[j] = words[j];
+      operations[i].add_e.carries[0] = &state.steps[i].add_e_r[0];
+    }
+    {
+      // add.A
+      Word *words[] = {&state.steps[i].t, &state.steps[i].sigma0,
+                       &state.steps[i].maj};
+      for (int j = 0; j < 3; j++)
+        operations[i].add_a.inputs[j] = words[j];
+      for (int j = 0; j < 2; j++)
+        operations[i].add_a.carries[j] = &state.steps[i].add_a_r[j];
     }
   }
 }
