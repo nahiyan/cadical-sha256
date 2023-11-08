@@ -81,7 +81,8 @@ struct Operations {
 };
 
 class PartialAssignment {
-  uint8_t variables[50000];
+  // TODO: Construct with size of max(observed_vars) in the heap
+  uint8_t variables[100000];
 
 public:
   void set (int lit) {
@@ -97,7 +98,8 @@ public:
 
 class Propagator : CaDiCaL::ExternalPropagator {
   CaDiCaL::Solver *solver;
-  std::deque<std::vector<int>> current_trail;
+  // TODO: Use more efficient data structure
+  deque<std::vector<int>> current_trail;
   static int order;
   static State state;
   static Operations operations[64];
@@ -105,6 +107,10 @@ class Propagator : CaDiCaL::ExternalPropagator {
   static void set_operations ();
   void print_state ();
   void refresh_state ();
+  void prop_addition_weakly ();
+
+  vector<int> propagation_lits;
+  map<int, vector<int>> reason_clauses;
 
 public:
   Propagator (CaDiCaL::Solver *solver);
@@ -119,6 +125,8 @@ public:
   bool cb_has_external_clause () { return false; }
   int cb_add_external_clause_lit () { return 0; }
   int cb_decide () { return 0; }
+  int cb_propagate ();
+  int cb_add_reason_clause_lit (int propagated_lit);
   static void parse_comment_line (string line, CaDiCaL::Solver *&solver);
 };
 } // namespace SHA256

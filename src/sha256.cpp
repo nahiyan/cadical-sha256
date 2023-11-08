@@ -14,7 +14,7 @@ using namespace std;
 int Propagator::order = 0;
 State Propagator::state = State{};
 Operations Propagator::operations[64];
-int counter = 0;
+int64_t counter = 0;
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
 #ifndef NDEBUG
@@ -321,5 +321,7 @@ void Propagator::print_state () {
     }
     printf ("\n");
   }
+
+  // !Debug
   exit (0);
 }

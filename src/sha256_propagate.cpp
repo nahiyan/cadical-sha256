@@ -487,8 +487,7 @@ void prop_with_int_diff (int equation_id, vector<string *> words) {
   }
 }
 
-void propagate_carries (State &state, Operations *all_operations,
-                        int order) {
+void Propagator::prop_addition_weakly () {
   auto get_value = [] (char diff_char, int block) {
     if (diff_char == 'u')
       return block == 0 ? '1' : '0';
@@ -510,39 +509,160 @@ void propagate_carries (State &state, Operations *all_operations,
       return '?';
   };
 
-  for (int block = 0; block < 2; block++) {
+  auto get_id = [] (Word *word, int j, int block) {
+    return block == 0 ? word->ids_f[j] : word->ids_g[j];
+  };
+
+  for (int block = 0; block < 1; block++) {
     for (int i = 0; i < order; i++) {
-      auto &operations = all_operations[i];
-      vector<tuple<Word *, Word *, int, int>> add_operations = {
-          {(Word *) operations.add_w.inputs,
-           (Word *) operations.add_w.carries, 4, 2},
-          {(Word *) operations.add_t.inputs,
-           (Word *) operations.add_t.carries, 5, 2},
-          {(Word *) operations.add_e.inputs,
-           (Word *) operations.add_e.carries, 2, 1},
-          {(Word *) operations.add_a.inputs,
-           (Word *) operations.add_a.carries, 3, 2}};
+      auto &step_operations = operations[i];
+      vector<tuple<Word **, Word **, int, int>> add_operations = {
+          // {step_operations.add_t.inputs, step_operations.add_t.carries,
+          // 5,
+          //  2},
+          // {step_operations.add_e.inputs, step_operations.add_e.carries,
+          // 2,
+          //  1},
+          // {step_operations.add_a.inputs, step_operations.add_a.carries,
+          // 3,
+          //  2}
+      };
+      if (i >= 16)
+        add_operations.push_back ({step_operations.add_w.inputs,
+                                   step_operations.add_w.carries, 4, 2});
 
       for (auto &operation : add_operations) {
         auto &inputs = get<0> (operation);
         auto &carries = get<1> (operation);
         auto &inputs_count = get<2> (operation);
         auto &carries_count = get<3> (operation);
-        for (int j = 31; j >= 0; j--) {
+
+        for (int j = 0; j < 32; j++) {
           int count_1 = 0, count_0 = 0, count_u = 0;
+
+          // Process the addends
+          vector<char> addends;
+          vector<int> addend_ids;
+          int r[] = {-1, -1};
           for (int k = 0; k < inputs_count; k++) {
-            auto value = get_value (inputs[k].chars[j], block);
-            if (value == '?')
+            addends.push_back (inputs[k]->chars[31 - j]);
+            addend_ids.push_back (get_id (inputs[k], 31 - j, block));
+          }
+
+          // Current column's addends include T-2 and t-1
+          if (j - 1 >= 0) {
+            addends.push_back (carries[0]->chars[31 - j + 1]);
+            r[0] = get_id (carries[0], 31 - j, block);
+            addend_ids.push_back (get_id (carries[0], 31 - j + 1, block));
+          }
+          if (j - 2 >= 0 && carries_count > 1) {
+            addends.push_back (carries[1]->chars[31 - j + 2]);
+            r[1] = get_id (carries[1], 31 - j, block);
+            addend_ids.push_back (get_id (carries[1], 31 - j + 2, block));
+          }
+          int addends_count = addends.size ();
+
+          // Count the 3 types of addends
+          vector<uint32_t> undefined_ids, one_ids, zero_ids;
+          for (int k = 0; k < addends_count; k++) {
+            // Get the value for the block
+            auto value = get_value (addends[k], block);
+            if (value == '?') {
               count_u++;
-            else if (value == '1')
+              undefined_ids.push_back (addend_ids[k]);
+            } else if (value == '1') {
               count_1++;
-            else if (value == '0')
+              one_ids.push_back (addend_ids[k]);
+            } else if (value == '0') {
               count_0++;
+              zero_ids.push_back (addend_ids[k]);
+            }
           }
-          for (int k = 0; k < carries_count; k++) {
-            // TODO: Do it tomorrow
-            // TODO: Current column's addend will have T-2 and t-1
+          assert (count_0 + count_1 + count_u == addends_count);
+
+          // Propagate the carries
+          if (!(addends_count >= 5 && addends_count <= 7))
+            continue;
+
+          bool has_high_carry = r[1] != -1, has_low_carry = r[0] != -1;
+          bool is_high_carry_undef =
+                   has_high_carry &&
+                   partial_assignment.get (r[1]) == LIT_UNDEF,
+               is_low_carry_undef =
+                   has_low_carry &&
+                   partial_assignment.get (r[0]) == LIT_UNDEF;
+
+          if (has_high_carry && is_high_carry_undef) {
+            // Carry propagation: r1 = 1 if input >= 4
+            if (count_1 >= 4) {
+              propagation_lits.push_back (r[1]);
+              vector<int> reason_clause;
+              for (auto &id : one_ids)
+                reason_clause.push_back (id);
+              reason_clauses.insert ({r[1], reason_clause});
+              return;
+            }
+            // Carry propagation: r1 = 0 if input < 4
+            // if (count_0 >= 4) {
+            //   propagation_lits.push_back (-r[1]);
+            //   vector<int> reason_clause;
+            //   for (auto &id : zero_ids)
+            //     reason_clause.push_back (-id);
+            //   reason_clauses.insert ({-r[1], reason_clause});
+            //   return;
+            // }
           }
+
+          // if (has_low_carry && is_low_carry_undef) {
+          //   // Carry propagation: r0 = 1 if input >= 6 or 2 <= input < 4
+          //   if (count_1 >= 6 || (2 <= count_1 && count_1 + count_u < 4))
+          //   {
+          //     propagation_lits.push_back (r[0]);
+          //     vector<int> reason_clause;
+          //     for (auto &id : one_ids)
+          //       reason_clause.push_back (id);
+          //     for (auto &id : zero_ids)
+          //       reason_clause.push_back (-id);
+          //     reason_clauses.insert ({r[0], reason_clause});
+          //     return;
+          //   }
+          //   // Carry propagation: r0 = 0 if input < 2 or 4 <= input < 6
+          //   if (count_0 >= 6 || (4 <= count_1 && count_1 + count_u < 6))
+          //   {
+          //     propagation_lits.push_back (-r[0]);
+          //     vector<int> reason_clause;
+          //     for (auto &id : one_ids)
+          //       reason_clause.push_back (id);
+          //     for (auto &id : zero_ids)
+          //       reason_clause.push_back (-id);
+          //     reason_clauses.insert ({-r[0], reason_clause});
+          //     return;
+          //   }
+          // }
+
+          // if (has_high_carry && !is_high_carry_undef) {
+          //   bool is_r1_true = partial_assignment.get (r[1]) == LIT_TRUE;
+          //   // Addend propagation: input <= 3 if r1 = 0
+          //   if (!is_r1_true && count_1 == 3)
+          //     for (int k = 0; k < count_u; k++) {
+          //       propagation_lits.push_back (-undefined_ids[k]);
+          //       vector<int> reason_clause;
+          //       reason_clause.push_back (-undefined_ids[k]);
+          //       reason_clause.push_back (-r[1]);
+          //       reason_clauses.insert ({-undefined_ids[k],
+          //       reason_clause});
+          //     }
+          //   // Addend propagation: input >= 4 if r1 = 1
+          //   else if (is_r1_true && count_1 + count_u == 4)
+          //     for (int k = 0; k < count_u; k++) {
+          //       propagation_lits.push_back (undefined_ids[k]);
+          //       vector<int> reason_clause;
+          //       reason_clause.push_back (undefined_ids[k]);
+          //       reason_clause.push_back (r[1]);
+          //       reason_clauses.insert ({undefined_ids[k],
+          //       reason_clause});
+          //     }
+          // }
         }
       }
     }
