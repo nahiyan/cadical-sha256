@@ -1,4 +1,4 @@
 build
 makefile
 *.db
-*.txt
+prop_log.txt
