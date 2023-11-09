@@ -1,6 +1,7 @@
 // vim: set tw=300: set VIM text width to 300 characters for this file.
 
 #include "internal.hpp"
+#include "sha256.hpp"
 
 namespace CaDiCaL {
 
@@ -545,6 +546,8 @@ void Internal::print_resource_usage () {
        internal->real_time ());
   MSG ("maximum resident set size of process:    %12.2f    MB",
        m / (double) (1l << 20));
+  MSG ("total callback time:                     %12.2f    seconds\n",
+       (float) SHA256::Propagator::stats.total_cb_time / CLOCKS_PER_SEC);
 #endif
 }
 

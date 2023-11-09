@@ -49,4 +49,21 @@ vector<uint32_t> rotate_word (vector<uint32_t> word, int amount,
 
   return rotated;
 }
+
+NTL::GF2 sum (NTL::vec_GF2 &v) {
+  NTL::GF2 sum = NTL::to_GF2 (0);
+  for (int i = 0; i < v.length (); i++)
+    sum += v[i];
+
+  return sum;
+}
+
+// TODO: May require refactoring
+int sum_dec_from_bin (NTL::vec_GF2 &v) {
+  int sum = 0;
+  for (int i = 0; i < v.length (); i++)
+    sum += NTL::conv<int> (v[i]);
+
+  return sum;
+}
 } // namespace SHA256

@@ -4,7 +4,9 @@
 #include "sha256_tests.hpp"
 #include "sha256_util.hpp"
 #include <cassert>
+#include <climits>
 #include <cstdio>
+#include <fstream>
 #include <regex>
 #include <string>
 
@@ -15,6 +17,7 @@ int Propagator::order = 0;
 State Propagator::state = State{};
 Operations Propagator::operations[64];
 int64_t counter = 0;
+Stats Propagator::stats = Stats{0};
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
 #ifndef NDEBUG
@@ -132,27 +135,171 @@ void Propagator::notify_backtrack (size_t new_level) {
     current_trail.pop_back ();
   }
 
-  refresh_state ();
+  // refresh_state ();
 }
+
+void test_equations (vector<Equation> &equations);
 
 void Propagator::notify_new_decision_level () {
   current_trail.push_back (std::vector<int> ());
-  refresh_state ();
-  derive_two_bit_equations (state, operations, order);
-  print_state ();
+  // if (++counter % 1000 != 0) {
+  //   return;
+  // }
+  // refresh_state ();
+  // derive_two_bit_equations (two_bit.equations, state, operations, order);
+  // test_equations (two_bit.equations[0]);
+  // print_state ();
+  // printf ("Debug: equations count = %ld\n", two_bit.equations[0].size
+  // ());
+
+  // prop_addition_weakly ();
 }
 
-void refresh_chars (Word &word, PartialAssignment &partial_assignment) {
+int Propagator::cb_decide () {
+  if (decision_lits.empty ())
+    return 0;
+  int lit = decision_lits.back ();
+  decision_lits.pop_back ();
+  printf ("Debug: decision %d\n", lit);
+  return lit;
+}
+int Propagator::cb_propagate () {
+  if (propagation_lits.empty ())
+    return 0;
+  int lit = propagation_lits.back ();
+  assert (lit != 0);
+  propagation_lits.pop_back ();
+  printf ("Debug: propagate %d\n", lit);
+  return lit;
+}
+
+int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
+  if (reason_clauses.find (propagated_lit) == reason_clauses.end ())
+    return 0;
+
+  auto &reason_clause = reason_clauses[propagated_lit];
+  int lit = reason_clause.back ();
+  reason_clause.pop_back ();
+  if (reason_clause.size () == 0)
+    reason_clauses.erase (propagated_lit);
+  printf ("Debug: asked for reason clause %d: %d\n", propagated_lit, lit);
+  return lit;
+}
+
+bool Propagator::cb_has_external_clause () {
+  // Check for 2-bit inconsistencies here
+  if (++counter % 2000 != 0) {
+    return false;
+  }
+  bool has_clause = false;
+
+  auto start_time = clock ();
+  refresh_state ();
+  derive_two_bit_equations (two_bit, state, operations, order);
+  for (int block_index = 0; block_index < 2; block_index++) {
+    auto confl_equations =
+        check_consistency (two_bit.equations[block_index], false);
+    bool is_inconsistent = !confl_equations.empty ();
+
+    // Block inconsistencies
+    if (is_inconsistent) {
+      block_inconsistency (two_bit, external_clauses, block_index);
+      has_clause = true;
+
+      // Keep only the shortest clause
+      {
+        int shortest_index = -1, shortest_length = INT_MAX;
+        for (int i = 0; i < int (external_clauses.size ()); i++) {
+          int size = external_clauses[i].size ();
+          if (size >= shortest_length)
+            continue;
+
+          shortest_length = size;
+          shortest_index = i;
+        }
+
+        auto clause = external_clauses[shortest_index];
+        external_clauses.clear ();
+        external_clauses.push_back (clause);
+        printf ("Debug: keeping shortest clause of size %ld: ",
+                clause.size ());
+        for (auto &lit : clause)
+          printf ("%d ", lit);
+        printf ("\n");
+      }
+    }
+  }
+  stats.total_cb_time += clock () - start_time;
+
+  return has_clause;
+}
+
+int Propagator::cb_add_external_clause_lit () {
+  if (external_clauses.empty ())
+    return 0;
+
+  auto &clause = external_clauses.back ();
+  int lit = clause.back ();
+  clause.pop_back ();
+  if (clause.empty ())
+    external_clauses.pop_back ();
+  printf ("Debug: gave EC lit %d\n", lit);
+  return lit;
+}
+
+// !Debug
+void test_equations (vector<Equation> &equations) {
+  std::ifstream file ("equations.txt");
+  std::string line;
+  std::regex pattern ("Equation\\(x='(.*?)', y='(.*?)', diff=(.*?)\\)");
+  vector<Equation> found_equations;
+  while (getline (file, line)) {
+    std::smatch match;
+    if (regex_search (line, match, pattern)) {
+      if (match.size () == 4) {
+        std::string x = match[1];
+        std::string y = match[2];
+        int diff = std::stoi (match[3]);
+
+        for (auto &equation : equations) {
+          if (equation.diff == diff &&
+              ((equation.names[0] == x && equation.names[1] == y) ||
+               (equation.names[1] == x && equation.names[0] == y)))
+            found_equations.push_back (equation);
+        }
+      }
+    } else {
+      std::cout << "No match found." << std::endl;
+    }
+  }
+
+  cout << "Unmatched equations: "
+       << equations.size () - found_equations.size () << endl;
+
+  cout << "Found " << found_equations.size () << " equations" << endl;
+  for (auto &equation : found_equations)
+    cout << equation.names[0] << " " << (equation.diff == 0 ? "=" : "=/=")
+         << " " << equation.names[1] << endl;
+}
+
+inline void refresh_chars (Word &word,
+                           PartialAssignment &partial_assignment) {
   word.chars = string (32, '?');
   for (int i = 0; i < 32; i++) {
     auto id_f = word.ids_f[i];
     auto id_g = word.ids_g[i];
     auto diff_id = word.diff_ids[i];
+    char &c = word.chars[i];
+
+    if (id_f == 0 || id_g == 0 || diff_id == 0) {
+      c = '?';
+      continue;
+    }
+
     uint8_t values[3] = {partial_assignment.get (id_f),
                          partial_assignment.get (id_g),
                          partial_assignment.get (diff_id)};
 
-    char &c = word.chars[i];
     if (values[0] == LIT_UNDEF && values[1] == LIT_UNDEF &&
         values[2] != LIT_UNDEF)
       c = values[2] == LIT_TRUE ? 'x' : '-';

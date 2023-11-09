@@ -1,0 +1,6 @@
+[submodule "ntl"]
+	path = ntl
+	url = https://github.com/libntl/ntl.git
+[submodule "gmp"]
+	path = gmp
+	url = https://github.com/alisw/GMP.git

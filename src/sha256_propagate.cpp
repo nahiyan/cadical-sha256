@@ -517,16 +517,12 @@ void Propagator::prop_addition_weakly () {
     for (int i = 0; i < order; i++) {
       auto &step_operations = operations[i];
       vector<tuple<Word **, Word **, int, int>> add_operations = {
-          // {step_operations.add_t.inputs, step_operations.add_t.carries,
-          // 5,
-          //  2},
-          // {step_operations.add_e.inputs, step_operations.add_e.carries,
-          // 2,
-          //  1},
-          // {step_operations.add_a.inputs, step_operations.add_a.carries,
-          // 3,
-          //  2}
-      };
+          {step_operations.add_t.inputs, step_operations.add_t.carries, 5,
+           2},
+          {step_operations.add_e.inputs, step_operations.add_e.carries, 2,
+           1},
+          {step_operations.add_a.inputs, step_operations.add_a.carries, 3,
+           2}};
       if (i >= 16)
         add_operations.push_back ({step_operations.add_w.inputs,
                                    step_operations.add_w.carries, 4, 2});
@@ -580,10 +576,10 @@ void Propagator::prop_addition_weakly () {
           }
           assert (count_0 + count_1 + count_u == addends_count);
 
-          // Propagate the carries
           if (!(addends_count >= 5 && addends_count <= 7))
             continue;
 
+          // printf ("Debug: carries %d: %d %d\n", j, r[0], r[1]);
           bool has_high_carry = r[1] != -1, has_low_carry = r[0] != -1;
           bool is_high_carry_undef =
                    has_high_carry &&
@@ -595,74 +591,90 @@ void Propagator::prop_addition_weakly () {
           if (has_high_carry && is_high_carry_undef) {
             // Carry propagation: r1 = 1 if input >= 4
             if (count_1 >= 4) {
-              propagation_lits.push_back (r[1]);
-              vector<int> reason_clause;
-              for (auto &id : one_ids)
-                reason_clause.push_back (id);
-              reason_clauses.insert ({r[1], reason_clause});
+              // vector<int> reason_clause;
+              // for (auto &id : one_ids) {
+              //   if (partial_assignment.get (id) == LIT_UNDEF)
+              //     return;
+              //   reason_clause.push_back (-id);
+              // }
+              // reason_clause.push_back (r[1]);
+
+              // propagation_lits.push_back (r[1]);
+              // reason_clauses.insert ({r[1], reason_clause});
+
+              // printf ("Debug: inserted reason clause for %d: ", r[1]);
+              // for (auto &lit : reason_clause)
+              //   printf ("%d ", partial_assignment.get (abs (lit)));
+              // printf ("\n");
+              decision_lits.push_back (r[1]);
               return;
             }
             // Carry propagation: r1 = 0 if input < 4
-            // if (count_0 >= 4) {
-            //   propagation_lits.push_back (-r[1]);
-            //   vector<int> reason_clause;
-            //   for (auto &id : zero_ids)
-            //     reason_clause.push_back (-id);
-            //   reason_clauses.insert ({-r[1], reason_clause});
-            //   return;
-            // }
+            if (count_0 >= 4) {
+              // propagation_lits.push_back (-r[1]);
+              // vector<int> reason_clause;
+              // for (auto &id : zero_ids)
+              //   reason_clause.push_back (-id);
+              // reason_clauses.insert ({-r[1], reason_clause});
+              decision_lits.push_back (-r[1]);
+              return;
+            }
           }
 
-          // if (has_low_carry && is_low_carry_undef) {
-          //   // Carry propagation: r0 = 1 if input >= 6 or 2 <= input < 4
-          //   if (count_1 >= 6 || (2 <= count_1 && count_1 + count_u < 4))
-          //   {
-          //     propagation_lits.push_back (r[0]);
-          //     vector<int> reason_clause;
-          //     for (auto &id : one_ids)
-          //       reason_clause.push_back (id);
-          //     for (auto &id : zero_ids)
-          //       reason_clause.push_back (-id);
-          //     reason_clauses.insert ({r[0], reason_clause});
-          //     return;
-          //   }
-          //   // Carry propagation: r0 = 0 if input < 2 or 4 <= input < 6
-          //   if (count_0 >= 6 || (4 <= count_1 && count_1 + count_u < 6))
-          //   {
-          //     propagation_lits.push_back (-r[0]);
-          //     vector<int> reason_clause;
-          //     for (auto &id : one_ids)
-          //       reason_clause.push_back (id);
-          //     for (auto &id : zero_ids)
-          //       reason_clause.push_back (-id);
-          //     reason_clauses.insert ({-r[0], reason_clause});
-          //     return;
-          //   }
-          // }
+          if (has_low_carry && is_low_carry_undef) {
+            // Carry propagation: r0 = 1 if input >= 6 or 2 <= input < 4
+            if (count_1 >= 6 || (2 <= count_1 && count_1 + count_u < 4)) {
+              // propagation_lits.push_back (r[0]);
+              // vector<int> reason_clause;
+              // for (auto &id : one_ids)
+              //   reason_clause.push_back (id);
+              // for (auto &id : zero_ids)
+              //   reason_clause.push_back (-id);
+              // reason_clauses.insert ({r[0], reason_clause});
+              decision_lits.push_back (r[0]);
+              return;
+            }
+            // Carry propagation: r0 = 0 if input < 2 or 4 <= input < 6
+            if (count_0 >= 6 || (4 <= count_1 && count_1 + count_u < 6)) {
+              // propagation_lits.push_back (-r[0]);
+              // vector<int> reason_clause;
+              // for (auto &id : one_ids)
+              //   reason_clause.push_back (id);
+              // for (auto &id : zero_ids)
+              //   reason_clause.push_back (-id);
+              // reason_clauses.insert ({-r[0], reason_clause});
+              decision_lits.push_back (-r[0]);
+              return;
+            }
+          }
 
-          // if (has_high_carry && !is_high_carry_undef) {
-          //   bool is_r1_true = partial_assignment.get (r[1]) == LIT_TRUE;
-          //   // Addend propagation: input <= 3 if r1 = 0
-          //   if (!is_r1_true && count_1 == 3)
-          //     for (int k = 0; k < count_u; k++) {
-          //       propagation_lits.push_back (-undefined_ids[k]);
-          //       vector<int> reason_clause;
-          //       reason_clause.push_back (-undefined_ids[k]);
-          //       reason_clause.push_back (-r[1]);
-          //       reason_clauses.insert ({-undefined_ids[k],
-          //       reason_clause});
-          //     }
-          //   // Addend propagation: input >= 4 if r1 = 1
-          //   else if (is_r1_true && count_1 + count_u == 4)
-          //     for (int k = 0; k < count_u; k++) {
-          //       propagation_lits.push_back (undefined_ids[k]);
-          //       vector<int> reason_clause;
-          //       reason_clause.push_back (undefined_ids[k]);
-          //       reason_clause.push_back (r[1]);
-          //       reason_clauses.insert ({undefined_ids[k],
-          //       reason_clause});
-          //     }
-          // }
+          if (has_high_carry && !is_high_carry_undef) {
+            bool is_r1_true = partial_assignment.get (r[1]) == LIT_TRUE;
+            // Addend propagation: input <= 3 if r1 = 0
+            if (!is_r1_true && count_1 == 3)
+              for (int k = 0; k < count_u; k++) {
+                // propagation_lits.push_back (-undefined_ids[k]);
+                // vector<int> reason_clause;
+                // reason_clause.push_back (-undefined_ids[k]);
+                // reason_clause.push_back (-r[1]);
+                // reason_clauses.insert ({-undefined_ids[k],
+                // reason_clause});
+                decision_lits.push_back (-undefined_ids[k]);
+                return;
+              }
+            // Addend propagation: input >= 4 if r1 = 1
+            else if (is_r1_true && count_1 + count_u == 4)
+              for (int k = 0; k < count_u; k++) {
+                // propagation_lits.push_back (undefined_ids[k]);
+                // vector<int> reason_clause;
+                // reason_clause.push_back (undefined_ids[k]);
+                // reason_clause.push_back (r[1]);
+                // reason_clauses.insert ({undefined_ids[k],
+                // reason_clause});
+                decision_lits.push_back (undefined_ids[k]);
+                return;
+              }
+          }
         }
       }
     }

@@ -3,6 +3,7 @@
 
 #include "cadical.hpp"
 #include <algorithm>
+#include <cassert>
 #include <deque>
 #include <iostream>
 #include <map>
@@ -14,17 +15,7 @@
 #define LIT_FALSE 1
 #define LIT_UNDEF 0
 
-inline bool has_prefix (std::string pre, std::string str) {
-  return str.compare (0, pre.size (), pre) == false;
-}
-
 using namespace std;
-
-inline std::string trim (std::string &str) {
-  str.erase (str.find_last_not_of (' ') + 1); // suffixing spaces
-  str.erase (0, str.find_first_not_of (' ')); // prefixing spaces
-  return str;
-}
 
 namespace SHA256 {
 struct Word {
@@ -80,6 +71,23 @@ struct Operations {
   } add_a;
 };
 
+struct Equation {
+  uint32_t ids[2];
+  string names[2];
+  uint8_t diff;
+
+  bool operator< (const Equation &other) const {
+    if (diff != other.diff)
+      return diff < other.diff;
+
+    for (int i = 0; i < 2; i++)
+      if (ids[i] != other.ids[i])
+        return ids[i] < other.ids[i];
+
+    return false; // Equal
+  }
+};
+
 class PartialAssignment {
   // TODO: Construct with size of max(observed_vars) in the heap
   uint8_t variables[100000];
@@ -89,11 +97,26 @@ public:
     int id = abs (lit);
     variables[id] = lit > 0 ? LIT_TRUE : LIT_FALSE;
   }
-  uint8_t get (int id) { return variables[id]; }
+  uint8_t get (int id) {
+    // printf ("Debug: get %d\n", id);
+    assert (id > 0);
+    return variables[id];
+  }
   void unset (int lit) {
     int id = abs (lit);
     variables[id] = LIT_UNDEF;
   }
+};
+
+struct TwoBit {
+public:
+  vector<Equation> equations[2];
+  map<int, int> aug_mtx_var_map;
+  map<Equation, vector<int>> equation_blk_lits_map;
+};
+
+struct Stats {
+  clock_t total_cb_time;
 };
 
 class Propagator : CaDiCaL::ExternalPropagator {
@@ -104,15 +127,22 @@ class Propagator : CaDiCaL::ExternalPropagator {
   static State state;
   static Operations operations[64];
   PartialAssignment partial_assignment;
+  vector<Equation> two_bit_eqs;
+  vector<int> propagation_lits;
+  map<int, vector<int>> reason_clauses;
+  // Assume that the external clauses are blocking clauses
+  vector<vector<int>> external_clauses;
+  vector<int> decision_lits;
+  TwoBit two_bit;
+
   static void set_operations ();
   void print_state ();
   void refresh_state ();
   void prop_addition_weakly ();
 
-  vector<int> propagation_lits;
-  map<int, vector<int>> reason_clauses;
-
 public:
+  static Stats stats;
+
   Propagator (CaDiCaL::Solver *solver);
   ~Propagator () { this->solver->disconnect_external_propagator (); }
   void notify_assignment (int lit, bool is_fixed);
@@ -122,9 +152,9 @@ public:
     (void) model;
     return true;
   }
-  bool cb_has_external_clause () { return false; }
-  int cb_add_external_clause_lit () { return 0; }
-  int cb_decide () { return 0; }
+  bool cb_has_external_clause ();
+  int cb_add_external_clause_lit ();
+  int cb_decide ();
   int cb_propagate ();
   int cb_add_reason_clause_lit (int propagated_lit);
   static void parse_comment_line (string line, CaDiCaL::Solver *&solver);

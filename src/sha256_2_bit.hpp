@@ -18,15 +18,14 @@
 using namespace std;
 
 namespace SHA256 {
-struct Equation {
-  uint32_t ids[2];
-  string names[2];
-  uint8_t diff;
-};
-
 void load_two_bit_rules (const char *filename);
-vector<Equation>
-derive_two_bit_equations (State &state, Operations *operations, int order);
+void derive_two_bit_equations (TwoBit &two_bit, State &state,
+                               Operations *operations, int order);
+vector<Equation> check_consistency (vector<Equation> &equations,
+                                    bool exhaustive);
+bool block_inconsistency (TwoBit &two_bit,
+                          vector<vector<int>> &external_clauses,
+                          int block_index = 0);
 } // namespace SHA256
 
 #endif
