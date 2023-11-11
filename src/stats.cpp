@@ -546,8 +546,12 @@ void Internal::print_resource_usage () {
        internal->real_time ());
   MSG ("maximum resident set size of process:    %12.2f    MB",
        m / (double) (1l << 20));
-  MSG ("total callback time:                     %12.2f    seconds\n",
-       (float) SHA256::Propagator::stats.total_cb_time / CLOCKS_PER_SEC);
+  double total_cb_time =
+      SHA256::Propagator::stats.total_cb_time / CLOCKS_PER_SEC;
+  MSG ("total callback time:                     %12.2f    seconds",
+       total_cb_time);
+  MSG ("discounted time:                         %12.2f    seconds",
+       internal->process_time () - total_cb_time);
 #endif
 }
 
