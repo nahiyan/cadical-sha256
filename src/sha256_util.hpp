@@ -16,6 +16,7 @@ int64_t e_mod (int64_t a, int64_t b);
 NTL::GF2 sum (NTL::vec_GF2 &v);
 
 int sum_dec_from_bin (NTL::vec_GF2 &v);
+void print (vector<int> clause);
 } // namespace SHA256
 
 #endif

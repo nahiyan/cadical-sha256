@@ -19,6 +19,7 @@ using namespace std;
 
 namespace SHA256 {
 struct Word {
+  // TODO: Rename "diff_ids" to delta_ids
   // f and g refer to the 2 blocks of SHA-256
   uint32_t ids_f[32], ids_g[32], diff_ids[32];
   // Differential characteristics
@@ -93,6 +94,11 @@ class PartialAssignment {
   uint8_t variables[100000];
 
 public:
+  PartialAssignment () {
+    for (int i = 0; i < 100000; i++)
+      variables[i] = LIT_UNDEF;
+  }
+
   void set (int lit) {
     int id = abs (lit);
     variables[id] = lit > 0 ? LIT_TRUE : LIT_FALSE;
@@ -109,10 +115,10 @@ public:
 };
 
 struct TwoBit {
-public:
   vector<Equation> equations[2];
   map<int, int> aug_mtx_var_map;
-  map<Equation, vector<int>> equation_blk_lits_map;
+  // IDs that contributed to the equation
+  map<Equation, vector<int>> equation_ids_map;
 };
 
 struct Stats {

@@ -66,4 +66,10 @@ int sum_dec_from_bin (NTL::vec_GF2 &v) {
 
   return sum;
 }
+
+void print (vector<int> clause) {
+  for (auto &lit : clause)
+    printf ("%d ", lit);
+  printf ("\n");
+}
 } // namespace SHA256

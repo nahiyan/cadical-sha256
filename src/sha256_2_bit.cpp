@@ -42,7 +42,6 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
                                 vector<Word> &outputs, int col_index,
                                 vector<string> names = {}) {
     int matrix_i = -1;
-    // words.push_back (Word{}); // Pretend this to be the output word
     int words_count = inputs.size () + outputs.size ();
     for (int k = 0; k < 2; k++) {
       for (int i = 0; i < words_count; i++) {
@@ -60,14 +59,15 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
 
           // Only allow inputs and outputs that can be defined in blocking
           // clause
-          bool skip = false;
-          for (auto &c : key) {
-            if (c != 'x' && c != 'n' && c != 'u' && c != '-' && c != '0' &&
-                c != '1')
-              skip = true;
-          }
-          if (skip)
-            continue;
+          // bool skip = false;
+          // for (auto &c : key) {
+          //   if (c != 'x' && c != 'n' && c != 'u' && c != '-' && c != '0'
+          //   &&
+          //       c != '1')
+          //     skip = true;
+          // }
+          // if (skip)
+          //   continue;
 
           Equation equation;
           equation.ids[0] = selected_ids[0];
@@ -90,31 +90,31 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
                   two_bit.aug_mtx_var_map.size ();
 
           // Connect the equation with the related variables
-          std::vector<Word> io = inputs;
-          io.insert (io.end (), outputs.begin (), outputs.end ());
-          vector<int> lits;
-          assert (key.size () - 1 == io.size ());
-          for (int x = 0; x < int (key.size ()); x++) {
-            char &c = key[x + 1];
-            if (c == '-' || c == '0' || c == '1')
-              lits.push_back (-io[x].diff_ids[col_index]);
-            else if (c == 'x' || c == 'u' || c == 'n')
-              lits.push_back (io[x].diff_ids[col_index]);
+          // std::vector<Word> io = inputs;
+          // io.insert (io.end (), outputs.begin (), outputs.end ());
+          // vector<int> lits;
+          // assert (key.size () - 1 == io.size ());
+          // for (int x = 0; x < int (key.size ()); x++) {
+          //   char &c = key[x + 1];
+          //   if (c == '-' || c == '0' || c == '1')
+          //     lits.push_back (-io[x].diff_ids[col_index]);
+          //   else if (c == 'x' || c == 'u' || c == 'n')
+          //     lits.push_back (io[x].diff_ids[col_index]);
 
-            if (c == 'u') {
-              lits.push_back (io[x].ids_f[col_index]);
-              lits.push_back (-io[x].ids_g[col_index]);
-            } else if (c == 'n') {
-              lits.push_back (-io[x].ids_f[col_index]);
-              lits.push_back (io[x].ids_g[col_index]);
-            } else if (c == '0') {
-              lits.push_back (-io[x].ids_f[col_index]);
-              lits.push_back (-io[x].ids_g[col_index]);
-            } else if (c == '1') {
-              lits.push_back (io[x].ids_f[col_index]);
-              lits.push_back (io[x].ids_g[col_index]);
-            }
-          }
+          //   if (c == 'u') {
+          //     lits.push_back (io[x].ids_f[col_index]);
+          //     lits.push_back (-io[x].ids_g[col_index]);
+          //   } else if (c == 'n') {
+          //     lits.push_back (-io[x].ids_f[col_index]);
+          //     lits.push_back (io[x].ids_g[col_index]);
+          //   } else if (c == '0') {
+          //     lits.push_back (-io[x].ids_f[col_index]);
+          //     lits.push_back (-io[x].ids_g[col_index]);
+          //   } else if (c == '1') {
+          //     lits.push_back (io[x].ids_f[col_index]);
+          //     lits.push_back (io[x].ids_g[col_index]);
+          //   }
+          // }
 
           // printf ("Debug: lits = ");
           // for (auto &lit : lits) {
@@ -123,14 +123,26 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
           // }
           // printf ("\n");
 
-          auto equation_vars_it =
-              two_bit.equation_blk_lits_map.find (equation);
-          if (equation_vars_it == two_bit.equation_blk_lits_map.end ())
-            two_bit.equation_blk_lits_map.insert ({equation, {}});
+          // Map the equation variables (if they don't exist)
+          std::vector<Word> io = inputs;
+          io.insert (io.end (), outputs.begin (), outputs.end ());
+          vector<int> vars;
+          for (auto &word : io) {
+            vars.push_back (word.ids_f[col_index]);
+            vars.push_back (word.ids_g[col_index]);
+            vars.push_back (word.diff_ids[col_index]);
+          }
+          // printf ("Detected 2-bit: %s %s %s\n", names[0].c_str (),
+          //         names[1].c_str (), names[2].c_str ());
+          // print (vars);
 
-          auto &equation_vars = two_bit.equation_blk_lits_map[equation];
-          for (auto &lit : lits)
-            equation_vars.push_back (lit);
+          auto equation_vars_it = two_bit.equation_ids_map.find (equation);
+          if (equation_vars_it == two_bit.equation_ids_map.end ())
+            two_bit.equation_ids_map.insert ({equation, {}});
+
+          auto &equation_vars = two_bit.equation_ids_map[equation];
+          for (auto &var : vars)
+            equation_vars.push_back (var);
         }
       }
     }
@@ -469,6 +481,7 @@ int find_inconsistency_from_nullspace_vectors (
 
 // Use NTL to find cycles of inconsistent equations
 bool block_inconsistency (TwoBit &two_bit,
+                          PartialAssignment &partial_assignment,
                           vector<vector<int>> &external_clauses,
                           int block_index) {
   // Make the augmented matrix
@@ -501,17 +514,17 @@ bool block_inconsistency (TwoBit &two_bit,
         continue;
 
       auto &equation = two_bit.equations[block_index][eq_index];
-      auto results_it = two_bit.equation_blk_lits_map.find (equation);
-      assert (results_it != two_bit.equation_blk_lits_map.end ());
+      auto results_it = two_bit.equation_ids_map.find (equation);
+      assert (results_it != two_bit.equation_ids_map.end ());
 
       // Instances refer to the function instances
-      auto &lits = results_it->second;
-      for (auto &lit : lits) {
-        // TODO: Look into this
-        // ! If the solver is synced with our state, the blocking clause
-        // ! shouldn't have undefined variables
-        assert (lit != 0);
-        confl_clause_lits.insert (-lit);
+      auto &vars = results_it->second;
+      for (auto &var : vars) {
+        auto value = partial_assignment.get (var);
+        if (partial_assignment.get (var) == LIT_UNDEF)
+          continue;
+        auto polarity = value == LIT_TRUE ? -1 : 1;
+        confl_clause_lits.insert (polarity * var);
       }
     }
     vector<int> clause;

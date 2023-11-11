@@ -24,6 +24,7 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
 vector<Equation> check_consistency (vector<Equation> &equations,
                                     bool exhaustive);
 bool block_inconsistency (TwoBit &two_bit,
+                          PartialAssignment &partial_assignment,
                           vector<vector<int>> &external_clauses,
                           int block_index = 0);
 } // namespace SHA256

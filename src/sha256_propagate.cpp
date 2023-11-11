@@ -142,10 +142,7 @@ bool _can_overflow (vector<string> var_cols, vector<uint8_t> bits) {
 
 vector<string> gen_vars (vector<string> words) {
   int cols_count = words[0].size ();
-  vector<string> var_cols;
-  for (int i = 0; i < cols_count; i++) {
-    var_cols.push_back ("");
-  }
+  vector<string> var_cols (cols_count);
 
   int words_count = words.size ();
   for (int i = 0; i < words_count; i++) {
@@ -171,7 +168,7 @@ vector<string> gen_vars (vector<string> words) {
       sum += words[j][i] == 'u' ? 1 : 0;
 
     assert (sum >= 0 && sum <= 2);
-    if (sum == 2)
+    if (sum == 2 && i - 1 >= 0)
       var_cols[i - 1].push_back ('1');
     else if (sum == 1)
       var_cols[i].push_back ('1');
@@ -306,6 +303,19 @@ vector<string> apply_grounding (vector<string> words,
 }
 
 vector<string> derive_words (vector<string> words, int64_t constant) {
+  auto count_vars = [] (vector<string> cols) {
+    int vars_count = 0;
+    for (auto &col : cols) {
+      for (auto &c : col) {
+        if (c != 'v')
+          continue;
+        vars_count++;
+      }
+    }
+
+    return vars_count;
+  };
+
   int n = words[0].size (), m = words.size ();
 
   // Skip if all words are grounded
@@ -319,6 +329,7 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
 
   // Generate variables
   auto var_cols = gen_vars (words);
+  int vars_count = count_vars (var_cols);
 
   // Adjust constant
   for (int i = 0; i < m; i++)
@@ -340,8 +351,17 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
     stash.bits.push_back (bit);
     stash.cols.push_back (var_cols[i]);
 
+    // Limit the number of variables
+    int vars_count = count_vars (stash.cols);
+    if (vars_count > 10)
+      break;
+
     // Check if it can overflow
+    // printf ("Debug: finding 'can overflow' start %d\n", vars_count);
+    // fflush (stdout);
     bool can_overflow = _can_overflow (stash.cols, stash.bits);
+    // printf ("Debug: finding 'can overflow' end\n");
+    // fflush (stdout);
 
     // If it cannot overflow, it should be cut off
     bool island_ends = can_overflow ? false : true;
@@ -400,6 +420,11 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
 
     island_index++;
   }
+
+  // Fill in missing values
+  for (int i = int (var_values.size ()); i < vars_count; i++)
+    var_values.push_back (-1);
+  assert (int (var_values.size ()) == vars_count);
 
   auto derived_words = apply_grounding (words, var_cols, var_values);
   return derived_words;

@@ -7,8 +7,11 @@
 #include <climits>
 #include <cstdio>
 #include <fstream>
+#include <iostream>
 #include <regex>
 #include <string>
+
+#define SKIPS 500 - 1
 
 using namespace SHA256;
 using namespace std;
@@ -16,7 +19,7 @@ using namespace std;
 int Propagator::order = 0;
 State Propagator::state = State{};
 Operations Propagator::operations[64];
-int64_t counter = 0;
+int64_t counter = SKIPS;
 Stats Propagator::stats = Stats{0};
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
@@ -124,6 +127,7 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
 
   // Assign variables in the partial assignment
   partial_assignment.set (lit);
+  // printf ("BCP: %d\n", lit);
 }
 
 void Propagator::notify_backtrack (size_t new_level) {
@@ -135,13 +139,14 @@ void Propagator::notify_backtrack (size_t new_level) {
     current_trail.pop_back ();
   }
 
-  // refresh_state ();
+  // printf ("Backtracked\n");
 }
 
 void test_equations (vector<Equation> &equations);
 
 void Propagator::notify_new_decision_level () {
   current_trail.push_back (std::vector<int> ());
+  // printf ("New decision level\n");
   // if (++counter % 1000 != 0) {
   //   return;
   // }
@@ -187,15 +192,21 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 }
 
 bool Propagator::cb_has_external_clause () {
+  // printf ("Debug: has external clause?\n");
   // Check for 2-bit inconsistencies here
-  if (++counter % 2000 != 0) {
+  if (counter != SKIPS) {
+    counter++;
     return false;
   }
+  counter = 0;
   bool has_clause = false;
+  two_bit = TwoBit{};
 
+  // Get the blocking clauses
   auto start_time = clock ();
   refresh_state ();
   derive_two_bit_equations (two_bit, state, operations, order);
+  printf ("Debug: derived %ld equations\n", two_bit.equations[0].size ());
   for (int block_index = 0; block_index < 2; block_index++) {
     auto confl_equations =
         check_consistency (two_bit.equations[block_index], false);
@@ -203,34 +214,37 @@ bool Propagator::cb_has_external_clause () {
 
     // Block inconsistencies
     if (is_inconsistent) {
-      block_inconsistency (two_bit, external_clauses, block_index);
+      block_inconsistency (two_bit, partial_assignment, external_clauses,
+                           block_index);
       has_clause = true;
-
-      // Keep only the shortest clause
-      {
-        int shortest_index = -1, shortest_length = INT_MAX;
-        for (int i = 0; i < int (external_clauses.size ()); i++) {
-          int size = external_clauses[i].size ();
-          if (size >= shortest_length)
-            continue;
-
-          shortest_length = size;
-          shortest_index = i;
-        }
-
-        auto clause = external_clauses[shortest_index];
-        external_clauses.clear ();
-        external_clauses.push_back (clause);
-        printf ("Debug: keeping shortest clause of size %ld: ",
-                clause.size ());
-        for (auto &lit : clause)
-          printf ("%d ", lit);
-        printf ("\n");
-      }
     }
   }
-  stats.total_cb_time += clock () - start_time;
+  // Keep only the shortest clause
+  if (has_clause) {
+    int shortest_index = -1, shortest_length = INT_MAX;
+    for (int i = 0; i < int (external_clauses.size ()); i++) {
+      int size = external_clauses[i].size ();
+      if (size >= shortest_length)
+        continue;
 
+      shortest_length = size;
+      shortest_index = i;
+    }
+    auto clause = external_clauses[shortest_index];
+    external_clauses.clear ();
+    // if (clause.size () <= 20) {
+    external_clauses.push_back (clause);
+    printf ("Debug: keeping shortest clause of size %ld: ", clause.size ());
+    // } else {
+    //   has_clause = false;
+    // }
+    print (clause);
+  }
+
+  if (has_clause)
+    counter = SKIPS;
+
+  stats.total_cb_time += clock () - start_time;
   return has_clause;
 }
 
@@ -243,7 +257,8 @@ int Propagator::cb_add_external_clause_lit () {
   clause.pop_back ();
   if (clause.empty ())
     external_clauses.pop_back ();
-  printf ("Debug: gave EC lit %d\n", lit);
+  printf ("Debug: gave EC lit %d (%d)\n", lit,
+          partial_assignment.get (abs (lit)));
   return lit;
 }
 
@@ -282,8 +297,7 @@ void test_equations (vector<Equation> &equations) {
          << " " << equation.names[1] << endl;
 }
 
-inline void refresh_chars (Word &word,
-                           PartialAssignment &partial_assignment) {
+void refresh_chars (Word &word, PartialAssignment &partial_assignment) {
   word.chars = string (32, '?');
   for (int i = 0; i < 32; i++) {
     auto id_f = word.ids_f[i];
