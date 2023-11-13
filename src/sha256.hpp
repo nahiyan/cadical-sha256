@@ -6,6 +6,7 @@
 #include <cassert>
 #include <deque>
 #include <iostream>
+#include <list>
 #include <map>
 #include <sstream>
 #include <string>
@@ -73,7 +74,8 @@ struct Operations {
 };
 
 struct Equation {
-  uint32_t ids[2];
+  // The equations are represented by their delta IDs
+  uint32_t diff_ids[2];
   string names[2];
   uint8_t diff;
 
@@ -82,8 +84,8 @@ struct Equation {
       return diff < other.diff;
 
     for (int i = 0; i < 2; i++)
-      if (ids[i] != other.ids[i])
-        return ids[i] < other.ids[i];
+      if (diff_ids[i] != other.diff_ids[i])
+        return diff_ids[i] < other.diff_ids[i];
 
     return false; // Equal
   }
@@ -119,6 +121,7 @@ struct TwoBit {
   map<int, int> aug_mtx_var_map;
   // IDs that contributed to the equation
   map<Equation, vector<int>> equation_ids_map;
+  map<tuple<uint32_t, uint32_t, uint32_t>, int> bit_constraints_count;
 };
 
 struct Stats {
@@ -138,7 +141,7 @@ class Propagator : CaDiCaL::ExternalPropagator {
   map<int, vector<int>> reason_clauses;
   // Assume that the external clauses are blocking clauses
   vector<vector<int>> external_clauses;
-  vector<int> decision_lits;
+  list<int> decision_lits;
   TwoBit two_bit;
 
   static void set_operations ();
@@ -156,6 +159,9 @@ public:
   void notify_backtrack (size_t new_level);
   bool cb_check_found_model (const std::vector<int> &model) {
     (void) model;
+    refresh_state ();
+    printf ("Final state:\n");
+    print_state ();
     return true;
   }
   bool cb_has_external_clause ();

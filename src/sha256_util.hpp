@@ -9,6 +9,22 @@
 using namespace std;
 
 namespace SHA256 {
+class Timer {
+  clock_t start_time;
+  // target to add the delta to
+  clock_t *target;
+
+public:
+  Timer (clock_t *target) {
+    start_time = clock ();
+    this->target = target;
+  }
+  ~Timer () {
+    *this->target += clock () - start_time;
+    // printf ("Time: %ld\n", clock () - start_time);
+  }
+};
+
 string rotate_word (string word, int amount, bool is_circular = true);
 vector<uint32_t> rotate_word (vector<uint32_t> word, int amount,
                               bool is_circular = true);

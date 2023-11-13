@@ -52,10 +52,13 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
             continue;
 
           uint8_t diff = matrix[matrix_i] == '1' ? 0 : 1;
-          uint32_t selected_ids[] = {k == 0 ? inputs[i].ids_f[col_index]
-                                            : inputs[i].ids_g[col_index],
-                                     k == 0 ? inputs[j].ids_f[col_index]
-                                            : inputs[j].ids_g[col_index]};
+          // uint32_t selected_ids[] = {k == 0 ? inputs[i].ids_f[col_index]
+          //                                   : inputs[i].ids_g[col_index],
+          //                            k == 0 ? inputs[j].ids_f[col_index]
+          //                                   :
+          //                                   inputs[j].ids_g[col_index]};
+          uint32_t selected_ids[] = {inputs[i].diff_ids[col_index],
+                                     inputs[j].diff_ids[col_index]};
 
           // Only allow inputs and outputs that can be defined in blocking
           // clause
@@ -70,58 +73,39 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
           //   continue;
 
           Equation equation;
-          equation.ids[0] = selected_ids[0];
-          equation.ids[1] = selected_ids[1];
+          equation.diff_ids[0] = selected_ids[0];
+          equation.diff_ids[1] = selected_ids[1];
           equation.diff = diff;
           if (!names.empty ()) {
             equation.names[0] = names[i];
             equation.names[1] = names[j];
           }
+          two_bit.equations[k].push_back (equation);
+
           // printf ("Equation: %s %s %s\n", equation.names[0].c_str (),
           //         diff == 0 ? "=" : "=/=", equation.names[1].c_str ());
 
-          two_bit.equations[k].push_back (equation);
+          // Increment the constraints count
+          for (int x = 0; x < 2; x++) {
+            Word &word = inputs[x == 0 ? i : j];
+            tuple<uint32_t, uint32_t, uint32_t> key = {
+                word.ids_f[col_index],
+                word.ids_g[col_index],
+                word.diff_ids[col_index],
+            };
+            if (two_bit.bit_constraints_count.find (key) !=
+                two_bit.bit_constraints_count.end ())
+              two_bit.bit_constraints_count[key] = 1;
+            else
+              two_bit.bit_constraints_count[key]++;
+          }
 
           // Map the equation variables (if they don't exist)
-          for (int x = 0; x < 2; x++)
-            if (two_bit.aug_mtx_var_map.find (selected_ids[x]) ==
+          for (int i = 0; i < 2; i++)
+            if (two_bit.aug_mtx_var_map.find (selected_ids[i]) ==
                 two_bit.aug_mtx_var_map.end ())
-              two_bit.aug_mtx_var_map[selected_ids[x]] =
+              two_bit.aug_mtx_var_map[selected_ids[i]] =
                   two_bit.aug_mtx_var_map.size ();
-
-          // Connect the equation with the related variables
-          // std::vector<Word> io = inputs;
-          // io.insert (io.end (), outputs.begin (), outputs.end ());
-          // vector<int> lits;
-          // assert (key.size () - 1 == io.size ());
-          // for (int x = 0; x < int (key.size ()); x++) {
-          //   char &c = key[x + 1];
-          //   if (c == '-' || c == '0' || c == '1')
-          //     lits.push_back (-io[x].diff_ids[col_index]);
-          //   else if (c == 'x' || c == 'u' || c == 'n')
-          //     lits.push_back (io[x].diff_ids[col_index]);
-
-          //   if (c == 'u') {
-          //     lits.push_back (io[x].ids_f[col_index]);
-          //     lits.push_back (-io[x].ids_g[col_index]);
-          //   } else if (c == 'n') {
-          //     lits.push_back (-io[x].ids_f[col_index]);
-          //     lits.push_back (io[x].ids_g[col_index]);
-          //   } else if (c == '0') {
-          //     lits.push_back (-io[x].ids_f[col_index]);
-          //     lits.push_back (-io[x].ids_g[col_index]);
-          //   } else if (c == '1') {
-          //     lits.push_back (io[x].ids_f[col_index]);
-          //     lits.push_back (io[x].ids_g[col_index]);
-          //   }
-          // }
-
-          // printf ("Debug: lits = ");
-          // for (auto &lit : lits) {
-          //   assert (lit != 0);
-          //   printf ("%d ", lit);
-          // }
-          // printf ("\n");
 
           // Map the equation variables (if they don't exist)
           std::vector<Word> io = inputs;
@@ -313,8 +297,8 @@ vector<Equation> check_consistency (vector<Equation> &equations,
   map<uint32_t, shared_ptr<set<int32_t>>> rels;
 
   for (auto &equation : equations) {
-    int lit1 = equation.ids[0];
-    int lit2 = (equation.diff == 1 ? -1 : 1) * (equation.ids[1]);
+    int lit1 = equation.diff_ids[0];
+    int lit2 = (equation.diff == 1 ? -1 : 1) * (equation.diff_ids[1]);
     auto var1 = abs (int (lit1));
     auto var2 = abs (int (lit2));
     auto var1_exists = rels.find (var1) == rels.end () ? false : true;
@@ -355,8 +339,8 @@ vector<Equation> check_consistency (vector<Equation> &equations,
         if ((var1_inv_exists && var1_exists) ||
             (var2_inv_exists && var2_exists)) {
           Equation confl_eq;
-          confl_eq.ids[0] = var1;
-          confl_eq.ids[1] = var2;
+          confl_eq.diff_ids[0] = var1;
+          confl_eq.diff_ids[1] = var2;
           confl_eq.diff = lit2 < 0 ? 1 : 0;
           conflicting_equations.push_back (confl_eq);
           if (!exhaustive)
@@ -421,8 +405,8 @@ void make_aug_matrix (TwoBit &two_bit, NTL::mat_GF2 &coeff_matrix,
   // Construct the coefficient matrix
   for (int eq_index = 0; eq_index < equations_n; eq_index++) {
     auto &equation = two_bit.equations[block_index][eq_index];
-    int &x = two_bit.aug_mtx_var_map[equation.ids[0]];
-    int &y = two_bit.aug_mtx_var_map[equation.ids[1]];
+    int &x = two_bit.aug_mtx_var_map[equation.diff_ids[0]];
+    int &y = two_bit.aug_mtx_var_map[equation.diff_ids[1]];
     for (int col_index = 0; col_index < variables_n; col_index++)
       coeff_matrix[eq_index][col_index] =
           NTL::to_GF2 (col_index == x || col_index == y ? 1 : 0);
