@@ -8,8 +8,8 @@ file(GLOB SRC
 
 list(REMOVE_ITEM SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/mobical.cpp)
 
-# set(CMAKE_CXX_FLAGS "-Wall -Wextra -O3 -DNDEBUG")
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -O3 -g")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -O3 -DNDEBUG")
+# set(CMAKE_CXX_FLAGS "-Wall -Wextra -O3 -g")
 
 set(EXEC cadical)
 add_executable(${EXEC} ${SRC})
