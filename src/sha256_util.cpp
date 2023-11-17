@@ -1,5 +1,7 @@
 #include "sha256_util.hpp"
+#include "sha256.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <ctime>
@@ -68,9 +70,60 @@ int sum_dec_from_bin (NTL::vec_GF2 &v) {
   return sum;
 }
 
-void print (vector<int> clause) {
-  for (auto &lit : clause)
+void print (vector<int> vec) {
+  for (auto &lit : vec)
     printf ("%d ", lit);
   printf ("\n");
+}
+
+// Function to calculate the Cartesian product of multiple vectors of
+// characters
+vector<string> cartesian_product (vector<vector<char>> input) {
+  vector<string> result;
+  int numVectors = input.size ();
+  vector<int> indices (numVectors, 0);
+
+  while (true) {
+    string currentProduct;
+    for (int i = 0; i < numVectors; ++i)
+      currentProduct.push_back (input[i][indices[i]]);
+
+    result.push_back (currentProduct);
+
+    int j = numVectors - 1;
+    while (j >= 0 && indices[j] == int (input[j].size ()) - 1) {
+      indices[j] = 0;
+      j--;
+    }
+
+    if (j < 0)
+      break;
+
+    indices[j]++;
+  }
+
+  return result;
+}
+
+vector<string> cartesian_product (vector<char> input, int repeat) {
+  vector<vector<char>> inputs;
+  for (int i = 0; i < repeat; i++) {
+    inputs.push_back (input);
+  }
+  return cartesian_product (inputs);
+}
+
+bool is_in (char x, vector<char> chars) {
+  return find (chars.begin (), chars.end (), x) != chars.end ();
+}
+bool is_in (int x, vector<int> y) {
+  return find (y.begin (), y.end (), x) != y.end ();
+}
+
+int sum (vector<int> addends) {
+  int sum = 0;
+  for (auto &addend : addends)
+    sum += addend;
+  return sum;
 }
 } // namespace SHA256

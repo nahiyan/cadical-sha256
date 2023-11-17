@@ -522,4 +522,124 @@ bool block_inconsistency (TwoBit &two_bit,
   return false;
 }
 
+void otf_derive_add_two_bit_equations (
+    TwoBit &two_bit, string inputs, string outputs,
+    vector<uint32_t> diff_ids, vector<string> names,
+    vector<Word *> input_words, vector<Word *> carry_words,
+    vector<Word *> output_words, int col_index) {
+  auto all_chars = inputs;
+  all_chars.insert (all_chars.end (), outputs.begin (), outputs.end ());
+  assert (all_chars.size () == inputs.size () + outputs.size ());
+  vector<int> positions;
+  for (int i = 0; i < int (all_chars.size ()); i++)
+    if (is_in (all_chars[i], {'x', '-'}))
+      positions.push_back (i);
+
+  if (positions.size () > 2)
+    return;
+
+  vector<pair<string, string>> selections;
+  int n = positions.size ();
+  for (int i = 0; i < pow (2, n); i++) {
+    int values[n];
+    for (int j = 0; j < n; j++)
+      values[j] = i >> j & 1;
+    auto candidate = all_chars;
+    for (int j = 0; j < n; j++) {
+      auto value = values[j];
+      auto c = candidate[positions[j]];
+      candidate[positions[j]] =
+          c == 'x' ? (value == 1 ? 'u' : 'n') : (value == 1 ? '1' : '0');
+    }
+
+    string candidate_inputs = candidate.substr (0, inputs.size ());
+    string candidate_outputs =
+        candidate.substr (inputs.size (), outputs.size ());
+    auto propagation =
+        otf_add_propagate (candidate_inputs, candidate_outputs);
+    bool skip = false;
+    for (auto &c : propagation.second) {
+      if (c == '#') {
+        skip = true;
+        break;
+      }
+    }
+    if (skip)
+      continue;
+
+    selections.push_back ({candidate_inputs, candidate_outputs});
+  }
+
+  for (auto &selection : selections) {
+    string combined = selection.first;
+    combined.insert (combined.end (), selection.second.begin (),
+                     selection.second.end ());
+    int combined_length = combined.size ();
+    for (int i = 0; i < combined_length; i++) {
+      for (int j = i + 1; j < combined_length; j++) {
+        if (diff_ids[i] == 0 || diff_ids[j] == 0)
+          continue;
+        Equation equation;
+        equation.diff_ids[0] = diff_ids[i];
+        equation.diff_ids[0] = diff_ids[j];
+        equation.names[0] = names[i];
+        equation.names[1] = names[j];
+        equation.diff = combined[i] != combined[j] ? 1 : 0;
+        two_bit.equations->push_back (equation);
+
+        // // TODO: Increment the constraints count
+        // for (int x = 0; x < 2; x++) {
+        //   Word &word = inputs[x == 0 ? i : j];
+        //   tuple<uint32_t, uint32_t, uint32_t> key = {
+        //       word.ids_f[col_index],
+        //       word.ids_g[col_index],
+        //       word.diff_ids[col_index],
+        //   };
+        //   if (two_bit.bit_constraints_count.find (key) !=
+        //       two_bit.bit_constraints_count.end ())
+        //     two_bit.bit_constraints_count[key] = 1;
+        //   else
+        //     two_bit.bit_constraints_count[key]++;
+        // }
+
+        // Map the equation variables (if they don't exist)
+        for (int i = 0; i < 2; i++)
+          if (two_bit.aug_mtx_var_map.find (diff_ids[i]) ==
+              two_bit.aug_mtx_var_map.end ())
+            two_bit.aug_mtx_var_map[diff_ids[i]] =
+                two_bit.aug_mtx_var_map.size ();
+
+        // Map the equation variables (if they don't exist)
+        std::vector<Word *> io = input_words;
+        io.insert (io.end (), output_words.begin (), output_words.end ());
+        vector<int> vars;
+        for (auto &word : io) {
+          vars.push_back (word->ids_f[col_index]);
+          vars.push_back (word->ids_g[col_index]);
+          vars.push_back (word->diff_ids[col_index]);
+        }
+
+        if (col_index + 1 <= 31) {
+          vars.push_back (carry_words[0]->ids_f[col_index + 1]);
+          vars.push_back (carry_words[0]->ids_g[col_index + 1]);
+          vars.push_back (carry_words[0]->diff_ids[col_index + 1]);
+        }
+        if (carry_words.size () == 2 && col_index + 2 <= 31) {
+          vars.push_back (carry_words[1]->ids_f[col_index + 2]);
+          vars.push_back (carry_words[1]->ids_g[col_index + 2]);
+          vars.push_back (carry_words[1]->diff_ids[col_index + 2]);
+        }
+
+        auto equation_vars_it = two_bit.equation_ids_map.find (equation);
+        if (equation_vars_it == two_bit.equation_ids_map.end ())
+          two_bit.equation_ids_map.insert ({equation, {}});
+
+        auto &equation_vars = two_bit.equation_ids_map[equation];
+        for (auto &var : vars)
+          equation_vars.push_back (var);
+      }
+    }
+  }
+}
+
 } // namespace SHA256

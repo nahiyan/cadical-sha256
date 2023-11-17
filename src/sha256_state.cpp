@@ -1,5 +1,6 @@
 #include "sha256.hpp"
 #include "sha256_propagate.hpp"
+#include "sha256_util.hpp"
 
 using namespace SHA256;
 

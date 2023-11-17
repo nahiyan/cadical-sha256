@@ -1,10 +1,13 @@
 #include "sha256_propagate.hpp"
 #include "sha256.hpp"
+#include "sha256_2_bit.hpp"
 #include "sha256_util.hpp"
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <numeric>
 #include <set>
 #include <string>
 #include <tuple>
@@ -20,42 +23,39 @@ struct OrderedValue {
 };
 
 unordered_map<string, string> io_prop_rules;
+// Almost same as IO prop rules but specific for addition
+map<pair<string, char>, pair<string, string>> add_prop_rules;
 
-// Function to calculate the Cartesian product of multiple vectors of
-// characters
-vector<string> cartesian_product (vector<std::vector<char>> input) {
-  vector<string> result;
-  int numVectors = input.size ();
-  vector<int> indices (numVectors, 0);
-
-  while (true) {
-    std::string currentProduct;
-    for (int i = 0; i < numVectors; ++i)
-      currentProduct.push_back (input[i][indices[i]]);
-
-    result.push_back (currentProduct);
-
-    int j = numVectors - 1;
-    while (j >= 0 && indices[j] == int (input[j].size ()) - 1) {
-      indices[j] = 0;
-      j--;
-    }
-
-    if (j < 0)
-      break;
-
-    indices[j]++;
-  }
-
-  return result;
-}
-
-bool is_in (char x, vector<char> chars) {
-  return std::find (chars.begin (), chars.end (), x) != chars.end ();
-}
-bool is_in (int x, vector<int> y) {
-  return std::find (y.begin (), y.end (), x) != y.end ();
-}
+map<char, vector<char>> symbols = {{'?', {'u', 'n', '1', '0'}},
+                                   {'-', {'1', '0'}},
+                                   {'x', {'u', 'n'}},
+                                   {'0', {'0'}},
+                                   {'u', {'u'}},
+                                   {'n', {'n'}},
+                                   {'1', {'1'}},
+                                   {'3', {'0', 'u'}},
+                                   {'5', {'0', 'n'}},
+                                   {'7', {'0', 'u', 'n'}},
+                                   {'A', {'u', '1'}},
+                                   {'B', {'1', 'u', '0'}},
+                                   {'C', {'n', '1'}},
+                                   {'D', {'0', 'n', '1'}},
+                                   {'E', {'u', 'n', '1'}}};
+map<char, set<char>> symbols_set = {{'?', {'u', 'n', '1', '0'}},
+                                    {'-', {'1', '0'}},
+                                    {'x', {'u', 'n'}},
+                                    {'0', {'0'}},
+                                    {'u', {'u'}},
+                                    {'n', {'n'}},
+                                    {'1', {'1'}},
+                                    {'3', {'0', 'u'}},
+                                    {'5', {'0', 'n'}},
+                                    {'7', {'0', 'u', 'n'}},
+                                    {'A', {'u', '1'}},
+                                    {'B', {'1', 'u', '0'}},
+                                    {'C', {'n', '1'}},
+                                    {'D', {'0', 'n', '1'}},
+                                    {'E', {'u', 'n', '1'}}};
 
 int64_t _int_diff (string word) {
   size_t n = word.size ();
@@ -703,6 +703,173 @@ void Propagator::prop_addition_weakly () {
         }
       }
     }
+  }
+}
+
+// Works for addition hardcoded up to 3 carries
+pair<string, string> otf_add_propagate (string inputs, string outputs) {
+  auto add = [] (vector<int> inputs, int *outputs) {
+    int sum = accumulate (inputs.begin (), inputs.end (), 0);
+    outputs[0] = sum & 1;
+    outputs[1] = sum >> 1 & 1;
+    outputs[2] = sum >> 2 & 1;
+  };
+
+  auto conforms_to = [] (char c1, char c2) {
+    auto c1_chars = symbols[c1], c2_chars = symbols[c2];
+    for (auto &c : c1_chars)
+      if (find (c2_chars.begin (), c2_chars.end (), c) == c2_chars.end ())
+        return false;
+    return true;
+  };
+
+  int n = inputs.size (), m = outputs.size ();
+  vector<vector<char>> iterables_list;
+  for (auto &input : inputs) {
+    auto it = symbols.find (input);
+    if (it != symbols.end ())
+      iterables_list.push_back (it->second);
+  }
+
+  set<char> possibilities[n + m];
+  auto combos = cartesian_product (iterables_list);
+  for (auto &combo : combos) {
+    vector<int> inputs_f, inputs_g;
+    for (auto &c : combo) {
+      switch (c) {
+      case 'u':
+        inputs_f.push_back (1);
+        inputs_g.push_back (0);
+        break;
+      case 'n':
+        inputs_f.push_back (0);
+        inputs_g.push_back (1);
+        break;
+      case '1':
+        inputs_f.push_back (1);
+        inputs_g.push_back (1);
+        break;
+      case '0':
+        inputs_f.push_back (0);
+        inputs_g.push_back (0);
+        break;
+      }
+    }
+
+    int outputs_f[3], outputs_g[3];
+    add (inputs_f, outputs_f);
+    add (inputs_g, outputs_g);
+
+    string actual_outputs;
+    bool skip = false;
+    for (int i = 0; i < m; i++) {
+      if (outputs_f[i] == 1 && outputs_g[i] == 1)
+        actual_outputs += '1';
+      else if (outputs_f[i] == 1 && outputs_g[i] == 0)
+        actual_outputs += 'u';
+      else if (outputs_f[i] == 0 && outputs_g[i] == 1)
+        actual_outputs += 'n';
+      else
+        actual_outputs += '0';
+
+      // Output must conform to that given
+      if (!conforms_to (actual_outputs[i], outputs[m - 1 - i])) {
+        skip = true;
+        break;
+      }
+    }
+    if (skip)
+      continue;
+    for (int i = 0; i < n; i++)
+      possibilities[i].insert (combo[i]);
+    for (int i = 0; i < m; i++)
+      possibilities[n + i].insert (actual_outputs[m - 1 - i]);
+  }
+
+  auto gc_from_set = [] (set<char> &set) {
+    // assert (set.size () > 0);
+    for (auto &entry : symbols_set)
+      if (set == entry.second)
+        return entry.first;
+    return '#';
+  };
+
+  string final_inputs, final_outputs;
+  for (int i = 0; i < n; i++)
+    final_inputs += gc_from_set (possibilities[i]);
+  for (int i = 0; i < m; i++)
+    final_outputs += gc_from_set (possibilities[n + i]);
+
+  return {final_inputs, final_outputs};
+}
+
+void otf_add_propagate (TwoBit &two_bit, vector<Word *> inputs,
+                        vector<Word *> carries, vector<Word *> outputs) {
+  for (int i = 31; i >= 0; i--) {
+    string inputs_col, outputs_col;
+
+    for (auto &word : inputs)
+      inputs_col += word->chars[i];
+    if (i + 1 <= 31)
+      inputs_col += carries[0]->chars[i + 1];
+    if (carries.size () == 2 && i + 2 <= 31)
+      inputs_col += carries[1]->chars[i + 2];
+
+    for (auto &word : outputs)
+      outputs_col += word->chars[i];
+
+    int n = inputs_col.size (), m = outputs_col.size ();
+
+    auto result_it =
+        add_prop_rules.find ({inputs_col, outputs_col.back ()});
+    pair<string, string> propagation;
+    if (result_it == add_prop_rules.end ()) {
+      propagation = otf_add_propagate (inputs_col, outputs_col);
+      // Cache the result
+      add_prop_rules[{propagation.first, propagation.second.back ()}] =
+          propagation;
+    } else {
+      // Use the cached result
+      propagation = result_it->second;
+    }
+
+    vector<uint32_t> diff_ids;
+    vector<string> names (n + m);
+    for (auto &word : inputs)
+      diff_ids.push_back (word->diff_ids[i]);
+    if (i + 1 <= 31)
+      diff_ids.push_back (0);
+    if (carries.size () == 2 && i + 2 <= 31)
+      diff_ids.push_back (0);
+
+    for (auto &word : outputs)
+      if (word == outputs.back ())
+        diff_ids.push_back (word->diff_ids[i]);
+      else
+        diff_ids.push_back (0);
+    assert (int (diff_ids.size ()) == n + m);
+
+    otf_derive_add_two_bit_equations (two_bit, propagation.first,
+                                      propagation.second, diff_ids, names,
+                                      inputs, carries, outputs, i);
+
+    // int carries_count = carries.size ();
+    // for (int j = 0; j < n - carries_count; j++)
+    //   inputs[j]->chars[i] = propagation.first[j];
+    // for (int j = 0; j < carries_count; j++)
+    //   carries[j]->chars[i] = propagation.first[n - carries_count + j];
+    // for (int j = 0; j < m; j++)
+    //   outputs[j]->chars[i] = propagation.second[j];
+
+    // cout << "Input:  " << i << " " << inputs_col << " " << outputs_col
+    //      << endl;
+    // cout << "Output: " << i << " ";
+    // for (int j = 0; j < n; j++)
+    //   cout << propagation.first[j];
+    // cout << " ";
+    // for (int j = 0; j < m; j++)
+    //   cout << propagation.second[j];
+    // cout << endl;
   }
 }
 
