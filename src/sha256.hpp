@@ -38,8 +38,8 @@ struct Equation {
 struct TwoBit {
   vector<Equation> equations[2];
   map<int, int> aug_mtx_var_map;
-  // IDs that contributed to the equation
-  map<Equation, vector<int>> equation_ids_map;
+  // Equations and the IDs that contributed to it
+  map<Equation, vector<int>> equation_vars_map;
   // TODO: Use a sorted set of pairs
   map<tuple<uint32_t, uint32_t, uint32_t>, int> bit_constraints_count;
 };
@@ -47,6 +47,7 @@ struct TwoBit {
 struct Stats {
   clock_t total_cb_time;
   uint clauses_count;
+  uint decisions_count;
 };
 
 class Propagator : CaDiCaL::ExternalPropagator {

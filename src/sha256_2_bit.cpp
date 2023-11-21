@@ -104,11 +104,11 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
             vars.push_back (word->diff_ids[col_index]);
           }
 
-          auto equation_vars_it = two_bit.equation_ids_map.find (equation);
-          if (equation_vars_it == two_bit.equation_ids_map.end ())
-            two_bit.equation_ids_map.insert ({equation, {}});
+          auto equation_vars_it = two_bit.equation_vars_map.find (equation);
+          if (equation_vars_it == two_bit.equation_vars_map.end ())
+            two_bit.equation_vars_map.insert ({equation, {}});
 
-          auto &equation_vars = two_bit.equation_ids_map[equation];
+          auto &equation_vars = two_bit.equation_vars_map[equation];
           for (auto &var : vars)
             equation_vars.push_back (var);
         }
@@ -513,8 +513,8 @@ bool block_inconsistency (TwoBit &two_bit,
         continue;
 
       auto &equation = two_bit.equations[block_index][eq_index];
-      auto results_it = two_bit.equation_ids_map.find (equation);
-      assert (results_it != two_bit.equation_ids_map.end ());
+      auto results_it = two_bit.equation_vars_map.find (equation);
+      assert (results_it != two_bit.equation_vars_map.end ());
 
       // Instances refer to the function instances
       auto &vars = results_it->second;
@@ -645,11 +645,11 @@ void otf_derive_add_two_bit_equations (
           vars.push_back (carry_words[1]->diff_ids[col_index + 2]);
         }
 
-        auto equation_vars_it = two_bit.equation_ids_map.find (equation);
-        if (equation_vars_it == two_bit.equation_ids_map.end ())
-          two_bit.equation_ids_map.insert ({equation, {}});
+        auto equation_vars_it = two_bit.equation_vars_map.find (equation);
+        if (equation_vars_it == two_bit.equation_vars_map.end ())
+          two_bit.equation_vars_map.insert ({equation, {}});
 
-        auto &equation_vars = two_bit.equation_ids_map[equation];
+        auto &equation_vars = two_bit.equation_vars_map[equation];
         for (auto &var : vars)
           equation_vars.push_back (var);
       }

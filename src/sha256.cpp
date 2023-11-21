@@ -23,7 +23,7 @@ using namespace SHA256;
 int Propagator::order = 0;
 State Propagator::state = State ();
 uint64_t counter = 0;
-Stats Propagator::stats = Stats{0, 0};
+Stats Propagator::stats = Stats{0, 0, 0};
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
 #ifndef NDEBUG
@@ -163,7 +163,7 @@ void Propagator::notify_new_decision_level () {
   current_trail.push_back (std::vector<int> ());
   counter++;
 
-  // !Debugging 2-bit equations for 27-sfs
+  // !Debug: 2-bit equations for 27-sfs
   // state.hard_refresh (true);
   // state.print ();
   // derive_two_bit_equations (two_bit, state);
@@ -171,15 +171,16 @@ void Propagator::notify_new_decision_level () {
   // state.print_operations ();
   // exit (0);
 
-  if (counter % 1000000 == 0) {
-    printf ("Current state:\n");
-    // state.hard_refresh (false);
-    state.soft_refresh ();
-    state.print ();
-  }
+  // !Debug: Periodically print the state
+  // if (counter % 1000000 == 0) {
+  //   printf ("Current state:\n");
+  //   // state.hard_refresh (false);
+  //   state.soft_refresh ();
+  //   state.print ();
+  // }
 #if CUSTOM_BRANCHING
-  // if (counter % 500 != 0)
-  //   return;
+  if (counter % 20 != 0)
+    return;
   if (!decision_lits.empty ())
     return;
 
@@ -318,6 +319,7 @@ int Propagator::cb_decide () {
     return 0;
   int lit = decision_lits.front ();
   decision_lits.pop_front ();
+  stats.decisions_count++;
   // printf ("Debug: decision %d\n", lit);
   return lit;
 }
