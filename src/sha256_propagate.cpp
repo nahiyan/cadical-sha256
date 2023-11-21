@@ -534,14 +534,14 @@ void Propagator::prop_addition_weakly () {
       return '?';
   };
 
-  auto get_id = [] (Word *word, int j, int block) {
-    return block == 0 ? word->ids_f[j] : word->ids_g[j];
+  auto get_id = [] (SoftWord &word, int j, int block) {
+    return block == 0 ? word.ids_f[j] : word.ids_g[j];
   };
 
   for (int block = 0; block < 1; block++) {
     for (int i = 0; i < order; i++) {
-      auto &step_operations = operations[i];
-      vector<tuple<Word **, Word **, int, int>> add_operations = {
+      auto &step_operations = state.operations[i];
+      vector<tuple<SoftWord *, SoftWord *, int, int>> add_operations = {
           {step_operations.add_t.inputs, step_operations.add_t.carries, 5,
            2},
           {step_operations.add_e.inputs, step_operations.add_e.carries, 2,
@@ -566,18 +566,18 @@ void Propagator::prop_addition_weakly () {
           vector<int> addend_ids;
           int r[] = {-1, -1};
           for (int k = 0; k < inputs_count; k++) {
-            addends.push_back (inputs[k]->chars[31 - j]);
+            addends.push_back (*inputs[k].chars[31 - j]);
             addend_ids.push_back (get_id (inputs[k], 31 - j, block));
           }
 
           // Current column's addends include T-2 and t-1
           if (j - 1 >= 0) {
-            addends.push_back (carries[0]->chars[31 - j + 1]);
+            addends.push_back (*carries[0].chars[31 - j + 1]);
             r[0] = get_id (carries[0], 31 - j, block);
             addend_ids.push_back (get_id (carries[0], 31 - j + 1, block));
           }
           if (j - 2 >= 0 && carries_count > 1) {
-            addends.push_back (carries[1]->chars[31 - j + 2]);
+            addends.push_back (*carries[1].chars[31 - j + 2]);
             r[1] = get_id (carries[1], 31 - j, block);
             addend_ids.push_back (get_id (carries[1], 31 - j + 2, block));
           }
@@ -608,10 +608,10 @@ void Propagator::prop_addition_weakly () {
           bool has_high_carry = r[1] != -1, has_low_carry = r[0] != -1;
           bool is_high_carry_undef =
                    has_high_carry &&
-                   partial_assignment.get (r[1]) == LIT_UNDEF,
+                   state.partial_assignment.get (r[1]) == LIT_UNDEF,
                is_low_carry_undef =
                    has_low_carry &&
-                   partial_assignment.get (r[0]) == LIT_UNDEF;
+                   state.partial_assignment.get (r[0]) == LIT_UNDEF;
 
           if (has_high_carry && is_high_carry_undef) {
             // Carry propagation: r1 = 1 if input >= 4
@@ -674,7 +674,8 @@ void Propagator::prop_addition_weakly () {
           }
 
           if (has_high_carry && !is_high_carry_undef) {
-            bool is_r1_true = partial_assignment.get (r[1]) == LIT_TRUE;
+            bool is_r1_true =
+                state.partial_assignment.get (r[1]) == LIT_TRUE;
             // Addend propagation: input <= 3 if r1 = 0
             if (!is_r1_true && count_1 == 3)
               for (int k = 0; k < count_u; k++) {

@@ -1,5 +1,4 @@
 #include "sha256_util.hpp"
-#include "sha256.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -33,6 +32,7 @@ string rotate_word (string word, int amount, bool is_circular) {
 
   return rotated;
 }
+
 vector<uint32_t> rotate_word (vector<uint32_t> word, int amount,
                               bool is_circular) {
   vector<uint32_t> rotated (word);
@@ -126,4 +126,5 @@ int sum (vector<int> addends) {
     sum += addend;
   return sum;
 }
+
 } // namespace SHA256

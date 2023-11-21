@@ -1,6 +1,7 @@
 #include "sha256.hpp"
 #include "sha256_2_bit.hpp"
 #include "sha256_propagate.hpp"
+#include "sha256_state.hpp"
 #include "sha256_tests.hpp"
 #include "sha256_util.hpp"
 #include <cassert>
@@ -12,15 +13,17 @@
 #include <regex>
 #include <string>
 
-#define SKIPS 500 - 1
+#define CUSTOM_BRANCHING true
+#define BLOCK_INCONS true
+#define TIMER_START clock_t start_time = clock ();
+#define TIMER_STOP stats.total_cb_time += clock () - start_time;
 
 using namespace SHA256;
 
 int Propagator::order = 0;
-State Propagator::state = State{};
-Operations Propagator::operations[64];
+State Propagator::state = State ();
 uint64_t counter = 0;
-Stats Propagator::stats = Stats{0};
+Stats Propagator::stats = Stats{0, 0};
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
 #ifndef NDEBUG
@@ -45,9 +48,13 @@ void Propagator::parse_comment_line (string line,
   // Determine the order
   if (key == "order") {
     order = value;
-
+    state.order = order;
     // Since this is the last comment, set the operations
-    set_operations ();
+    state.set_operations ();
+
+    printf ("Initial state:\n");
+    state.hard_refresh ();
+    state.print ();
 
     return;
   }
@@ -98,6 +105,9 @@ void Propagator::parse_comment_line (string line,
       if (prefix != actual_prefix)
         continue;
 
+      if (prefix[0] == 'D')
+        word.chars = string (32, '?');
+
       // Add the IDs
       for (int i = 31, id = value; i >= 0; i--, id++) {
         if (prefix[0] == 'D')
@@ -106,6 +116,7 @@ void Propagator::parse_comment_line (string line,
           word.ids_f[i] = id;
         else
           word.ids_g[i] = id;
+        state.id_word_rels[id] = {&word, i};
       }
 
       // Add to observed vars
@@ -120,21 +131,23 @@ void Propagator::parse_comment_line (string line,
 }
 
 void Propagator::notify_assignment (int lit, bool is_fixed) {
+  // Timer timer (&stats.total_cb_time);
   if (is_fixed)
     current_trail.front ().push_back (lit);
   else
     current_trail.back ().push_back (lit);
 
   // Assign variables in the partial assignment
-  partial_assignment.set (lit);
+  state.partial_assignment.set (lit);
   // printf ("BCP: %d\n", lit);
 }
 
 void Propagator::notify_backtrack (size_t new_level) {
+  // Timer timer (&stats.total_cb_time);
   while (current_trail.size () > new_level + 1) {
     // Unassign the variables that are removed from the trail
     for (auto lit : current_trail.back ())
-      partial_assignment.unset (lit);
+      state.partial_assignment.unset (lit);
 
     current_trail.pop_back ();
   }
@@ -145,36 +158,35 @@ void Propagator::notify_backtrack (size_t new_level) {
 void test_equations (vector<Equation> &equations);
 
 void Propagator::notify_new_decision_level () {
+  Timer timer (&stats.total_cb_time);
+
   current_trail.push_back (std::vector<int> ());
-  // printf ("New decision level\n");
-  if (counter++ % 1000000 == 0) {
-    printf ("Current state:\n");
-    refresh_state ();
-    print_state ();
-  }
-  // refresh_state ();
-  // derive_two_bit_equations (two_bit.equations, state, operations, order);
+  counter++;
+
+  // !Debugging 2-bit equations for 27-sfs
+  // state.hard_refresh (true);
+  // state.print ();
+  // derive_two_bit_equations (two_bit, state);
   // test_equations (two_bit.equations[0]);
-  // print_state ();
-  // printf ("Debug: equations count = %ld\n", two_bit.equations[0].size
-  // ());
+  // state.print_operations ();
+  // exit (0);
 
-  // prop_addition_weakly ();
-
-  // Check for 2-bit inconsistencies here
-  // if (counter != SKIPS) {
-  //   counter++;
+  if (counter % 1000000 == 0) {
+    printf ("Current state:\n");
+    // state.hard_refresh (false);
+    state.soft_refresh ();
+    state.print ();
+  }
+#if CUSTOM_BRANCHING
+  // if (counter % 500 != 0)
   //   return;
-  // }
-  // counter = 0;
-
-  if (counter % 500 != 0)
-    return;
   if (!decision_lits.empty ())
     return;
 
-  Timer timer (&stats.total_cb_time);
-  refresh_state ();
+  // state.refresh (false);
+
+  // Refresh the state
+  state.soft_refresh ();
 
   auto rand_ground_x = [] (list<int> &decision_lits, Word &word, int &j) {
     srand (clock () + j);
@@ -210,7 +222,7 @@ void Propagator::notify_new_decision_level () {
 
   // Stage 2
   for (int i = -4; i < order; i++) {
-    auto &a = state.steps[ABS_STEP (i)].e;
+    auto &a = state.steps[ABS_STEP (i)].a;
     auto &e = state.steps[ABS_STEP (i)].e;
     for (int j = 0; j < 32; j++) {
       auto &a_c = a.chars[j];
@@ -235,7 +247,7 @@ void Propagator::notify_new_decision_level () {
 
   // Stage 3
   two_bit = TwoBit{};
-  derive_two_bit_equations (two_bit, state, operations, order);
+  derive_two_bit_equations (two_bit, state);
   // printf ("Var constraints map:\n");
   // int highest_constraints = 0;
   // tuple<uint32_t, uint32_t, uint32_t> best_bit;
@@ -247,11 +259,11 @@ void Propagator::notify_new_decision_level () {
 
     uint32_t ids[] = {get<0> (entry.first), get<1> (entry.first),
                       get<2> (entry.first)};
-    uint32_t values[] = {partial_assignment.get (ids[0]),
-                         partial_assignment.get (ids[1]),
-                         partial_assignment.get (ids[2])};
+    uint32_t values[] = {state.partial_assignment.get (ids[0]),
+                         state.partial_assignment.get (ids[1]),
+                         state.partial_assignment.get (ids[2])};
     if (values[2] == LIT_FALSE) {
-      // -
+      // Impose '-'
       srand (clock ());
       if (rand () % 2 == 0) {
         decision_lits.push_back (ids[0]);
@@ -260,7 +272,7 @@ void Propagator::notify_new_decision_level () {
         decision_lits.push_back (-ids[0]);
         decision_lits.push_back (-ids[1]);
       }
-      printf ("Stage 3: guess\n");
+      // printf ("Stage 3: guess\n");
       return;
     }
   }
@@ -297,9 +309,11 @@ void Propagator::notify_new_decision_level () {
   //     decision_lits.push_back (-ids[2]);
   //   }
   // }
+#endif
 }
 
 int Propagator::cb_decide () {
+  // Timer time (&stats.total_cb_time);
   if (decision_lits.empty ())
     return 0;
   int lit = decision_lits.front ();
@@ -307,7 +321,9 @@ int Propagator::cb_decide () {
   // printf ("Debug: decision %d\n", lit);
   return lit;
 }
+
 int Propagator::cb_propagate () {
+  // Timer time (&stats.total_cb_time);
   if (propagation_lits.empty ())
     return 0;
   int lit = propagation_lits.back ();
@@ -318,6 +334,7 @@ int Propagator::cb_propagate () {
 }
 
 int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
+  // Timer time (&stats.total_cb_time);
   if (reason_clauses.find (propagated_lit) == reason_clauses.end ())
     return 0;
 
@@ -331,22 +348,19 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 }
 
 bool Propagator::cb_has_external_clause () {
-  return false;
-
+  Timer time (&stats.total_cb_time);
+#if BLOCK_INCONS
   // Check for 2-bit inconsistencies here
-  if (counter != SKIPS) {
-    counter++;
+  if (counter % 20 != 0)
     return false;
-  }
-  counter = 0;
   bool has_clause = false;
   two_bit = TwoBit{};
 
   // Get the blocking clauses
-  Timer time (&stats.total_cb_time);
-  refresh_state ();
-  derive_two_bit_equations (two_bit, state, operations, order);
-  printf ("Debug: derived %ld equations\n", two_bit.equations[0].size ());
+  state.soft_refresh ();
+  derive_two_bit_equations (two_bit, state);
+  // printf ("Debug: derived %ld equations\n", two_bit.equations[0].size
+  // ());
   for (int block_index = 0; block_index < 2; block_index++) {
     auto confl_equations =
         check_consistency (two_bit.equations[block_index], false);
@@ -354,9 +368,10 @@ bool Propagator::cb_has_external_clause () {
 
     // Block inconsistencies
     if (is_inconsistent) {
-      block_inconsistency (two_bit, partial_assignment, external_clauses,
-                           block_index);
+      block_inconsistency (two_bit, state.partial_assignment,
+                           external_clauses, block_index);
       has_clause = true;
+      break;
     }
   }
   // Keep only the shortest clause
@@ -372,32 +387,31 @@ bool Propagator::cb_has_external_clause () {
     }
     auto clause = external_clauses[shortest_index];
     external_clauses.clear ();
-    // if (clause.size () <= 20) {
     external_clauses.push_back (clause);
-    printf ("Debug: keeping shortest clause of size %ld: ", clause.size ());
-    // } else {
-    //   has_clause = false;
-    // }
-    print (clause);
+    printf ("Debug: keeping shortest clause of size %ld\n", clause.size ());
+    // print (clause);
   }
 
-  if (has_clause)
-    counter = SKIPS;
-
   return has_clause;
+#else
+  return false;
+#endif
 }
 
 int Propagator::cb_add_external_clause_lit () {
+  // Timer timer (&stats.total_cb_time);
   if (external_clauses.empty ())
     return 0;
 
   auto &clause = external_clauses.back ();
   int lit = clause.back ();
   clause.pop_back ();
-  if (clause.empty ())
+  if (clause.empty ()) {
     external_clauses.pop_back ();
-  printf ("Debug: gave EC lit %d (%d)\n", lit,
-          partial_assignment.get (abs (lit)));
+    stats.clauses_count++;
+  }
+  // printf ("Debug: gave EC lit %d (%d)\n", lit,
+  //         state.partial_assignment.get (abs (lit)));
   return lit;
 }
 
@@ -429,6 +443,10 @@ void test_equations (vector<Equation> &equations) {
 
   cout << "Unmatched equations: "
        << equations.size () - found_equations.size () << endl;
+
+  for (auto &equation : equations)
+    cout << equation.names[0] << " " << (equation.diff == 0 ? "=" : "=/=")
+         << " " << equation.names[1] << endl;
 
   cout << "Found " << found_equations.size () << " equations" << endl;
   for (auto &equation : found_equations)

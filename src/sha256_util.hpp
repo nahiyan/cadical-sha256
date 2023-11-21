@@ -11,7 +11,7 @@ using namespace std;
 namespace SHA256 {
 class Timer {
   clock_t start_time;
-  // target to add the delta to
+  // Target to add the delta to
   clock_t *target;
 
 public:
@@ -19,10 +19,7 @@ public:
     start_time = clock ();
     this->target = target;
   }
-  ~Timer () {
-    *this->target += clock () - start_time;
-    // printf ("Time: %ld\n", clock () - start_time);
-  }
+  ~Timer () { *this->target += clock () - start_time; }
 };
 
 string rotate_word (string word, int amount, bool is_circular = true);

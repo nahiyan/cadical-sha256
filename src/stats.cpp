@@ -528,6 +528,9 @@ void Stats::print (Internal *internal) {
          stats.extended, relative (stats.extended, stats.weakened));
   }
 
+  uint &programmatic_claues = SHA256::Propagator::stats.clauses_count;
+  PRT ("ext. clauses:    %15d", programmatic_claues);
+
   LINE ();
   MSG ("%sseconds are measured in %s time for solving%s",
        tout.magenta_code (), internal->opts.realtime ? "real" : "process",
@@ -547,7 +550,8 @@ void Internal::print_resource_usage () {
   MSG ("maximum resident set size of process:    %12.2f    MB",
        m / (double) (1l << 20));
   double total_cb_time =
-      SHA256::Propagator::stats.total_cb_time / CLOCKS_PER_SEC;
+      SHA256::Propagator::stats.total_cb_time / (double) CLOCKS_PER_SEC;
+
   MSG ("total callback time:                     %12.2f    seconds",
        total_cb_time);
   MSG ("discounted time:                         %12.2f    seconds",

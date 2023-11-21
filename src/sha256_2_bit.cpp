@@ -1,4 +1,6 @@
 #include "sha256_2_bit.hpp"
+#include "sha256_propagate.hpp"
+#include "sha256_state.hpp"
 #include "sha256_util.hpp"
 
 #include "NTL/GF2.h"
@@ -35,11 +37,10 @@ void load_two_bit_rules (const char *path) {
           two_bit_rules.bucket_count ());
 }
 
-void derive_two_bit_equations (TwoBit &two_bit, State &state,
-                               Operations *all_operations, int order) {
+void derive_two_bit_equations (TwoBit &two_bit, State &state) {
   auto derive_from_matrix = [] (TwoBit &two_bit, string &key,
-                                string &matrix, vector<Word> &inputs,
-                                vector<Word> &outputs, int col_index,
+                                string &matrix, vector<SoftWord *> &inputs,
+                                vector<Word *> &outputs, int col_index,
                                 vector<string> names = {}) {
     int matrix_i = -1;
     int words_count = inputs.size () + outputs.size ();
@@ -52,25 +53,8 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
             continue;
 
           uint8_t diff = matrix[matrix_i] == '1' ? 0 : 1;
-          // uint32_t selected_ids[] = {k == 0 ? inputs[i].ids_f[col_index]
-          //                                   : inputs[i].ids_g[col_index],
-          //                            k == 0 ? inputs[j].ids_f[col_index]
-          //                                   :
-          //                                   inputs[j].ids_g[col_index]};
-          uint32_t selected_ids[] = {inputs[i].diff_ids[col_index],
-                                     inputs[j].diff_ids[col_index]};
-
-          // Only allow inputs and outputs that can be defined in blocking
-          // clause
-          // bool skip = false;
-          // for (auto &c : key) {
-          //   if (c != 'x' && c != 'n' && c != 'u' && c != '-' && c != '0'
-          //   &&
-          //       c != '1')
-          //     skip = true;
-          // }
-          // if (skip)
-          //   continue;
+          uint32_t selected_ids[] = {inputs[i]->diff_ids[col_index],
+                                     inputs[j]->diff_ids[col_index]};
 
           Equation equation;
           equation.diff_ids[0] = selected_ids[0];
@@ -87,11 +71,11 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
 
           // Increment the constraints count
           for (int x = 0; x < 2; x++) {
-            Word &word = inputs[x == 0 ? i : j];
+            auto word = inputs[x == 0 ? i : j];
             tuple<uint32_t, uint32_t, uint32_t> key = {
-                word.ids_f[col_index],
-                word.ids_g[col_index],
-                word.diff_ids[col_index],
+                word->ids_f[col_index],
+                word->ids_g[col_index],
+                word->diff_ids[col_index],
             };
             if (two_bit.bit_constraints_count.find (key) !=
                 two_bit.bit_constraints_count.end ())
@@ -107,18 +91,18 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
               two_bit.aug_mtx_var_map[selected_ids[i]] =
                   two_bit.aug_mtx_var_map.size ();
 
-          // Map the equation variables (if they don't exist)
-          std::vector<Word> io = inputs;
-          io.insert (io.end (), outputs.begin (), outputs.end ());
+          // Add all the related variables to the equation
           vector<int> vars;
-          for (auto &word : io) {
-            vars.push_back (word.ids_f[col_index]);
-            vars.push_back (word.ids_g[col_index]);
-            vars.push_back (word.diff_ids[col_index]);
+          for (auto &word : inputs) {
+            vars.push_back (word->ids_f[col_index]);
+            vars.push_back (word->ids_g[col_index]);
+            vars.push_back (word->diff_ids[col_index]);
           }
-          // printf ("Detected 2-bit: %s %s %s\n", names[0].c_str (),
-          //         names[1].c_str (), names[2].c_str ());
-          // print (vars);
+          for (auto &word : outputs) {
+            vars.push_back (word->ids_f[col_index]);
+            vars.push_back (word->ids_g[col_index]);
+            vars.push_back (word->diff_ids[col_index]);
+          }
 
           auto equation_vars_it = two_bit.equation_ids_map.find (equation);
           if (equation_vars_it == two_bit.equation_ids_map.end ())
@@ -132,26 +116,26 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
     }
   };
 
-  for (int i = 0; i < order; i++) {
-    auto &step_operations = all_operations[i];
+  for (int i = 0; i < state.order; i++) {
+    auto &step_operations = state.operations[i];
     auto &step_state = state.steps[i];
 
     if (i >= 16) {
       {
         // s0
         auto &inputs_ = step_operations.s0.inputs;
-        vector<Word> outputs = {step_state.s0};
+        vector<Word *> outputs = {&step_state.s0};
         auto &output_chars = step_state.s0.chars;
 
         for (int j = 0; j < 32; j++) {
-          vector<Word> inputs = {inputs_[0], inputs_[1]};
+          vector<SoftWord *> inputs = {&inputs_[0], &inputs_[1]};
           if (j >= 3)
-            inputs.push_back (inputs_[2]);
+            inputs.push_back (&inputs_[2]);
 
           string key;
           key += to_string (j >= 3 ? TWO_BIT_XOR3_ID : TWO_BIT_XOR2_ID);
           for (auto &input : inputs)
-            key += input.chars[j];
+            key += *input->chars[j];
           key += output_chars[j];
           string value = two_bit_rules[key];
 
@@ -169,18 +153,18 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
       {
         // s1
         auto &inputs_ = step_operations.s1.inputs;
-        vector<Word> outputs = {step_state.s1};
+        vector<Word *> outputs = {&step_state.s1};
         auto &output_char = step_state.s1.chars;
 
         for (int j = 0; j < 32; j++) {
-          vector<Word> inputs = {inputs_[0], inputs_[1]};
+          vector<SoftWord *> inputs = {&inputs_[0], &inputs_[1]};
           if (j >= 10)
-            inputs.push_back (inputs_[2]);
+            inputs.push_back (&inputs_[2]);
 
           string key;
           key += to_string (j >= 10 ? TWO_BIT_XOR3_ID : TWO_BIT_XOR2_ID);
           for (auto &input : inputs)
-            key += input.chars[j];
+            key += *input->chars[j];
           key += output_char[j];
           string value = two_bit_rules[key];
 
@@ -194,19 +178,50 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
                  "W_" + to_string (i - 2) + "," + to_string (indices[2])});
         }
       }
+
+      {
+        // add.W
+        // auto &inputs_ = step_operations.add_w.inputs;
+        // vector<Word> outputs = {step_state.add_w_r[1],
+        //                         step_state.add_w_r[0], step_state.w};
+        // auto &output_char = step_state.s1.chars;
+
+        // for (int j = 0; j < 32; j++) {
+        //   vector<Word> inputs = {inputs_[0], inputs_[1]};
+        //   if (j >= 10)
+        //     inputs.push_back (inputs_[2]);
+
+        //   string key;
+        //   key += to_string (j >= 10 ? TWO_BIT_XOR3_ID : TWO_BIT_XOR2_ID);
+        //   for (auto &input : inputs)
+        //     key += input.chars[j];
+        //   key += output_char[j];
+        //   string value = two_bit_rules[key];
+
+        //   int indices[] = {(31 - j + 17) % 32, (31 - j + 19) % 32,
+        //                    31 - j + 10};
+        //   if (!value.empty ())
+        //     derive_from_matrix (
+        //         two_bit, key, value, inputs, outputs, j,
+        //         {"W_" + to_string (i - 2) + "," + to_string (indices[0]),
+        //          "W_" + to_string (i - 2) + "," + to_string (indices[1]),
+        //          "W_" + to_string (i - 2) + "," + to_string
+        //          (indices[2])});
+        // }
+      }
     }
 
     {
       // sigma0
       auto &inputs_ = step_operations.sigma0.inputs;
-      vector<Word> outputs = {step_state.sigma0};
+      vector<Word *> outputs = {&step_state.sigma0};
       auto &output_chars = step_state.sigma0.chars;
       for (int j = 0; j < 32; j++) {
-        vector<Word> inputs = {inputs_[0], inputs_[1], inputs_[2]};
+        vector<SoftWord *> inputs = {&inputs_[0], &inputs_[1], &inputs_[2]};
         string key;
         key += to_string (TWO_BIT_XOR3_ID);
         for (auto &input : inputs)
-          key += input.chars[j];
+          key += *input->chars[j];
         key += output_chars[j];
         string value = two_bit_rules[key];
 
@@ -223,14 +238,14 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
     {
       // sigma1
       auto &inputs_ = step_operations.sigma1.inputs;
-      vector<Word> outputs = {step_state.sigma1};
+      vector<Word *> outputs = {&step_state.sigma1};
       auto &output_chars = step_state.sigma1.chars;
       for (int j = 0; j < 32; j++) {
-        vector<Word> inputs = {inputs_[0], inputs_[1], inputs_[2]};
+        vector<SoftWord *> inputs = {&inputs_[0], &inputs_[1], &inputs_[2]};
         string key;
         key += to_string (TWO_BIT_XOR3_ID);
         for (auto &input : inputs)
-          key += input.chars[j];
+          key += *input->chars[j];
         key += output_chars[j];
         string value = two_bit_rules[key];
 
@@ -247,14 +262,14 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
     {
       // maj
       auto &inputs_ = step_operations.maj.inputs;
-      vector<Word> outputs = {step_state.maj};
+      vector<Word *> outputs = {&step_state.maj};
       auto &output_chars = step_state.maj.chars;
       for (int j = 0; j < 32; j++) {
-        vector<Word> inputs = {inputs_[0], inputs_[1], inputs_[2]};
+        vector<SoftWord *> inputs = {&inputs_[0], &inputs_[1], &inputs_[2]};
         string key;
         key += to_string (TWO_BIT_MAJ_ID);
         for (auto &input : inputs)
-          key += input.chars[j];
+          key += *input->chars[j];
         key += output_chars[j];
         string value = two_bit_rules[key];
         if (!value.empty ())
@@ -268,14 +283,14 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state,
     {
       // ch
       auto &inputs_ = step_operations.ch.inputs;
-      vector<Word> outputs = {step_state.ch};
+      vector<Word *> outputs = {&step_state.ch};
       auto &output_chars = step_state.ch.chars;
       for (int j = 0; j < 32; j++) {
-        vector<Word> inputs = {inputs_[0], inputs_[1], inputs_[2]};
+        vector<SoftWord *> inputs = {&inputs_[0], &inputs_[1], &inputs_[2]};
         string key;
         key += to_string (TWO_BIT_IF_ID);
         for (auto &input : inputs)
-          key += input.chars[j];
+          key += *input->chars[j];
         key += output_chars[j];
         string value = two_bit_rules[key];
         if (!value.empty ())

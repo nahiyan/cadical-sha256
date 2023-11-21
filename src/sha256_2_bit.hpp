@@ -19,8 +19,7 @@ using namespace std;
 
 namespace SHA256 {
 void load_two_bit_rules (const char *filename);
-void derive_two_bit_equations (TwoBit &two_bit, State &state,
-                               Operations *operations, int order);
+void derive_two_bit_equations (TwoBit &two_bit, State &state);
 vector<Equation> check_consistency (vector<Equation> &equations,
                                     bool exhaustive);
 bool block_inconsistency (TwoBit &two_bit,
