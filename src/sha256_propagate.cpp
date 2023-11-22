@@ -513,32 +513,32 @@ void prop_with_int_diff (int equation_id, vector<string *> words) {
 }
 
 void Propagator::prop_addition_weakly () {
-  auto get_value = [] (char diff_char, int block) {
-    if (diff_char == 'u')
-      return block == 0 ? '1' : '0';
-    else if (diff_char == 'n')
-      return block == 0 ? '0' : '1';
-    else if (diff_char == '0')
-      return '0';
-    else if (diff_char == '1')
-      return '1';
-    else if (diff_char == '3')
-      return block == 1 ? '0' : '?';
-    else if (diff_char == '5')
-      return block == 0 ? '0' : '?';
-    else if (diff_char == 'A')
-      return block == 0 ? '1' : '?';
-    else if (diff_char == 'C')
-      return block == 1 ? '1' : '?';
-    else
-      return '?';
-  };
+  // auto get_value = [] (char diff_char, int block) {
+  //   if (diff_char == 'u')
+  //     return block == 0 ? '1' : '0';
+  //   else if (diff_char == 'n')
+  //     return block == 0 ? '0' : '1';
+  //   else if (diff_char == '0')
+  //     return '0';
+  //   else if (diff_char == '1')
+  //     return '1';
+  //   else if (diff_char == '3')
+  //     return block == 1 ? '0' : '?';
+  //   else if (diff_char == '5')
+  //     return block == 0 ? '0' : '?';
+  //   else if (diff_char == 'A')
+  //     return block == 0 ? '1' : '?';
+  //   else if (diff_char == 'C')
+  //     return block == 1 ? '1' : '?';
+  //   else
+  //     return '?';
+  // };
 
   auto get_id = [] (SoftWord &word, int j, int block) {
     return block == 0 ? word.ids_f[j] : word.ids_g[j];
   };
 
-  for (int block = 0; block < 1; block++) {
+  for (int block = 0; block < 2; block++) {
     for (int i = 0; i < order; i++) {
       auto &step_operations = state.operations[i];
       vector<tuple<SoftWord *, SoftWord *, int, int>> add_operations = {
@@ -587,14 +587,14 @@ void Propagator::prop_addition_weakly () {
           vector<uint32_t> undefined_ids, one_ids, zero_ids;
           for (int k = 0; k < addends_count; k++) {
             // Get the value for the block
-            auto value = get_value (addends[k], block);
-            if (value == '?') {
+            auto value = state.partial_assignment.get (addend_ids[k]);
+            if (value == LIT_UNDEF) {
               count_u++;
               undefined_ids.push_back (addend_ids[k]);
-            } else if (value == '1') {
+            } else if (value == LIT_TRUE) {
               count_1++;
               one_ids.push_back (addend_ids[k]);
-            } else if (value == '0') {
+            } else if (value == LIT_FALSE) {
               count_0++;
               zero_ids.push_back (addend_ids[k]);
             }
@@ -612,10 +612,16 @@ void Propagator::prop_addition_weakly () {
                is_low_carry_undef =
                    has_low_carry &&
                    state.partial_assignment.get (r[0]) == LIT_UNDEF;
+          bool is_high_carry_true =
+                   has_high_carry &&
+                   state.partial_assignment.get (r[1]) == LIT_TRUE,
+               is_low_carry_true =
+                   has_low_carry &&
+                   state.partial_assignment.get (r[0]) == LIT_TRUE;
 
-          if (has_high_carry && is_high_carry_undef) {
+          if (has_high_carry && !is_high_carry_undef) {
             // Carry propagation: r1 = 1 if input >= 4
-            if (count_1 >= 4) {
+            if (count_1 >= 4 && !is_high_carry_true) {
               // vector<int> reason_clause;
               // for (auto &id : one_ids) {
               //   if (partial_assignment.get (id) == LIT_UNDEF)
@@ -631,22 +637,30 @@ void Propagator::prop_addition_weakly () {
               // for (auto &lit : reason_clause)
               //   printf ("%d ", partial_assignment.get (abs (lit)));
               // printf ("\n");
-              decision_lits.push_back (r[1]);
-              return;
+              // decision_lits.push_back (r[1]);
+              // return;
+              vector<int> clause = {r[1]};
+              for (auto &id : one_ids)
+                clause.push_back (-id);
+              external_clauses.push_back (clause);
             }
             // Carry propagation: r1 = 0 if input < 4
-            if (count_0 >= 4) {
+            if (count_0 >= 4 && is_high_carry_true) {
               // propagation_lits.push_back (-r[1]);
               // vector<int> reason_clause;
               // for (auto &id : zero_ids)
               //   reason_clause.push_back (-id);
               // reason_clauses.insert ({-r[1], reason_clause});
-              decision_lits.push_back (-r[1]);
-              return;
+              // decision_lits.push_back (-r[1]);
+              // return;
+              vector<int> clause = {-r[1]};
+              for (auto &id : zero_ids)
+                clause.push_back (id);
+              external_clauses.push_back (clause);
             }
           }
 
-          if (has_low_carry && is_low_carry_undef) {
+          if (has_low_carry && !is_low_carry_undef) {
             // Carry propagation: r0 = 1 if input >= 6 or 2 <= input < 4
             if (count_1 >= 6 || (2 <= count_1 && count_1 + count_u < 4)) {
               // propagation_lits.push_back (r[0]);
@@ -656,8 +670,16 @@ void Propagator::prop_addition_weakly () {
               // for (auto &id : zero_ids)
               //   reason_clause.push_back (-id);
               // reason_clauses.insert ({r[0], reason_clause});
-              decision_lits.push_back (r[0]);
-              return;
+              // decision_lits.push_back (r[0]);
+              // return;
+              if (!is_low_carry_true) {
+                vector<int> clause = {r[0]};
+                for (auto &id : one_ids)
+                  clause.push_back (-id);
+                for (auto &id : zero_ids)
+                  clause.push_back (id);
+                external_clauses.push_back (clause);
+              }
             }
             // Carry propagation: r0 = 0 if input < 2 or 4 <= input < 6
             if (count_0 >= 6 || (4 <= count_1 && count_1 + count_u < 6)) {
@@ -668,39 +690,47 @@ void Propagator::prop_addition_weakly () {
               // for (auto &id : zero_ids)
               //   reason_clause.push_back (-id);
               // reason_clauses.insert ({-r[0], reason_clause});
-              decision_lits.push_back (-r[0]);
-              return;
+              // decision_lits.push_back (-r[0]);
+              // return;
+              if (is_low_carry_true) {
+                vector<int> clause = {-r[0]};
+                for (auto &id : one_ids)
+                  clause.push_back (-id);
+                for (auto &id : zero_ids)
+                  clause.push_back (id);
+                external_clauses.push_back (clause);
+              }
             }
           }
 
-          if (has_high_carry && !is_high_carry_undef) {
-            bool is_r1_true =
-                state.partial_assignment.get (r[1]) == LIT_TRUE;
-            // Addend propagation: input <= 3 if r1 = 0
-            if (!is_r1_true && count_1 == 3)
-              for (int k = 0; k < count_u; k++) {
-                // propagation_lits.push_back (-undefined_ids[k]);
-                // vector<int> reason_clause;
-                // reason_clause.push_back (-undefined_ids[k]);
-                // reason_clause.push_back (-r[1]);
-                // reason_clauses.insert ({-undefined_ids[k],
-                // reason_clause});
-                decision_lits.push_back (-undefined_ids[k]);
-                return;
-              }
-            // Addend propagation: input >= 4 if r1 = 1
-            else if (is_r1_true && count_1 + count_u == 4)
-              for (int k = 0; k < count_u; k++) {
-                // propagation_lits.push_back (undefined_ids[k]);
-                // vector<int> reason_clause;
-                // reason_clause.push_back (undefined_ids[k]);
-                // reason_clause.push_back (r[1]);
-                // reason_clauses.insert ({undefined_ids[k],
-                // reason_clause});
-                decision_lits.push_back (undefined_ids[k]);
-                return;
-              }
-          }
+          // if (has_high_carry && !is_high_carry_undef) {
+          //   bool is_r1_true =
+          //       state.partial_assignment.get (r[1]) == LIT_TRUE;
+          //   // Addend propagation: input <= 3 if r1 = 0
+          //   if (!is_r1_true && count_1 == 3)
+          //     for (int k = 0; k < count_u; k++) {
+          //       // propagation_lits.push_back (-undefined_ids[k]);
+          //       // vector<int> reason_clause;
+          //       // reason_clause.push_back (-undefined_ids[k]);
+          //       // reason_clause.push_back (-r[1]);
+          //       // reason_clauses.insert ({-undefined_ids[k],
+          //       // reason_clause});
+          //       decision_lits.push_back (-undefined_ids[k]);
+          //       return;
+          //     }
+          //   // Addend propagation: input >= 4 if r1 = 1
+          //   else if (is_r1_true && count_1 + count_u == 4)
+          //     for (int k = 0; k < count_u; k++) {
+          //       // propagation_lits.push_back (undefined_ids[k]);
+          //       // vector<int> reason_clause;
+          //       // reason_clause.push_back (undefined_ids[k]);
+          //       // reason_clause.push_back (r[1]);
+          //       // reason_clauses.insert ({undefined_ids[k],
+          //       // reason_clause});
+          //       decision_lits.push_back (undefined_ids[k]);
+          //       return;
+          //     }
+          // }
         }
       }
     }

@@ -15,8 +15,7 @@
 
 #define CUSTOM_BRANCHING true
 #define BLOCK_INCONS true
-#define TIMER_START clock_t start_time = clock ();
-#define TIMER_STOP stats.total_cb_time += clock () - start_time;
+#define BLOCK_ADDITION_INCONS true
 
 using namespace SHA256;
 
@@ -247,8 +246,10 @@ void Propagator::notify_new_decision_level () {
   // printf ("Stage 3\n");
 
   // Stage 3
+#if BLOCK_INCONS == false
   two_bit = TwoBit{};
   derive_two_bit_equations (two_bit, state);
+#endif
   // printf ("Var constraints map:\n");
   // int highest_constraints = 0;
   // tuple<uint32_t, uint32_t, uint32_t> best_bit;
@@ -356,6 +357,31 @@ bool Propagator::cb_has_external_clause () {
   if (counter % 20 != 0)
     return false;
   bool has_clause = false;
+
+  // Weak addition propagation
+#if BLOCK_ADDITION_INCONS
+  prop_addition_weakly ();
+  has_clause = !external_clauses.empty ();
+  if (has_clause) {
+    int shortest_index = -1, shortest_length = INT_MAX;
+    for (int i = 0; i < int (external_clauses.size ()); i++) {
+      int size = external_clauses[i].size ();
+      if (size >= shortest_length)
+        continue;
+
+      shortest_length = size;
+      shortest_index = i;
+    }
+    auto clause = external_clauses[shortest_index];
+    external_clauses.clear ();
+    external_clauses.push_back (clause);
+    printf ("Debug: keeping shortest (addition) clause of size %ld\n",
+            clause.size ());
+    // print (clause);
+    return true;
+  }
+#endif
+
   two_bit = TwoBit{};
 
   // Get the blocking clauses
@@ -412,6 +438,11 @@ int Propagator::cb_add_external_clause_lit () {
     external_clauses.pop_back ();
     stats.clauses_count++;
   }
+
+  assert (lit < 0   ? state.partial_assignment.get (abs (lit)) == LIT_TRUE
+          : lit > 0 ? state.partial_assignment.get (abs (lit)) == LIT_FALSE
+                    : true);
+
   // printf ("Debug: gave EC lit %d (%d)\n", lit,
   //         state.partial_assignment.get (abs (lit)));
   return lit;
