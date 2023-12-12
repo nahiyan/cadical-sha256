@@ -1,6 +1,5 @@
 #include "sha256_propagate.hpp"
 #include "sha256.hpp"
-#include "sha256_2_bit.hpp"
 #include "sha256_util.hpp"
 #include <algorithm>
 #include <cassert>

@@ -1,5 +1,4 @@
 #include "sha256_2_bit.hpp"
-#include "sha256_propagate.hpp"
 #include "sha256_state.hpp"
 #include "sha256_util.hpp"
 
@@ -109,6 +108,7 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
             two_bit.equation_vars_map.insert ({equation, {}});
 
           auto &equation_vars = two_bit.equation_vars_map[equation];
+          assert (!vars.empty ());
           for (auto &var : vars)
             equation_vars.push_back (var);
         }

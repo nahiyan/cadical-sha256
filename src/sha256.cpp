@@ -382,10 +382,9 @@ bool Propagator::cb_has_external_clause () {
   }
 #endif
 
-  two_bit = TwoBit{};
-
   // Get the blocking clauses
   state.soft_refresh ();
+  two_bit = TwoBit{};
   derive_two_bit_equations (two_bit, state);
   // printf ("Debug: derived %ld equations\n", two_bit.equations[0].size
   // ());
@@ -422,6 +421,8 @@ bool Propagator::cb_has_external_clause () {
 
   return has_clause;
 #else
+  if (!external_clauses.empty ())
+    return true;
   return false;
 #endif
 }
@@ -432,6 +433,7 @@ int Propagator::cb_add_external_clause_lit () {
     return 0;
 
   auto &clause = external_clauses.back ();
+  assert (!clause.empty ());
   int lit = clause.back ();
   clause.pop_back ();
   if (clause.empty ()) {
