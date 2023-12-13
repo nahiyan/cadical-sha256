@@ -1,4 +1,5 @@
 #include "sha256_2_bit.hpp"
+#include "sha256_propagate.hpp"
 #include "sha256_state.hpp"
 #include "sha256_util.hpp"
 

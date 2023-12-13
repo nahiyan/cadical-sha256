@@ -16,27 +16,64 @@ void State::refresh_char (Word &word, int &i) {
   }
   assert (word.chars.size () == 32);
 
-  uint8_t values[3] = {partial_assignment.get (id_f),
-                       partial_assignment.get (id_g),
-                       partial_assignment.get (diff_id)};
+  uint8_t values[] = {partial_assignment.get (id_f),
+                      partial_assignment.get (id_g)};
+  uint8_t diff[] = {partial_assignment.get (diff_id + 0),
+                    partial_assignment.get (diff_id + 1),
+                    partial_assignment.get (diff_id + 2),
+                    partial_assignment.get (diff_id + 3)};
 
-  if (values[0] == LIT_UNDEF && values[1] == LIT_UNDEF &&
-      values[2] != LIT_UNDEF)
-    c = values[2] == LIT_TRUE ? 'x' : '-';
-  else if (values[2] == LIT_TRUE &&
-           (values[0] == LIT_TRUE || values[1] == LIT_FALSE))
-    c = 'u';
-  else if (values[2] == LIT_TRUE &&
-           (values[0] == LIT_FALSE || values[1] == LIT_TRUE))
-    c = 'n';
-  else if (values[2] == LIT_FALSE &&
-           (values[0] == LIT_TRUE || values[1] == LIT_TRUE))
-    c = '1';
-  else if (values[2] == LIT_FALSE &&
-           (values[0] == LIT_FALSE || values[1] == LIT_FALSE))
+  if (diff[0] == LIT_TRUE && diff[1] == LIT_FALSE && diff[2] == LIT_FALSE &&
+      diff[3] == LIT_TRUE)
+    c = '-';
+  else if (diff[0] == LIT_FALSE && diff[1] == LIT_TRUE &&
+           diff[2] == LIT_TRUE && diff[3] == LIT_FALSE)
+    c = 'x';
+  else if (diff[0] == LIT_TRUE && diff[1] == LIT_FALSE &&
+           diff[2] == LIT_FALSE && diff[3] == LIT_FALSE)
     c = '0';
+  else if (diff[0] == LIT_FALSE && diff[1] == LIT_TRUE &&
+           diff[2] == LIT_FALSE && diff[3] == LIT_FALSE)
+    c = 'u';
+  else if (diff[0] == LIT_FALSE && diff[1] == LIT_FALSE &&
+           diff[2] == LIT_TRUE && diff[3] == LIT_FALSE)
+    c = 'n';
+  else if (diff[0] == LIT_FALSE && diff[1] == LIT_FALSE &&
+           diff[2] == LIT_FALSE && diff[3] == LIT_TRUE)
+    c = '1';
+  else if (diff[0] == LIT_TRUE && diff[1] == LIT_TRUE &&
+           diff[2] == LIT_FALSE && diff[3] == LIT_FALSE)
+    c = '3';
+  else if (diff[0] == LIT_TRUE && diff[1] == LIT_FALSE &&
+           diff[2] == LIT_TRUE && diff[3] == LIT_FALSE)
+    c = '5';
+  else if (diff[0] == LIT_TRUE && diff[1] == LIT_TRUE &&
+           diff[2] == LIT_TRUE && diff[3] == LIT_FALSE)
+    c = '7';
+  else if (diff[0] == LIT_FALSE && diff[1] == LIT_TRUE &&
+           diff[2] == LIT_FALSE && diff[3] == LIT_TRUE)
+    c = 'A';
+  else if (diff[0] == LIT_TRUE && diff[1] == LIT_TRUE &&
+           diff[2] == LIT_FALSE && diff[3] == LIT_TRUE)
+    c = 'B';
+  else if (diff[0] == LIT_FALSE && diff[1] == LIT_FALSE &&
+           diff[2] == LIT_TRUE && diff[3] == LIT_TRUE)
+    c = 'C';
+  else if (diff[0] == LIT_TRUE && diff[1] == LIT_FALSE &&
+           diff[2] == LIT_TRUE && diff[3] == LIT_TRUE)
+    c = 'D';
+  else if (diff[0] == LIT_FALSE && diff[1] == LIT_TRUE &&
+           diff[2] == LIT_TRUE && diff[3] == LIT_TRUE)
+    c = 'E';
   else
     c = '?';
+
+  // TODO: Determine if additional checks are required as UP is there
+  // if (c == '-' && (values[0] != LIT_UNDEF || values[1] != LIT_UNDEF))
+  //   c = values[0] == LIT_TRUE || values[1] == LIT_TRUE ? '1' : '0';
+  // else if (c == 'x' && (values[0] != LIT_UNDEF || values[1] !=
+  // LIT_UNDEF))
+  //   c = values[0] == LIT_TRUE || values[1] == LIT_FALSE ? 'u' : 'n';
 }
 
 void State::refresh_word (Word &word) {
@@ -183,17 +220,19 @@ void State::hard_refresh (bool will_propagate) {
       //      &state.steps[i].t});
       // TODO: Fix issue
       // otf_add_propagate (
-      //     two_bit, {&state.steps[ABS_STEP (i - 4)].a, &state.steps[i].t},
-      //     {operations[i].add_e.carries[0]},
-      //     {&state.steps[i].add_e_r[0], &state.steps[ABS_STEP (i)].e});
-      // otf_add_propagate (
-      //     two_bit,
-      //     {&state.steps[i].t, &state.steps[i].sigma0,
-      //     &state.steps[i].maj}, {operations[i].add_a.carries[0],
-      //     operations[i].add_a.carries[1]},
-      //     {&state.steps[i].add_a_r[1], &state.steps[i].add_a_r[0],
-      //      &state.steps[ABS_STEP (i)].a});
+      //     two_bit, {&state.steps[ABS_STEP (i - 4)].a,
+      // &state.steps[i].t
     }
+    // ,
+    //     {operations[i].add_e.carries[0]},
+    //     {&state.steps[i].add_e_r[0], &state.steps[ABS_STEP (i)].e});
+    // otf_add_propagate (
+    //     two_bit,
+    //     {&state.steps[i].t, &state.steps[i].sigma0,
+    //     &state.steps[i].maj}, {operations[i].add_a.carries[0],
+    //     operations[i].add_a.carries[1]},
+    //     {&state.steps[i].add_a_r[1], &state.steps[i].add_a_r[0],
+    //      &state.steps[ABS_STEP (i)].a});
   }
 }
 
@@ -207,13 +246,9 @@ void State::soft_refresh () {
 }
 
 void State::print () {
-  // if (++counter % 300 != 0)
-  //   return;
-
   for (int i = -4; i < order; i++) {
     auto &step = steps[ABS_STEP (i)];
-    printf ("%d", i);
-    printf (i < 0 || i > 9 ? " " : "  ");
+    printf (i >= 0 && i <= 9 ? " %d " : "%d ", i);
     printf ("%s %s", step.a.chars.c_str (), step.e.chars.c_str ());
     if (i >= 0) {
       auto &step_ = steps[i];

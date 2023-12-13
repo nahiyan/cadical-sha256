@@ -52,7 +52,7 @@ void Propagator::parse_comment_line (string line,
     state.set_operations ();
 
     printf ("Initial state:\n");
-    state.hard_refresh ();
+    state.soft_refresh ();
     state.print ();
 
     return;
@@ -109,13 +109,17 @@ void Propagator::parse_comment_line (string line,
 
       // Add the IDs
       for (int i = 31, id = value; i >= 0; i--, id++) {
-        if (prefix[0] == 'D')
-          word.diff_ids[i] = id;
-        else if (is_f)
+        if (prefix[0] == 'D') {
+          word.diff_ids[i] = value + (i * 4);
+          for (int j = 0; j < 4; j++)
+            state.id_word_rels[value + (i * 4) + j] = {&word, i};
+        } else if (is_f) {
           word.ids_f[i] = id;
-        else
+          state.id_word_rels[id] = {&word, i};
+        } else {
           word.ids_g[i] = id;
-        state.id_word_rels[id] = {&word, i};
+          state.id_word_rels[id] = {&word, i};
+        }
       }
 
       // Add to observed vars
@@ -123,7 +127,8 @@ void Propagator::parse_comment_line (string line,
         for (int i = 0; i < 32; i++) {
           solver->add_observed_var (word.ids_f[i]);
           solver->add_observed_var (word.ids_g[i]);
-          solver->add_observed_var (word.diff_ids[i]);
+          for (int j = 0; j < 4; j++)
+            solver->add_observed_var (word.diff_ids[i] + j);
         }
     }
   }
@@ -208,7 +213,10 @@ void Propagator::notify_new_decision_level () {
       auto &c = w.chars[j];
       // Impose '-' for '?'
       if (c == '?') {
-        decision_lits.push_back (-w.diff_ids[j]);
+        decision_lits.push_back ((w.diff_ids[j] + 0));
+        decision_lits.push_back (-(w.diff_ids[j] + 1));
+        decision_lits.push_back (-(w.diff_ids[j] + 2));
+        decision_lits.push_back ((w.diff_ids[j] + 3));
         return;
       } else if (c == 'x') {
         // Impose 'u' or 'n' for '?'
@@ -228,13 +236,19 @@ void Propagator::notify_new_decision_level () {
       auto &a_c = a.chars[j];
       auto &e_c = e.chars[j];
       if (a_c == '?') {
-        decision_lits.push_back (-a.diff_ids[j]);
+        decision_lits.push_back ((a.diff_ids[j] + 0));
+        decision_lits.push_back (-(a.diff_ids[j] + 1));
+        decision_lits.push_back (-(a.diff_ids[j] + 2));
+        decision_lits.push_back ((a.diff_ids[j] + 3));
         return;
       } else if (a_c == 'x') {
         rand_ground_x (decision_lits, a, j);
         return;
       } else if (e_c == '?') {
-        decision_lits.push_back (-e.diff_ids[j]);
+        decision_lits.push_back ((e.diff_ids[j] + 0));
+        decision_lits.push_back (-(e.diff_ids[j] + 1));
+        decision_lits.push_back (-(e.diff_ids[j] + 2));
+        decision_lits.push_back ((e.diff_ids[j] + 3));
         return;
       } else if (e_c == 'x') {
         rand_ground_x (decision_lits, e, j);
@@ -250,15 +264,7 @@ void Propagator::notify_new_decision_level () {
   two_bit = TwoBit{};
   derive_two_bit_equations (two_bit, state);
 #endif
-  // printf ("Var constraints map:\n");
-  // int highest_constraints = 0;
-  // tuple<uint32_t, uint32_t, uint32_t> best_bit;
   for (auto &entry : two_bit.bit_constraints_count) {
-    // if (entry.second > highest_constraints) {
-    //   highest_constraints = entry.second;
-    //   best_bit = entry.first;
-    // }
-
     uint32_t ids[] = {get<0> (entry.first), get<1> (entry.first),
                       get<2> (entry.first)};
     uint32_t values[] = {state.partial_assignment.get (ids[0]),
@@ -278,39 +284,6 @@ void Propagator::notify_new_decision_level () {
       return;
     }
   }
-  // if (highest_constraints != 0) {
-  //   uint32_t ids[] = {get<0> (best_bit), get<1> (best_bit),
-  //                     get<2> (best_bit)};
-  //   uint32_t values[] = {partial_assignment.get (ids[0]),
-  //                        partial_assignment.get (ids[1]),
-  //                        partial_assignment.get (ids[2])};
-  //   // printf ("Debug: best bit values = %d %d %d\n", values[0],
-  //   // values[1],
-  //   //         values[2]);
-  //   srand (clock ());
-  //   if (values[2] == LIT_TRUE) {
-  //     // x
-  //     if (rand () % 2 == 0) {
-  //       decision_lits.push_back (ids[0]);
-  //       decision_lits.push_back (-ids[1]);
-  //     } else {
-  //       decision_lits.push_back (-ids[0]);
-  //       decision_lits.push_back (ids[1]);
-  //     }
-  //   } else if (values[2] == LIT_FALSE) {
-  //     // -
-  //     if (rand () % 2 == 0) {
-  //       decision_lits.push_back (ids[0]);
-  //       decision_lits.push_back (ids[1]);
-  //     } else {
-  //       decision_lits.push_back (-ids[0]);
-  //       decision_lits.push_back (-ids[1]);
-  //     }
-  //   } else {
-  //     // ?
-  //     decision_lits.push_back (-ids[2]);
-  //   }
-  // }
 #endif
 }
 
