@@ -143,7 +143,6 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
 
   // Assign variables in the partial assignment
   state.partial_assignment.set (lit);
-  // printf ("BCP: %d\n", lit);
 }
 
 void Propagator::notify_backtrack (size_t new_level) {

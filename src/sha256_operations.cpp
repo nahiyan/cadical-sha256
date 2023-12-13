@@ -52,7 +52,7 @@ void State::set_operations () {
               &word.chars[e_mod (j - 7, 32)];
           operations[i].s0.inputs[1].chars[j] =
               &word.chars[e_mod (j - 18, 32)];
-          // TODO: Ensure that the first 3 chars aren't used
+          // Ensure that the first 3 chars aren't used
           operations[i].s0.inputs[2].chars[j] =
               j >= 3 ? &word.chars[e_mod (j - 3, 32)] : zero_char;
         }
@@ -81,7 +81,7 @@ void State::set_operations () {
               &word.chars[e_mod (j - 17, 32)];
           operations[i].s1.inputs[1].chars[j] =
               &word.chars[e_mod (j - 19, 32)];
-          // TODO: Ensure that the first 10 chars aren't used
+          // Ensure that the first 10 chars aren't used
           operations[i].s1.inputs[2].chars[j] =
               j >= 10 ? &word.chars[e_mod (j - 10, 32)] : zero_char;
         }

@@ -68,12 +68,16 @@ void State::refresh_char (Word &word, int &i) {
   else
     c = '?';
 
-  // TODO: Determine if additional checks are required as UP is there
-  // if (c == '-' && (values[0] != LIT_UNDEF || values[1] != LIT_UNDEF))
-  //   c = values[0] == LIT_TRUE || values[1] == LIT_TRUE ? '1' : '0';
-  // else if (c == 'x' && (values[0] != LIT_UNDEF || values[1] !=
-  // LIT_UNDEF))
-  //   c = values[0] == LIT_TRUE || values[1] == LIT_FALSE ? 'u' : 'n';
+  if (c == '-' && (values[0] != LIT_UNDEF || values[1] != LIT_UNDEF))
+    c = values[0] == LIT_TRUE || values[1] == LIT_TRUE ? '1' : '0';
+  else if (c == 'x' && (values[0] != LIT_UNDEF || values[1] != LIT_UNDEF))
+    c = values[0] == LIT_TRUE || values[1] == LIT_FALSE ? 'u' : 'n';
+
+  if (c == '?' && values[0] != LIT_UNDEF && values[1] != LIT_UNDEF)
+    c = values[0] == LIT_TRUE && values[1] == LIT_TRUE     ? '1'
+        : values[0] == LIT_FALSE && values[1] == LIT_FALSE ? '0'
+        : values[0] == LIT_TRUE && values[1] == LIT_FALSE  ? 'u'
+                                                           : 'n';
 }
 
 void State::refresh_word (Word &word) {
@@ -123,16 +127,14 @@ void State::hard_refresh (bool will_propagate) {
             for (int j = 0; j < 3; j++)
               inputs[j] = get_soft_word_chars (operations[i].s0.inputs[j]);
 
-            step.s0.chars =
-                propagate (IO_PROP_XOR3_ID, inputs, step.s0.chars);
+            step.s0.chars = propagate (xor3, inputs, step.s0.chars);
           }
           {
             // s1
             vector<string> inputs (3);
             for (int j = 0; j < 3; j++)
               inputs[j] = get_soft_word_chars (operations[i].s1.inputs[j]);
-            step.s1.chars =
-                propagate (IO_PROP_XOR3_ID, inputs, step.s1.chars);
+            step.s1.chars = propagate (xor3, inputs, step.s1.chars);
           }
 
           prop_with_int_diff (ADD_W_ID, {
@@ -164,8 +166,7 @@ void State::hard_refresh (bool will_propagate) {
           for (int j = 0; j < 3; j++)
             inputs[j] =
                 get_soft_word_chars (operations[i].sigma0.inputs[j]);
-          step.sigma0.chars =
-              propagate (IO_PROP_XOR3_ID, inputs, step.sigma0.chars);
+          step.sigma0.chars = propagate (xor3, inputs, step.sigma0.chars);
         }
         {
           // sigma1
@@ -173,8 +174,7 @@ void State::hard_refresh (bool will_propagate) {
           for (int j = 0; j < 3; j++)
             inputs[j] =
                 get_soft_word_chars (operations[i].sigma1.inputs[j]);
-          step.sigma1.chars =
-              propagate (IO_PROP_XOR3_ID, inputs, step.sigma1.chars);
+          step.sigma1.chars = propagate (xor3, inputs, step.sigma1.chars);
         }
 
         {
@@ -182,15 +182,14 @@ void State::hard_refresh (bool will_propagate) {
           vector<string> inputs (3);
           for (int j = 0; j < 3; j++)
             inputs[j] = get_soft_word_chars (operations[i].maj.inputs[j]);
-          step.maj.chars =
-              propagate (IO_PROP_MAJ_ID, inputs, step.maj.chars);
+          step.maj.chars = propagate (maj, inputs, step.maj.chars);
         }
         {
           // ch
           vector<string> inputs (3);
           for (int j = 0; j < 3; j++)
             inputs[j] = get_soft_word_chars (operations[i].ch.inputs[j]);
-          step.ch.chars = propagate (IO_PROP_CH_ID, inputs, step.ch.chars);
+          step.ch.chars = propagate (ch, inputs, step.ch.chars);
         }
 
         prop_with_int_diff (ADD_E_ID, {

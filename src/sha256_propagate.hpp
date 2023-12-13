@@ -6,20 +6,14 @@
 #include <string>
 #include <vector>
 
-#define IO_PROP_ADD2_ID 0
-#define IO_PROP_CH_ID 1
-#define IO_PROP_MAJ_ID 2
-#define IO_PROP_XOR3_ID 3
-#define IO_PROP_ADD3_ID 4
-#define IO_PROP_ADD4_ID 5
-#define IO_PROP_ADD5_ID 6
-#define IO_PROP_ADD6_ID 7
-#define IO_PROP_ADD7_ID 8
-
 #define ADD_A_ID 0
 #define ADD_E_ID 1
 #define ADD_W_ID 2
 #define ADD_T_ID 3
+
+enum PropRuleId { ch, maj, xor3 };
+// TODO: Integrate this
+enum AdditionId { a, e, w, t };
 
 using namespace std;
 

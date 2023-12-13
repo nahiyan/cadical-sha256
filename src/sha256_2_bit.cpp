@@ -96,12 +96,14 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
           for (auto &word : inputs) {
             vars.push_back (word->ids_f[col_index]);
             vars.push_back (word->ids_g[col_index]);
-            vars.push_back (word->diff_ids[col_index]);
+            for (int x = 0; x < 4; x++)
+              vars.push_back (word->diff_ids[col_index] + j);
           }
           for (auto &word : outputs) {
             vars.push_back (word->ids_f[col_index]);
             vars.push_back (word->ids_g[col_index]);
-            vars.push_back (word->diff_ids[col_index]);
+            for (int x = 0; x < 4; x++)
+              vars.push_back (word->diff_ids[col_index] + j);
           }
 
           auto equation_vars_it = two_bit.equation_vars_map.find (equation);
