@@ -109,11 +109,12 @@ void Propagator::parse_comment_line (string line,
         word.chars = string (32, '?');
 
       // Add the IDs
-      for (int i = 31, id = value; i >= 0; i--, id++) {
+      for (int i = 31, id = value, id2 = value; i >= 0;
+           i--, id++, id2 += 4) {
         if (prefix[0] == 'D') {
-          word.diff_ids[i] = value + (i * 4);
+          word.diff_ids[i] = id2;
           for (int j = 0; j < 4; j++)
-            state.id_word_rels[value + (i * 4) + j] = {&word, i};
+            state.id_word_rels[id2] = {&word, i};
         } else if (is_f) {
           word.ids_f[i] = id;
           state.id_word_rels[id] = {&word, i};
