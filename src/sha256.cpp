@@ -25,6 +25,7 @@ uint64_t counter = 0;
 Stats Propagator::stats = Stats{0, 0, 0};
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
+
 #ifndef NDEBUG
   run_tests ();
   // exit (0);
@@ -52,7 +53,7 @@ void Propagator::parse_comment_line (string line,
     state.set_operations ();
 
     printf ("Initial state:\n");
-    state.soft_refresh ();
+    state.hard_refresh ();
     state.print ();
 
     return;
