@@ -1,19 +1,14 @@
 #ifndef _sha256_propagate_hpp_INCLUDED
 #define _sha256_propagate_hpp_INCLUDED
 
-#include "sha256.hpp"
+#include "sha256_2_bit.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
 
-#define ADD_A_ID 0
-#define ADD_E_ID 1
-#define ADD_W_ID 2
-#define ADD_T_ID 3
-
-enum PropRuleId { ch, maj, xor3 };
+enum FunctionId { ch, maj, xor3 };
 // TODO: Integrate this
-enum AdditionId { a, e, w, t };
+enum AdditionId { add_a, add_e, add_w, add_t };
 
 using namespace std;
 
