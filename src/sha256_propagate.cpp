@@ -480,7 +480,7 @@ void prop_with_int_diff (int equation_id, vector<string *> words) {
     int64_t int_diff = _int_diff ((char *) words[i]->c_str ());
     if (int_diff != -1)
       word_diffs[i] =
-          ((i == 0 || (equation_id == ADD_A_ID && i == 2)) ? 1 : -1) *
+          ((i == 0 || (equation_id == add_a && i == 2)) ? 1 : -1) *
           int_diff;
     else
       underived_indices.push_back (i);
@@ -496,7 +496,7 @@ void prop_with_int_diff (int equation_id, vector<string *> words) {
 
   for (int i = 0; i < underived_count; i++) {
     auto index = underived_indices[i];
-    if (index == 0 || (equation_id == ADD_A_ID && index == 2))
+    if (index == 0 || (equation_id == add_a && index == 2))
       constant *= -1;
   }
   vector<string> underived_words;
