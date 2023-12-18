@@ -16,7 +16,6 @@ using namespace std;
 
 namespace SHA256 {
 struct Word {
-  // TODO: Rename "diff_ids" to delta_ids
   // f and g refer to the 2 blocks of SHA-256
   uint32_t ids_f[32], ids_g[32], diff_ids[32];
   // Differential characteristics
@@ -69,16 +68,18 @@ struct Operations {
 };
 
 class PartialAssignment {
-  // TODO: Construct with size of max(observed_vars) in the heap
-  uint8_t variables[MAX_VAR_ID];
+  uint8_t *variables;
 
 public:
   stack<uint32_t> updated_variables;
 
-  PartialAssignment () {
+  PartialAssignment (int variables_count) {
+    variables = new uint8_t[variables_count];
     for (int i = 0; i < MAX_VAR_ID; i++)
       variables[i] = LIT_UNDEF;
   }
+
+  ~PartialAssignment () { delete[] variables; }
 
   void set (int lit) {
     int id = abs (lit);
@@ -103,7 +104,7 @@ struct Step {
 class State {
 public:
   int order;
-  PartialAssignment partial_assignment;
+  PartialAssignment partial_assignment = PartialAssignment (MAX_VAR_ID);
   Operations operations[64];
   Step steps[64 + 4];
   // Variable ID and word relations
