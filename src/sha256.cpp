@@ -114,7 +114,7 @@ void Propagator::parse_comment_line (string line,
         if (prefix[0] == 'D') {
           word.diff_ids[i] = id2;
           for (int j = 0; j < 4; j++)
-            state.id_word_rels[id2] = {&word, i};
+            state.id_word_rels[id2 + j] = {&word, i};
         } else if (is_f) {
           word.ids_f[i] = id;
           state.id_word_rels[id] = {&word, i};
