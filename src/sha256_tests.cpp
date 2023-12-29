@@ -1,5 +1,6 @@
 #include "sha256_tests.hpp"
 #include "sha256.hpp"
+#include "sha256_2_bit.hpp"
 #include "sha256_propagate.hpp"
 #include "sha256_util.hpp"
 #include <cassert>
@@ -156,6 +157,47 @@ void test_otf_add_propagate () {
   }
 }
 
+void test_otf_propagate () {
+  {
+    auto result = otf_propagate (add_, "-0n10n", "???");
+    assert (result == "5x-");
+  }
+  {
+    auto result = otf_propagate (add_, "-1n51-75", "??1");
+    assert (result == "D?1");
+  }
+  {
+    auto result = otf_propagate (add_, "-0nu0uDD", "??1");
+    assert (result == "011");
+  }
+}
+void test_otf_2bit_eqs () {
+  {
+    vector<Equation> equations;
+    otf_2bit_eqs (
+        add_, "-0n10n", "5x-", equations,
+        {"A_{i-4}", "E_{i-4}", "?", "?", "?", "W_i", "?", "?", "E_i"});
+    assert (equations.size () == 1 && equations[0].names[0] == "A_{i-4}" &&
+            equations[0].names[1] == "E_i" && equations[0].diff == 1);
+  }
+  {
+    vector<Equation> equations;
+    otf_2bit_eqs (add_, "-1101-11", "110", equations,
+                  {"A_{i-4}", "E_{i-4}", "?", "?", "?", "W_i", "?", "?",
+                   "?", "?", "E_i"});
+    assert (equations.size () == 1 && equations[0].names[0] == "A_{i-4}" &&
+            equations[0].names[1] == "W_i" && equations[0].diff == 1);
+  }
+  {
+    vector<Equation> equations;
+    otf_2bit_eqs (add_, "u0u01-10", "un-", equations,
+                  {"A_{i-4}", "E_{i-4}", "?", "?", "?", "W_i", "?", "?",
+                   "?", "?", "E_i"});
+    assert (equations.size () == 1 && equations[0].names[0] == "W_i" &&
+            equations[0].names[1] == "E_i" && equations[0].diff == 0);
+  }
+}
+
 void run_tests () {
   printf ("Running tests\n");
   test_int_diff ();
@@ -168,6 +210,8 @@ void run_tests () {
   test_derive_words ();
   test_rotate_word ();
   test_otf_add_propagate ();
+  test_otf_propagate ();
+  test_otf_2bit_eqs ();
   printf ("All tests passed!\n");
 }
 } // namespace SHA256
