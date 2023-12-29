@@ -137,13 +137,13 @@ void State::hard_refresh (bool will_propagate) {
             step.s1.chars = propagate (xor3, inputs, step.s1.chars);
           }
 
-          prop_with_int_diff (ADD_W_ID, {
-                                            &steps[i].w.chars,
-                                            &steps[i].s1.chars,
-                                            &steps[i - 7].w.chars,
-                                            &steps[i].s0.chars,
-                                            &steps[i - 16].w.chars,
-                                        });
+          prop_with_int_diff (add_w, {
+                                         &steps[i].w.chars,
+                                         &steps[i].s1.chars,
+                                         &steps[i - 7].w.chars,
+                                         &steps[i].s0.chars,
+                                         &steps[i - 16].w.chars,
+                                     });
         }
 
         // cout << "Step " << i << endl;
@@ -192,21 +192,21 @@ void State::hard_refresh (bool will_propagate) {
           step.ch.chars = propagate (ch, inputs, step.ch.chars);
         }
 
-        prop_with_int_diff (ADD_E_ID, {
-                                          &steps[ABS_STEP (i)].e.chars,
-                                          &steps[ABS_STEP (i - 4)].a.chars,
-                                          &steps[ABS_STEP (i - 4)].e.chars,
-                                          &steps[i].sigma1.chars,
-                                          &steps[i].ch.chars,
-                                          &steps[i].w.chars,
-                                      });
-        prop_with_int_diff (ADD_A_ID, {
-                                          &steps[ABS_STEP (i)].a.chars,
-                                          &steps[ABS_STEP (i)].e.chars,
-                                          &steps[ABS_STEP (i - 4)].a.chars,
-                                          &steps[i].sigma0.chars,
-                                          &steps[i].maj.chars,
-                                      });
+        prop_with_int_diff (add_e, {
+                                       &steps[ABS_STEP (i)].e.chars,
+                                       &steps[ABS_STEP (i - 4)].a.chars,
+                                       &steps[ABS_STEP (i - 4)].e.chars,
+                                       &steps[i].sigma1.chars,
+                                       &steps[i].ch.chars,
+                                       &steps[i].w.chars,
+                                   });
+        prop_with_int_diff (add_a, {
+                                       &steps[ABS_STEP (i)].a.chars,
+                                       &steps[ABS_STEP (i)].e.chars,
+                                       &steps[ABS_STEP (i - 4)].a.chars,
+                                       &steps[i].sigma0.chars,
+                                       &steps[i].maj.chars,
+                                   });
       }
 
       // otf_add_propagate (
