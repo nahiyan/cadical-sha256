@@ -25,19 +25,31 @@ struct Stats {
   uint decisions_count;
 };
 
+struct Reason {
+  pair<string, string> differential;
+  vector<vector<int>> input_ids, output_ids;
+  vector<int> antecedent;
+};
+
 class Propagator : CaDiCaL::ExternalPropagator {
   CaDiCaL::Solver *solver;
-  // TODO: Use more efficient data structure
-  deque<std::vector<int>> current_trail;
   static int order;
   static State state;
   vector<Equation> two_bit_eqs;
   vector<int> propagation_lits;
-  map<int, vector<int>> reason_clauses;
+  vector<int> reason_clause;
+  map<int, Reason> reasons;
   // Assume that the external clauses are blocking clauses
   vector<vector<int>> external_clauses;
   list<int> decision_lits;
   TwoBit two_bit;
+
+  unordered_map<char, vector<int>> gc_table = {
+      {'?', {1, 1, 1, 1}}, {'-', {1, 0, 0, 1}}, {'x', {0, 1, 1, 0}},
+      {'0', {1, 0, 0, 0}}, {'u', {0, 1, 0, 0}}, {'n', {0, 0, 1, 0}},
+      {'1', {0, 0, 0, 1}}, {'3', {1, 1, 0, 0}}, {'5', {1, 0, 1, 0}},
+      {'7', {1, 1, 1, 0}}, {'A', {0, 1, 0, 1}}, {'B', {1, 1, 0, 1}},
+      {'C', {0, 0, 1, 1}}, {'D', {1, 0, 1, 1}}, {'E', {0, 1, 1, 1}}};
 
   void prop_addition_weakly ();
 

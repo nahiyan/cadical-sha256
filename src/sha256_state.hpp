@@ -1,11 +1,13 @@
 #ifndef _sha256_state_hpp_INCLUDED
 #define _sha256_state_hpp_INCLUDED
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <stack>
 #include <string>
+#include <vector>
 
 #define LIT_TRUE 2
 #define LIT_FALSE 1
@@ -72,11 +74,14 @@ class PartialAssignment {
 
 public:
   stack<uint32_t> updated_variables;
+  deque<vector<int>> *current_trail; // !Added for Debugging only
 
-  PartialAssignment (int variables_count) {
+  PartialAssignment (int variables_count,
+                     deque<vector<int>> *current_trail) {
     variables = new uint8_t[variables_count];
     for (int i = 0; i < MAX_VAR_ID; i++)
       variables[i] = LIT_UNDEF;
+    this->current_trail = current_trail;
   }
 
   ~PartialAssignment () { delete[] variables; }
@@ -90,6 +95,23 @@ public:
     assert (id > 0);
     return variables[id];
   }
+
+  // Search the entire trail for a variable (for debugging)
+  uint8_t get_ (int id) {
+    for (auto level_lits : *current_trail) {
+      if (std::find (level_lits.begin (), level_lits.end (), id) !=
+          level_lits.end ()) {
+        return LIT_TRUE;
+      }
+      if (std::find (level_lits.begin (), level_lits.end (), -id) !=
+          level_lits.end ()) {
+        return LIT_FALSE;
+      }
+    };
+
+    return LIT_UNDEF;
+  }
+
   void unset (int lit) {
     int id = abs (lit);
     variables[id] = LIT_UNDEF;
@@ -103,8 +125,10 @@ struct Step {
 };
 class State {
 public:
+  deque<vector<int>> current_trail;
   int order;
-  PartialAssignment partial_assignment = PartialAssignment (MAX_VAR_ID);
+  PartialAssignment partial_assignment =
+      PartialAssignment (MAX_VAR_ID, &current_trail);
   Operations operations[64];
   Step steps[64 + 4];
   // Variable ID and word relations
