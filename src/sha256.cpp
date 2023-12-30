@@ -25,17 +25,18 @@ uint64_t counter = 0;
 Stats Propagator::stats = Stats{0, 0, 0};
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
-
 #ifndef NDEBUG
   run_tests ();
-  // exit (0);
 #endif
   this->solver = solver;
   solver->connect_external_propagator (this);
   printf ("Connected!\n");
-  current_trail.push_back (std::vector<int> ());
+  state.current_trail.push_back (std::vector<int> ());
   load_prop_rules ("prop-rules.db");
   load_two_bit_rules ("2-bit-rules.db");
+#ifdef LOGGING
+  printf ("Logging is enabled!\n");
+#endif
 }
 
 void Propagator::parse_comment_line (string line,
@@ -139,25 +140,46 @@ void Propagator::parse_comment_line (string line,
 void Propagator::notify_assignment (int lit, bool is_fixed) {
   // Timer timer (&stats.total_cb_time);
   if (is_fixed)
-    current_trail.front ().push_back (lit);
+    state.current_trail.front ().push_back (lit);
   else
-    current_trail.back ().push_back (lit);
+    state.current_trail.back ().push_back (lit);
 
-  // Assign variables in the partial assignment
+  // Assign the variable in the partial assignment
   state.partial_assignment.set (lit);
+  // printf ("Assign %d (%c)\n", lit, solver->is_decision (lit) ? 'd' :
+  // 'p');
 }
 
 void Propagator::notify_backtrack (size_t new_level) {
   // Timer timer (&stats.total_cb_time);
-  while (current_trail.size () > new_level + 1) {
+  while (state.current_trail.size () > new_level + 1) {
     // Unassign the variables that are removed from the trail
-    for (auto lit : current_trail.back ())
+    auto &level = state.current_trail.back ();
+    for (auto &lit : level) {
       state.partial_assignment.unset (lit);
-
-    current_trail.pop_back ();
+      // printf ("Unassign %d\n", lit);
+    }
+    state.current_trail.pop_back ();
   }
 
-  // printf ("Backtracked\n");
+  // Remove literals that no longer need to be propagated
+  for (auto &p_lit : propagation_lits) {
+    auto &reason = reasons[p_lit];
+    bool needs_propagation = true;
+
+    for (auto &lit : reason.antecedent) {
+      auto value = state.partial_assignment.get (abs (lit));
+      bool unsatisfied =
+          (value == LIT_TRUE && lit > 0) || (value == LIT_FALSE && lit < 0);
+      if (value == LIT_UNDEF || unsatisfied) {
+        needs_propagation = false;
+        break;
+      }
+    }
+
+    if (!needs_propagation)
+      reasons.erase (p_lit);
+  }
 }
 
 void test_equations (vector<Equation> &equations);
@@ -165,7 +187,7 @@ void test_equations (vector<Equation> &equations);
 void Propagator::notify_new_decision_level () {
   Timer timer (&stats.total_cb_time);
 
-  current_trail.push_back (std::vector<int> ());
+  state.current_trail.push_back (std::vector<int> ());
   counter++;
 
   // !Debug: 2-bit equations for 27-sfs
@@ -173,11 +195,10 @@ void Propagator::notify_new_decision_level () {
   // state.print ();
   // derive_two_bit_equations (two_bit, state);
   // test_equations (two_bit.equations[0]);
-  // state.print_operations ();
   // exit (0);
 
   // !Debug: Periodically print the state
-  // if (counter % 1000000 == 0) {
+  // if (counter % 100000 == 0) {
   //   printf ("Current state:\n");
   //   // state.hard_refresh (false);
   //   state.soft_refresh ();
