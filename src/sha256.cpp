@@ -447,39 +447,54 @@ int Propagator::cb_add_external_clause_lit () {
 
 // !Debug
 void test_equations (vector<Equation> &equations) {
-  std::ifstream file ("equations.txt");
-  std::string line;
-  std::regex pattern ("Equation\\(x='(.*?)', y='(.*?)', diff=(.*?)\\)");
+  ifstream file ("equations.txt");
+  string line;
+  regex pattern ("Equation\\(x='(.*?)', y='(.*?)', diff=(.*?)\\)");
   vector<Equation> found_equations;
+  vector<Equation> missing_equations;
   while (getline (file, line)) {
-    std::smatch match;
+    smatch match;
     if (regex_search (line, match, pattern)) {
       if (match.size () == 4) {
-        std::string x = match[1];
-        std::string y = match[2];
-        int diff = std::stoi (match[3]);
+        string x = match[1];
+        string y = match[2];
+        int diff = stoi (match[3]);
 
+        bool found = false;
         for (auto &equation : equations) {
           if (equation.diff == diff &&
               ((equation.names[0] == x && equation.names[1] == y) ||
-               (equation.names[1] == x && equation.names[0] == y)))
+               (equation.names[1] == x && equation.names[0] == y))) {
             found_equations.push_back (equation);
+            found = true;
+          }
+        }
+
+        if (!found) {
+          Equation equation;
+          equation.names[0] = x;
+          equation.names[1] = y;
+          equation.diff = diff;
+          missing_equations.push_back (equation);
         }
       }
     } else {
-      std::cout << "No match found." << std::endl;
+      cout << "No match found." << endl;
     }
   }
 
   cout << "Unmatched equations: "
        << equations.size () - found_equations.size () << endl;
-
-  for (auto &equation : equations)
-    cout << equation.names[0] << " " << (equation.diff == 0 ? "=" : "=/=")
-         << " " << equation.names[1] << endl;
+  cout << endl;
 
   cout << "Found " << found_equations.size () << " equations" << endl;
   for (auto &equation : found_equations)
+    cout << equation.names[0] << " " << (equation.diff == 0 ? "=" : "=/=")
+         << " " << equation.names[1] << endl;
+  cout << endl;
+
+  cout << "Missing " << missing_equations.size () << " equations" << endl;
+  for (auto &equation : missing_equations)
     cout << equation.names[0] << " " << (equation.diff == 0 ? "=" : "=/=")
          << " " << equation.names[1] << endl;
 }
