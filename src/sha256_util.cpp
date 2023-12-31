@@ -5,6 +5,7 @@
 #include <cstring>
 #include <ctime>
 #include <iostream>
+#include <numeric>
 #include <vector>
 
 namespace SHA256 {
@@ -70,7 +71,7 @@ int sum_dec_from_bin (NTL::vec_GF2 &v) {
   return sum;
 }
 
-void print (vector<int> vec) {
+void print (vector<int> &vec) {
   for (auto &lit : vec)
     printf ("%d ", lit);
   printf ("\n");
@@ -125,6 +126,27 @@ int sum (vector<int> addends) {
   for (auto &addend : addends)
     sum += addend;
   return sum;
+}
+
+vector<int> add_ (vector<int> inputs) {
+  int sum = accumulate (inputs.begin (), inputs.end (), 0);
+  return {sum >> 2 & 1, sum >> 1 & 1, sum & 1};
+}
+vector<int> ch_ (vector<int> inputs) {
+  int x = inputs[0], y = inputs[1], z = inputs[2];
+  return {(x & y) ^ (x & z) ^ z};
+}
+vector<int> maj_ (vector<int> inputs) {
+  int x = inputs[0], y = inputs[1], z = inputs[2];
+  return {(x & y) ^ (y & z) ^ (x & z)};
+}
+
+vector<int> xor_ (vector<int> inputs) {
+  int value = 0;
+  for (auto &input : inputs) {
+    value ^= input;
+  }
+  return {value};
 }
 
 } // namespace SHA256

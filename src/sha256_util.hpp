@@ -30,11 +30,15 @@ NTL::GF2 sum (NTL::vec_GF2 &v);
 int sum (vector<int> addends);
 
 int sum_dec_from_bin (NTL::vec_GF2 &v);
-void print (vector<int> clause);
+void print (vector<int> &clause);
 vector<string> cartesian_product (vector<vector<char>> input);
 vector<string> cartesian_product (vector<char> input, int repeat);
 bool is_in (char x, vector<char> chars);
 bool is_in (int x, vector<int> y);
+vector<int> add_ (vector<int> inputs);
+vector<int> ch_ (vector<int> inputs);
+vector<int> maj_ (vector<int> inputs);
+vector<int> xor_ (vector<int> inputs);
 } // namespace SHA256
 
 #endif
