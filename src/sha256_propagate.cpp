@@ -511,27 +511,6 @@ void prop_with_int_diff (int equation_id, vector<string *> words) {
 }
 
 void Propagator::prop_addition_weakly () {
-  // auto get_value = [] (char diff_char, int block) {
-  //   if (diff_char == 'u')
-  //     return block == 0 ? '1' : '0';
-  //   else if (diff_char == 'n')
-  //     return block == 0 ? '0' : '1';
-  //   else if (diff_char == '0')
-  //     return '0';
-  //   else if (diff_char == '1')
-  //     return '1';
-  //   else if (diff_char == '3')
-  //     return block == 1 ? '0' : '?';
-  //   else if (diff_char == '5')
-  //     return block == 0 ? '0' : '?';
-  //   else if (diff_char == 'A')
-  //     return block == 0 ? '1' : '?';
-  //   else if (diff_char == 'C')
-  //     return block == 1 ? '1' : '?';
-  //   else
-  //     return '?';
-  // };
-
   auto get_id = [] (SoftWord &word, int j, int block) {
     return block == 0 ? word.ids_f[j] : word.ids_g[j];
   };
@@ -735,103 +714,6 @@ void Propagator::prop_addition_weakly () {
   }
 }
 
-// Works for addition hardcoded up to 3 carries
-pair<string, string> otf_add_propagate (string inputs, string outputs) {
-  auto add = [] (vector<int> inputs, int *outputs) {
-    int sum = accumulate (inputs.begin (), inputs.end (), 0);
-    outputs[0] = sum & 1;
-    outputs[1] = sum >> 1 & 1;
-    outputs[2] = sum >> 2 & 1;
-  };
-
-  auto conforms_to = [] (char c1, char c2) {
-    auto c1_chars = symbols[c1], c2_chars = symbols[c2];
-    for (auto &c : c1_chars)
-      if (find (c2_chars.begin (), c2_chars.end (), c) == c2_chars.end ())
-        return false;
-    return true;
-  };
-
-  int n = inputs.size (), m = outputs.size ();
-  vector<vector<char>> iterables_list;
-  for (auto &input : inputs) {
-    auto it = symbols.find (input);
-    if (it != symbols.end ())
-      iterables_list.push_back (it->second);
-  }
-
-  set<char> possibilities[n + m];
-  auto combos = cartesian_product (iterables_list);
-  for (auto &combo : combos) {
-    vector<int> inputs_f, inputs_g;
-    for (auto &c : combo) {
-      switch (c) {
-      case 'u':
-        inputs_f.push_back (1);
-        inputs_g.push_back (0);
-        break;
-      case 'n':
-        inputs_f.push_back (0);
-        inputs_g.push_back (1);
-        break;
-      case '1':
-        inputs_f.push_back (1);
-        inputs_g.push_back (1);
-        break;
-      case '0':
-        inputs_f.push_back (0);
-        inputs_g.push_back (0);
-        break;
-      }
-    }
-
-    int outputs_f[3], outputs_g[3];
-    add (inputs_f, outputs_f);
-    add (inputs_g, outputs_g);
-
-    string actual_outputs;
-    bool skip = false;
-    for (int i = 0; i < m; i++) {
-      if (outputs_f[i] == 1 && outputs_g[i] == 1)
-        actual_outputs += '1';
-      else if (outputs_f[i] == 1 && outputs_g[i] == 0)
-        actual_outputs += 'u';
-      else if (outputs_f[i] == 0 && outputs_g[i] == 1)
-        actual_outputs += 'n';
-      else
-        actual_outputs += '0';
-
-      // Output must conform to that given
-      if (!conforms_to (actual_outputs[i], outputs[m - 1 - i])) {
-        skip = true;
-        break;
-      }
-    }
-    if (skip)
-      continue;
-    for (int i = 0; i < n; i++)
-      possibilities[i].insert (combo[i]);
-    for (int i = 0; i < m; i++)
-      possibilities[n + i].insert (actual_outputs[m - 1 - i]);
-  }
-
-  auto gc_from_set = [] (set<char> &set) {
-    // assert (set.size () > 0);
-    for (auto &entry : symbols_set)
-      if (set == entry.second)
-        return entry.first;
-    return '#';
-  };
-
-  string final_inputs, final_outputs;
-  for (int i = 0; i < n; i++)
-    final_inputs += gc_from_set (possibilities[i]);
-  for (int i = 0; i < m; i++)
-    final_outputs += gc_from_set (possibilities[n + i]);
-
-  return {final_inputs, final_outputs};
-}
-
 string otf_propagate (vector<int> (*func) (vector<int> inputs),
                       string inputs, string outputs) {
   int outputs_size = outputs.size ();
@@ -901,7 +783,6 @@ string otf_propagate (vector<int> (*func) (vector<int> inputs),
   }
 
   auto gc_from_set = [] (set<char> &set) {
-    // assert (set.size () > 0);
     for (auto &entry : symbols_set)
       if (set == entry.second)
         return entry.first;

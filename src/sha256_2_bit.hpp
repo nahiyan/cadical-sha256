@@ -55,12 +55,6 @@ bool block_inconsistency (TwoBit &two_bit,
                           PartialAssignment &partial_assignment,
                           vector<vector<int>> &external_clauses,
                           int block_index = 0);
-void otf_derive_add_two_bit_equations (TwoBit &two_bit, string inputs,
-                                       string outputs,
-                                       vector<uint32_t> diff_ids,
-                                       vector<string> names, vector<Word *>,
-                                       vector<Word *>, vector<Word *>,
-                                       int col_index);
 void otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
                    string outputs, vector<Equation> &equations,
                    vector<string> names);

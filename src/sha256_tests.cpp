@@ -142,21 +142,6 @@ void test_rotate_word () {
           rotate_word ("0u1-nn-n-u-1u---11un0uu10u101u0-", -3, false));
 }
 
-void test_otf_add_propagate () {
-  {
-    auto result = otf_add_propagate ("u?u-n?u", "???");
-    assert (result.second == "B??" && result.first == "u?u-n?u");
-  }
-  {
-    auto result = otf_add_propagate ("????", "1??");
-    assert (result.second == "100" && result.first == "1111");
-  }
-  {
-    auto result = otf_add_propagate ("n?0", "?u");
-    assert (result.second == "nu" && result.first == "n10");
-  }
-}
-
 void test_otf_propagate () {
   {
     auto result = otf_propagate (add_, "-0n10n", "???");
@@ -209,7 +194,6 @@ void run_tests () {
   test_apply_grounding ();
   test_derive_words ();
   test_rotate_word ();
-  test_otf_add_propagate ();
   test_otf_propagate ();
   test_otf_2bit_eqs ();
   printf ("All tests passed!\n");
