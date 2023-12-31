@@ -312,7 +312,7 @@ vector<Equation> check_consistency (vector<Equation> &equations,
 
       auto &updated_set = rels[var1];
       // If both a var and its inverse is present in the newly updated set,
-      // we detected a contradiction
+      // it's a contradiction
       {
         auto var1_inv_exists =
             updated_set->find (-var1) == updated_set->end () ? false : true;
