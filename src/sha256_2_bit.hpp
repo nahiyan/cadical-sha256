@@ -61,6 +61,9 @@ void otf_derive_add_two_bit_equations (TwoBit &two_bit, string inputs,
                                        vector<string> names, vector<Word *>,
                                        vector<Word *>, vector<Word *>,
                                        int col_index);
+void otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
+                   string outputs, vector<Equation> &equations,
+                   vector<string> names);
 } // namespace SHA256
 
 #endif

@@ -660,4 +660,111 @@ void otf_derive_add_two_bit_equations (
   }
 }
 
+void otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
+                   string outputs, vector<Equation> &equations,
+                   vector<string> names) {
+  auto all_chars = inputs;
+  all_chars.insert (all_chars.end (), outputs.begin (), outputs.end ());
+  assert (all_chars.size () == inputs.size () + outputs.size ());
+  vector<int> positions;
+  for (int i = 0; i < int (all_chars.size ()); i++)
+    if (is_in (all_chars[i], {'x', '-'}))
+      positions.push_back (i);
+
+  if (positions.size () > 4)
+    return;
+
+  vector<pair<string, string>> selections;
+  int n = positions.size ();
+  for (int i = 0; i < pow (2, n); i++) {
+    int values[n];
+    for (int j = 0; j < n; j++)
+      values[j] = i >> j & 1;
+    auto candidate = all_chars;
+    for (int j = 0; j < n; j++) {
+      auto value = values[j];
+      auto c = candidate[positions[j]];
+      candidate[positions[j]] =
+          c == 'x' ? (value == 1 ? 'u' : 'n') : (value == 1 ? '1' : '0');
+    }
+
+    string candidate_inputs = candidate.substr (0, inputs.size ());
+    string candidate_outputs =
+        candidate.substr (inputs.size (), outputs.size ());
+    auto propagation =
+        otf_propagate (func, candidate_inputs, candidate_outputs);
+    bool skip = false;
+    for (auto &c : propagation) {
+      if (c == '#') {
+        skip = true;
+        break;
+      }
+    }
+    if (skip)
+      continue;
+
+    selections.push_back ({candidate_inputs, candidate_outputs});
+  }
+
+  int pairs_count = 0;
+  {
+    int n = all_chars.size ();
+    for (int i = 0; i < n; i++) {
+      for (int j = i + 1; j < n; j++)
+        pairs_count += 1;
+    }
+  }
+
+  vector<set<int>> diff_pairs;
+  for (int i = 0; i < pairs_count; i++)
+    diff_pairs.push_back ({});
+  auto break_gc = [] (char gc) { return gc == 'u' || gc == '1' ? 1 : 0; };
+  for (auto &selection : selections) {
+    auto combined = selection.first + selection.second;
+    int x = 0;
+    int n = combined.size ();
+    for (int i = 0; i < n; i++) {
+      for (int j = i + 1; j < n; j++) {
+        int c1 = break_gc (combined[i]);
+        int c2 = break_gc (combined[j]);
+        diff_pairs[x].insert (c1 ^ c2);
+        x++;
+      }
+    }
+  }
+
+  // printf ("Diff pairs:\n");
+  // for (auto &pairs : diff_pairs) {
+  //   for (auto &p : pairs)
+  //     cout << p << " ";
+  //   cout << endl;
+  // }
+
+  n = all_chars.size ();
+  int x = -1;
+  for (int i = 0; i < n; i++) {
+    for (int j = i + 1; j < n; j++) {
+      x += 1;
+      if (!is_in (all_chars[i], {'-', 'x'}) ||
+          !is_in (all_chars[j], {'-', 'x'}))
+        continue;
+      if (diff_pairs[x].size () != 1)
+        continue;
+
+      Equation eq;
+      eq.names[0] = names[i];
+      eq.names[1] = names[j];
+      eq.diff = *diff_pairs[x].begin ();
+      // Equation eq_alt;
+      // eq.names[1] = names[i];
+      // eq.names[0] = names[j];
+
+      if (names[i][0] == '?' || names[j][0] == '?')
+        continue;
+
+      equations.push_back (eq);
+    }
+  }
+}
+
 } // namespace SHA256

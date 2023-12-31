@@ -31,6 +31,8 @@ void prop_with_int_diff (int equation_id, vector<string *> words);
 pair<string, string> otf_add_propagate (string inputs, string outputs);
 void otf_add_propagate (TwoBit &two_bit, vector<Word *> inputs,
                         vector<Word *> carries, vector<Word *> outputs);
+string otf_propagate (vector<int> (*func) (vector<int> inputs),
+                      string inputs, string outputs);
 } // namespace SHA256
 
 #endif

@@ -1,7 +1,6 @@
 #include "sha256_propagate.hpp"
 #include "sha256.hpp"
 #include "sha256_util.hpp"
-#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstring>
@@ -833,74 +832,87 @@ pair<string, string> otf_add_propagate (string inputs, string outputs) {
   return {final_inputs, final_outputs};
 }
 
-void otf_add_propagate (TwoBit &two_bit, vector<Word *> inputs,
-                        vector<Word *> carries, vector<Word *> outputs) {
-  for (int i = 31; i >= 0; i--) {
-    string inputs_col, outputs_col;
+string otf_propagate (vector<int> (*func) (vector<int> inputs),
+                      string inputs, string outputs) {
+  int outputs_size = outputs.size ();
+  auto conforms_to = [] (char c1, char c2) {
+    auto c1_chars = symbols[c1], c2_chars = symbols[c2];
+    for (auto &c : c1_chars)
+      if (find (c2_chars.begin (), c2_chars.end (), c) == c2_chars.end ())
+        return false;
+    return true;
+  };
 
-    for (auto &word : inputs)
-      inputs_col += word->chars[i];
-    if (i + 1 <= 31)
-      inputs_col += carries[0]->chars[i + 1];
-    if (carries.size () == 2 && i + 2 <= 31)
-      inputs_col += carries[1]->chars[i + 2];
+  vector<vector<char>> iterables_list;
+  for (auto &input : inputs) {
+    auto it = symbols.find (input);
+    if (it != symbols.end ())
+      iterables_list.push_back (it->second);
+  }
 
-    for (auto &word : outputs)
-      outputs_col += word->chars[i];
-
-    int n = inputs_col.size (), m = outputs_col.size ();
-
-    auto result_it =
-        add_prop_rules.find ({inputs_col, outputs_col.back ()});
-    pair<string, string> propagation;
-    if (result_it == add_prop_rules.end ()) {
-      propagation = otf_add_propagate (inputs_col, outputs_col);
-      // Cache the result
-      add_prop_rules[{propagation.first, propagation.second.back ()}] =
-          propagation;
-    } else {
-      // Use the cached result
-      propagation = result_it->second;
+  set<char> possibilities[outputs_size];
+  auto combos = cartesian_product (iterables_list);
+  for (auto &combo : combos) {
+    vector<int> inputs_f, inputs_g;
+    for (auto &c : combo) {
+      switch (c) {
+      case 'u':
+        inputs_f.push_back (1);
+        inputs_g.push_back (0);
+        break;
+      case 'n':
+        inputs_f.push_back (0);
+        inputs_g.push_back (1);
+        break;
+      case '1':
+        inputs_f.push_back (1);
+        inputs_g.push_back (1);
+        break;
+      case '0':
+        inputs_f.push_back (0);
+        inputs_g.push_back (0);
+        break;
+      }
     }
 
-    vector<uint32_t> diff_ids;
-    vector<string> names (n + m);
-    for (auto &word : inputs)
-      diff_ids.push_back (word->diff_ids[i]);
-    if (i + 1 <= 31)
-      diff_ids.push_back (0);
-    if (carries.size () == 2 && i + 2 <= 31)
-      diff_ids.push_back (0);
+    vector<int> outputs_f, outputs_g;
+    outputs_f = func (inputs_f);
+    outputs_g = func (inputs_g);
 
-    for (auto &word : outputs)
-      if (word == outputs.back ())
-        diff_ids.push_back (word->diff_ids[i]);
-      else
-        diff_ids.push_back (0);
-    assert (int (diff_ids.size ()) == n + m);
+    vector<char> outputs_;
+    bool skip = false;
+    for (int i = 0; i < outputs_size; i++) {
+      int x = outputs_f[i], x_ = outputs_g[i];
+      outputs_.push_back (x == 1 && x_ == 1   ? '1'
+                          : x == 1 && x_ == 0 ? 'u'
+                          : x == 0 && x_ == 1 ? 'n'
+                                              : '0');
+      if (!conforms_to (outputs_[i], outputs[i])) {
+        skip = true;
+        break;
+      }
+    }
 
-    otf_derive_add_two_bit_equations (two_bit, propagation.first,
-                                      propagation.second, diff_ids, names,
-                                      inputs, carries, outputs, i);
+    if (skip)
+      continue;
 
-    // int carries_count = carries.size ();
-    // for (int j = 0; j < n - carries_count; j++)
-    //   inputs[j]->chars[i] = propagation.first[j];
-    // for (int j = 0; j < carries_count; j++)
-    //   carries[j]->chars[i] = propagation.first[n - carries_count + j];
-    // for (int j = 0; j < m; j++)
-    //   outputs[j]->chars[i] = propagation.second[j];
-
-    // cout << "Input:  " << i << " " << inputs_col << " " << outputs_col
-    //      << endl;
-    // cout << "Output: " << i << " ";
-    // for (int j = 0; j < n; j++)
-    //   cout << propagation.first[j];
-    // cout << " ";
-    // for (int j = 0; j < m; j++)
-    //   cout << propagation.second[j];
-    // cout << endl;
+    for (int i = 0; i < outputs_size; i++)
+      possibilities[i].insert ((outputs_[i]));
   }
+
+  auto gc_from_set = [] (set<char> &set) {
+    // assert (set.size () > 0);
+    for (auto &entry : symbols_set)
+      if (set == entry.second)
+        return entry.first;
+    return '#';
+  };
+
+  string propagated_output = "";
+  for (auto &p : possibilities)
+    propagated_output += gc_from_set (p);
+
+  return propagated_output;
 }
 
 } // namespace SHA256
