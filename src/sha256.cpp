@@ -106,6 +106,45 @@ void Propagator::parse_comment_line (string line,
       if (prefix != actual_prefix)
         continue;
 
+      VariableName var_name = A;
+      if (prefix == "A_")
+        var_name = A;
+      else if (prefix == "E_")
+        var_name = E;
+      else if (prefix == "W_")
+        var_name = W;
+      else if (prefix == "s0_")
+        var_name = sigma0;
+      else if (prefix == "s1_")
+        var_name = sigma1;
+      else if (prefix == "sigma0_")
+        var_name = Sigma0;
+      else if (prefix == "sigma1_")
+        var_name = Sigma1;
+      else if (prefix == "maj_")
+        var_name = Maj;
+      else if (prefix == "if_")
+        var_name = Ch;
+      else if (prefix == "T_")
+        var_name = T;
+      else if (prefix == "K_")
+        var_name = K;
+      else if (prefix == "add.W.r0_")
+        var_name = add_W_lc;
+      else if (prefix == "add.W.r1_")
+        var_name = add_W_hc;
+      else if (prefix == "add.T.r0_")
+        var_name = add_T_lc;
+      else if (prefix == "add.T.r1_")
+        var_name = add_T_hc;
+      else if (prefix == "add.E.r0_")
+        var_name = add_E_lc;
+      else if (prefix == "add.A.r0_")
+        var_name = add_A_lc;
+      else if (prefix == "add.A.r1_")
+        var_name = add_A_hc;
+      assert (var_name >= A && var_name <= add_A_hc);
+
       if (prefix[0] == 'D')
         word.chars = string (32, '?');
 
@@ -115,13 +154,13 @@ void Propagator::parse_comment_line (string line,
         if (prefix[0] == 'D') {
           word.diff_ids[i] = id2;
           for (int j = 0; j < 4; j++)
-            state.id_word_rels[id2 + j] = {&word, i};
+            state.var_info[id2 + j] = {&word, i, step, var_name};
         } else if (is_f) {
           word.ids_f[i] = id;
-          state.id_word_rels[id] = {&word, i};
+          state.var_info[id] = {&word, i, step, var_name};
         } else {
           word.ids_g[i] = id;
-          state.id_word_rels[id] = {&word, i};
+          state.var_info[id] = {&word, i, step, var_name};
         }
       }
 

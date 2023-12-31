@@ -17,6 +17,27 @@
 using namespace std;
 
 namespace SHA256 {
+enum VariableName {
+  A,
+  E,
+  W,
+  sigma0,
+  sigma1,
+  Sigma0,
+  Sigma1,
+  Maj,
+  Ch,
+  T,
+  K,
+  add_W_lc,
+  add_W_hc,
+  add_T_lc,
+  add_T_hc,
+  add_E_lc,
+  add_A_lc,
+  add_A_hc
+};
+
 struct Word {
   // f and g refer to the 2 blocks of SHA-256
   uint32_t ids_f[32], ids_g[32], diff_ids[32];
@@ -29,6 +50,21 @@ struct SoftWord {
   uint32_t ids_f[32], ids_g[32], diff_ids[32];
   // Differential characteristics
   char *chars[32];
+};
+
+struct VarInfo {
+  Word *word;
+  int col;
+  int step;
+  VariableName name;
+
+  VarInfo () {}
+  VarInfo (Word *word, int col, int step, VariableName name) {
+    this->word = word;
+    this->col = col;
+    this->step = step;
+    this->name = name;
+  }
 };
 
 struct Operations {
@@ -131,8 +167,7 @@ public:
       PartialAssignment (MAX_VAR_ID, &current_trail);
   Operations operations[64];
   Step steps[64 + 4];
-  // Variable ID and word relations
-  pair<Word *, int> id_word_rels[MAX_VAR_ID];
+  VarInfo var_info[MAX_VAR_ID];
 
   void hard_refresh (bool will_propagate = false);
   void soft_refresh ();

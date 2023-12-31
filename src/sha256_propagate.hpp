@@ -1,18 +1,17 @@
 #ifndef _sha256_propagate_hpp_INCLUDED
 #define _sha256_propagate_hpp_INCLUDED
 
-#include "sha256_2_bit.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
 
+using namespace std;
+
+namespace SHA256 {
 enum FunctionId { ch, maj, xor3 };
 // TODO: Integrate this
 enum AdditionId { add_a, add_e, add_w, add_t };
 
-using namespace std;
-
-namespace SHA256 {
 int64_t _int_diff (string word);
 int64_t adjust_constant (string word, int64_t constant,
                          vector<char> adjustable_gcs = {});

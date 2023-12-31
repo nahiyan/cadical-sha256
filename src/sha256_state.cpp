@@ -4,11 +4,11 @@
 
 using namespace SHA256;
 
-void State::refresh_char (Word &word, int &i) {
-  auto &id_f = word.ids_f[i];
-  auto &id_g = word.ids_g[i];
-  auto &diff_id = word.diff_ids[i];
-  char &c = word.chars[i];
+void State::refresh_char (Word &word, int &col) {
+  auto &id_f = word.ids_f[col];
+  auto &id_g = word.ids_g[col];
+  auto &diff_id = word.diff_ids[col];
+  char &c = word.chars[col];
 
   if (id_f == 0 || id_g == 0 || diff_id == 0) {
     c = '?';
@@ -81,8 +81,8 @@ void State::refresh_char (Word &word, int &i) {
 }
 
 void State::refresh_word (Word &word) {
-  for (int i = 0; i < 32; i++)
-    refresh_char (word, i);
+  for (int col = 0; col < 32; col++)
+    refresh_char (word, col);
 }
 
 void State::hard_refresh (bool will_propagate) {
@@ -239,8 +239,8 @@ void State::soft_refresh () {
   while (!partial_assignment.updated_variables.empty ()) {
     auto var = partial_assignment.updated_variables.top ();
     partial_assignment.updated_variables.pop ();
-    auto &id_word_rel = id_word_rels[var];
-    refresh_char (*id_word_rel.first, id_word_rel.second);
+    auto &id_word_rel = var_info[var];
+    refresh_char (*id_word_rel.word, id_word_rel.col);
   }
 }
 
