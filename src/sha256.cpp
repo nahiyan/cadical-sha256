@@ -244,107 +244,7 @@ void Propagator::notify_new_decision_level () {
   //   state.print ();
   // }
 #if CUSTOM_BRANCHING
-  if (counter % 20 != 0)
-    return;
-  if (!decision_lits.empty ())
-    return;
-
-  // state.refresh (false);
-
-  // Refresh the state
-  state.soft_refresh ();
-
-  auto rand_ground_x = [] (list<int> &decision_lits, Word &word, int &j) {
-    srand (clock () + j);
-    if (rand () % 2 == 0) {
-      // u
-      decision_lits.push_back (word.ids_f[j]);
-      decision_lits.push_back (-word.ids_g[j]);
-    } else {
-      // n
-      decision_lits.push_back (-word.ids_f[j]);
-      decision_lits.push_back (word.ids_g[j]);
-    }
-  };
-
-  // Stage 1
-  for (int i = order - 1; i >= 0; i--) {
-    auto &w = state.steps[i].w;
-    for (int j = 0; j < 32; j++) {
-      auto &c = w.chars[j];
-      // Impose '-' for '?'
-      if (c == '?') {
-        decision_lits.push_back ((w.diff_ids[j] + 0));
-        decision_lits.push_back (-(w.diff_ids[j] + 1));
-        decision_lits.push_back (-(w.diff_ids[j] + 2));
-        decision_lits.push_back ((w.diff_ids[j] + 3));
-        return;
-      } else if (c == 'x') {
-        // Impose 'u' or 'n' for '?'
-        rand_ground_x (decision_lits, w, j);
-        return;
-      }
-    }
-  }
-
-  // printf ("Stage 2\n");
-
-  // Stage 2
-  for (int i = -4; i < order; i++) {
-    auto &a = state.steps[ABS_STEP (i)].a;
-    auto &e = state.steps[ABS_STEP (i)].e;
-    for (int j = 0; j < 32; j++) {
-      auto &a_c = a.chars[j];
-      auto &e_c = e.chars[j];
-      if (a_c == '?') {
-        decision_lits.push_back ((a.diff_ids[j] + 0));
-        decision_lits.push_back (-(a.diff_ids[j] + 1));
-        decision_lits.push_back (-(a.diff_ids[j] + 2));
-        decision_lits.push_back ((a.diff_ids[j] + 3));
-        return;
-      } else if (a_c == 'x') {
-        rand_ground_x (decision_lits, a, j);
-        return;
-      } else if (e_c == '?') {
-        decision_lits.push_back ((e.diff_ids[j] + 0));
-        decision_lits.push_back (-(e.diff_ids[j] + 1));
-        decision_lits.push_back (-(e.diff_ids[j] + 2));
-        decision_lits.push_back ((e.diff_ids[j] + 3));
-        return;
-      } else if (e_c == 'x') {
-        rand_ground_x (decision_lits, e, j);
-        return;
-      }
-    }
-  }
-
-  // printf ("Stage 3\n");
-
-  // Stage 3
-#if BLOCK_INCONS == false
-  two_bit = TwoBit{};
-  derive_two_bit_equations (two_bit, state);
-#endif
-  for (auto &entry : two_bit.bit_constraints_count) {
-    uint32_t ids[] = {get<0> (entry.first), get<1> (entry.first),
-                      get<2> (entry.first)};
-    uint32_t values[] = {state.partial_assignment.get (ids[0]),
-                         state.partial_assignment.get (ids[1]),
-                         state.partial_assignment.get (ids[2])};
-    if (values[2] == LIT_FALSE) {
-      // Impose '-'
-      srand (clock ());
-      if (rand () % 2 == 0) {
-        decision_lits.push_back (ids[0]);
-        decision_lits.push_back (ids[1]);
-      } else {
-        decision_lits.push_back (-ids[0]);
-        decision_lits.push_back (-ids[1]);
-      }
-      // printf ("Stage 3: guess\n");
-      return;
-    }
-  }
+  custom_branch ();
 #endif
 }
 
@@ -482,6 +382,110 @@ int Propagator::cb_add_external_clause_lit () {
   // printf ("Debug: gave EC lit %d (%d)\n", lit,
   //         state.partial_assignment.get (abs (lit)));
   return lit;
+}
+
+void Propagator::custom_branch () {
+  if (counter % 20 != 0)
+    return;
+  if (!decision_lits.empty ())
+    return;
+
+  // state.refresh (false);
+
+  // Refresh the state
+  state.soft_refresh ();
+
+  auto rand_ground_x = [] (list<int> &decision_lits, Word &word, int &j) {
+    srand (clock () + j);
+    if (rand () % 2 == 0) {
+      // u
+      decision_lits.push_back (word.ids_f[j]);
+      decision_lits.push_back (-word.ids_g[j]);
+    } else {
+      // n
+      decision_lits.push_back (-word.ids_f[j]);
+      decision_lits.push_back (word.ids_g[j]);
+    }
+  };
+
+  // Stage 1
+  for (int i = order - 1; i >= 0; i--) {
+    auto &w = state.steps[i].w;
+    for (int j = 0; j < 32; j++) {
+      auto &c = w.chars[j];
+      // Impose '-' for '?'
+      if (c == '?') {
+        decision_lits.push_back ((w.diff_ids[j] + 0));
+        decision_lits.push_back (-(w.diff_ids[j] + 1));
+        decision_lits.push_back (-(w.diff_ids[j] + 2));
+        decision_lits.push_back ((w.diff_ids[j] + 3));
+        return;
+      } else if (c == 'x') {
+        // Impose 'u' or 'n' for '?'
+        rand_ground_x (decision_lits, w, j);
+        return;
+      }
+    }
+  }
+
+  // printf ("Stage 2\n");
+
+  // Stage 2
+  for (int i = -4; i < order; i++) {
+    auto &a = state.steps[ABS_STEP (i)].a;
+    auto &e = state.steps[ABS_STEP (i)].e;
+    for (int j = 0; j < 32; j++) {
+      auto &a_c = a.chars[j];
+      auto &e_c = e.chars[j];
+      if (a_c == '?') {
+        decision_lits.push_back ((a.diff_ids[j] + 0));
+        decision_lits.push_back (-(a.diff_ids[j] + 1));
+        decision_lits.push_back (-(a.diff_ids[j] + 2));
+        decision_lits.push_back ((a.diff_ids[j] + 3));
+        return;
+      } else if (a_c == 'x') {
+        rand_ground_x (decision_lits, a, j);
+        return;
+      } else if (e_c == '?') {
+        decision_lits.push_back ((e.diff_ids[j] + 0));
+        decision_lits.push_back (-(e.diff_ids[j] + 1));
+        decision_lits.push_back (-(e.diff_ids[j] + 2));
+        decision_lits.push_back ((e.diff_ids[j] + 3));
+        return;
+      } else if (e_c == 'x') {
+        rand_ground_x (decision_lits, e, j);
+        return;
+      }
+    }
+  }
+
+  // printf ("Stage 3\n");
+
+  // Stage 3
+#if BLOCK_INCONS == false
+  two_bit = TwoBit{};
+  derive_two_bit_equations (two_bit, state);
+#endif
+  for (auto &entry : two_bit.bit_constraints_count) {
+    uint32_t ids[] = {get<0> (entry.first), get<1> (entry.first),
+                      get<2> (entry.first)};
+    uint32_t values[] = {state.partial_assignment.get (ids[0]),
+                         state.partial_assignment.get (ids[1]),
+                         state.partial_assignment.get (ids[2])};
+    if (values[2] == LIT_FALSE) {
+      // Impose '-'
+      srand (clock ());
+      if (rand () % 2 == 0) {
+        decision_lits.push_back (ids[0]);
+        decision_lits.push_back (ids[1]);
+      } else {
+        decision_lits.push_back (-ids[0]);
+        decision_lits.push_back (-ids[1]);
+      }
+      // printf ("Stage 3: guess\n");
+      return;
+    }
+  }
 }
 
 // !Debug

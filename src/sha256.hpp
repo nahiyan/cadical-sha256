@@ -74,6 +74,7 @@ public:
   int cb_propagate ();
   int cb_add_reason_clause_lit (int propagated_lit);
   static void parse_comment_line (string line, CaDiCaL::Solver *&solver);
+  void custom_branch ();
 };
 } // namespace SHA256
 
