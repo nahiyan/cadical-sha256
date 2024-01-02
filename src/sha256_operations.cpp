@@ -12,7 +12,7 @@ void State::set_operations () {
   };
 
   // !IMPORTANT: Free up this heap allocation later
-  char *zero_char = (char *) malloc (sizeof (char));
+  char *zero_char = new char;
   *zero_char = '0';
 
   auto to_soft_word = [] (Word &word) {
@@ -31,6 +31,7 @@ void State::set_operations () {
       {
         // s0
         Word &word = steps[i - 15].w;
+        SoftWord *operands = operations[i].s0.inputs;
         vector<uint32_t> id_vecs[] = {to_vec (word.ids_f),
                                       to_vec (word.ids_g),
                                       to_vec (word.diff_ids)};
@@ -42,24 +43,35 @@ void State::set_operations () {
           };
           for (int j = 0; j < 3; j++)
             copy (inputs[j].begin (), inputs[j].end (),
-                  k == 0   ? operations[i].s0.inputs[j].ids_f
-                  : k == 1 ? operations[i].s0.inputs[j].ids_g
-                           : operations[i].s0.inputs[j].diff_ids);
+                  k == 0   ? operands[j].ids_f
+                  : k == 1 ? operands[j].ids_g
+                           : operands[j].diff_ids);
         }
 
         for (int j = 0; j < 32; j++) {
-          operations[i].s0.inputs[0].chars[j] =
-              &word.chars[e_mod (j - 7, 32)];
-          operations[i].s0.inputs[1].chars[j] =
-              &word.chars[e_mod (j - 18, 32)];
+          if (operands[2].ids_f[j] == 0)
+            operands[2].ids_f[j] = zero;
+          if (operands[2].ids_g[j] == 0)
+            operands[2].ids_g[j] = zero + 1;
+          if (operands[2].diff_ids[j] == 0)
+            operands[2].diff_ids[j] = zero + 2;
+        }
+
+        for (int j = 0; j < 32; j++) {
+          operands[0].chars[j] = &word.chars[e_mod (j - 7, 32)];
+          operands[1].chars[j] = &word.chars[e_mod (j - 18, 32)];
           // Ensure that the first 3 chars aren't used
-          operations[i].s0.inputs[2].chars[j] =
+          operands[2].chars[j] =
               j >= 3 ? &word.chars[e_mod (j - 3, 32)] : zero_char;
+          assert (operands[0].chars[j] != NULL);
+          assert (operands[1].chars[j] != NULL);
+          assert (operands[2].chars[j] != NULL);
         }
       }
       {
         // s1
         Word &word = steps[i - 2].w;
+        SoftWord *operands = operations[i].s1.inputs;
         vector<uint32_t> id_vecs[] = {to_vec (word.ids_f),
                                       to_vec (word.ids_g),
                                       to_vec (word.diff_ids)};
@@ -71,18 +83,25 @@ void State::set_operations () {
           };
           for (int j = 0; j < 3; j++)
             copy (inputs[j].begin (), inputs[j].end (),
-                  k == 0   ? operations[i].s1.inputs[j].ids_f
-                  : k == 1 ? operations[i].s1.inputs[j].ids_g
-                           : operations[i].s1.inputs[j].diff_ids);
+                  k == 0   ? operands[j].ids_f
+                  : k == 1 ? operands[j].ids_g
+                           : operands[j].diff_ids);
         }
 
         for (int j = 0; j < 32; j++) {
-          operations[i].s1.inputs[0].chars[j] =
-              &word.chars[e_mod (j - 17, 32)];
-          operations[i].s1.inputs[1].chars[j] =
-              &word.chars[e_mod (j - 19, 32)];
+          if (operands[2].ids_f[j] == 0)
+            operands[2].ids_f[j] = zero;
+          if (operands[2].ids_g[j] == 0)
+            operands[2].ids_g[j] = zero + 1;
+          if (operands[2].diff_ids[j] == 0)
+            operands[2].diff_ids[j] = zero + 2;
+        }
+
+        for (int j = 0; j < 32; j++) {
+          operands[0].chars[j] = &word.chars[e_mod (j - 17, 32)];
+          operands[1].chars[j] = &word.chars[e_mod (j - 19, 32)];
           // Ensure that the first 10 chars aren't used
-          operations[i].s1.inputs[2].chars[j] =
+          operands[2].chars[j] =
               j >= 10 ? &word.chars[e_mod (j - 10, 32)] : zero_char;
         }
       }
@@ -102,6 +121,7 @@ void State::set_operations () {
     {
       // sigma0
       Word &word = steps[ABS_STEP (i - 1)].a;
+      SoftWord *operands = operations[i].sigma0.inputs;
       vector<uint32_t> id_vecs[] = {
           to_vec (word.ids_f), to_vec (word.ids_g), to_vec (word.diff_ids)};
       for (int k = 0; k < 3; k++) {
@@ -112,23 +132,21 @@ void State::set_operations () {
         };
         for (int j = 0; j < 3; j++)
           copy (inputs[j].begin (), inputs[j].end (),
-                k == 0   ? operations[i].sigma0.inputs[j].ids_f
-                : k == 1 ? operations[i].sigma0.inputs[j].ids_g
-                         : operations[i].sigma0.inputs[j].diff_ids);
+                k == 0   ? operands[j].ids_f
+                : k == 1 ? operands[j].ids_g
+                         : operands[j].diff_ids);
       }
 
       for (int j = 0; j < 32; j++) {
-        operations[i].sigma0.inputs[0].chars[j] =
-            &word.chars[e_mod (j - 2, 32)];
-        operations[i].sigma0.inputs[1].chars[j] =
-            &word.chars[e_mod (j - 13, 32)];
-        operations[i].sigma0.inputs[2].chars[j] =
-            &word.chars[e_mod (j - 22, 32)];
+        operands[0].chars[j] = &word.chars[e_mod (j - 2, 32)];
+        operands[1].chars[j] = &word.chars[e_mod (j - 13, 32)];
+        operands[2].chars[j] = &word.chars[e_mod (j - 22, 32)];
       }
     }
     {
       // sigma1
       Word &word = steps[ABS_STEP (i - 1)].e;
+      SoftWord *operands = operations[i].sigma1.inputs;
       vector<uint32_t> id_vecs[] = {
           to_vec (word.ids_f), to_vec (word.ids_g), to_vec (word.diff_ids)};
       for (int k = 0; k < 3; k++) {
@@ -139,18 +157,15 @@ void State::set_operations () {
         };
         for (int j = 0; j < 3; j++)
           copy (inputs[j].begin (), inputs[j].end (),
-                k == 0   ? operations[i].sigma1.inputs[j].ids_f
-                : k == 1 ? operations[i].sigma1.inputs[j].ids_g
-                         : operations[i].sigma1.inputs[j].diff_ids);
+                k == 0   ? operands[j].ids_f
+                : k == 1 ? operands[j].ids_g
+                         : operands[j].diff_ids);
       }
 
       for (int j = 0; j < 32; j++) {
-        operations[i].sigma1.inputs[0].chars[j] =
-            &word.chars[e_mod (j - 6, 32)];
-        operations[i].sigma1.inputs[1].chars[j] =
-            &word.chars[e_mod (j - 11, 32)];
-        operations[i].sigma1.inputs[2].chars[j] =
-            &word.chars[e_mod (j - 25, 32)];
+        operands[0].chars[j] = &word.chars[e_mod (j - 6, 32)];
+        operands[1].chars[j] = &word.chars[e_mod (j - 11, 32)];
+        operands[2].chars[j] = &word.chars[e_mod (j - 25, 32)];
       }
     }
     {

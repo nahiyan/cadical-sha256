@@ -240,6 +240,8 @@ void State::soft_refresh () {
     auto var = partial_assignment.updated_variables.top ();
     partial_assignment.updated_variables.pop ();
     auto &id_word_rel = var_info[var];
+    if (id_word_rel.word == NULL)
+      continue;
     refresh_char (*id_word_rel.word, id_word_rel.col);
   }
 }

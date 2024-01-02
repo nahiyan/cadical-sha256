@@ -53,7 +53,7 @@ struct SoftWord {
 };
 
 struct VarInfo {
-  Word *word;
+  Word *word = NULL;
   int col;
   int step;
   VariableName name;
@@ -163,6 +163,7 @@ class State {
 public:
   deque<vector<int>> current_trail;
   int order;
+  int zero;
   PartialAssignment partial_assignment =
       PartialAssignment (MAX_VAR_ID, &current_trail);
   Operations operations[64];
