@@ -18,6 +18,7 @@ using namespace std;
 
 namespace SHA256 {
 enum VariableName {
+  unknown,
   A,
   E,
   W,
@@ -35,7 +36,25 @@ enum VariableName {
   add_T_hc,
   add_E_lc,
   add_A_lc,
-  add_A_hc
+  add_A_hc,
+  DA,
+  DE,
+  DW,
+  Dsigma0,
+  Dsigma1,
+  DSigma0,
+  DSigma1,
+  DMaj,
+  DCh,
+  DT,
+  DK,
+  Dadd_W_lc,
+  Dadd_W_hc,
+  Dadd_T_lc,
+  Dadd_T_hc,
+  Dadd_E_lc,
+  Dadd_A_lc,
+  Dadd_A_hc,
 };
 
 struct Word {

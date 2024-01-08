@@ -112,7 +112,7 @@ void Propagator::parse_comment_line (string line,
       if (prefix != actual_prefix)
         continue;
 
-      VariableName var_name = A;
+      VariableName var_name = unknown;
       if (prefix == "A_")
         var_name = A;
       else if (prefix == "E_")
@@ -127,9 +127,9 @@ void Propagator::parse_comment_line (string line,
         var_name = Sigma0;
       else if (prefix == "sigma1_")
         var_name = Sigma1;
-      else if (prefix == "maj_")
+      else if (prefix == "maj_") {
         var_name = Maj;
-      else if (prefix == "if_")
+      } else if (prefix == "if_")
         var_name = Ch;
       else if (prefix == "T_")
         var_name = T;
@@ -149,7 +149,43 @@ void Propagator::parse_comment_line (string line,
         var_name = add_A_lc;
       else if (prefix == "add.A.r1_")
         var_name = add_A_hc;
-      assert (var_name >= A && var_name <= add_A_hc);
+      if (prefix == "DA_")
+        var_name = DA;
+      else if (prefix == "DE_")
+        var_name = DE;
+      else if (prefix == "DW_")
+        var_name = DW;
+      else if (prefix == "Ds0_")
+        var_name = Dsigma0;
+      else if (prefix == "Ds1_")
+        var_name = Dsigma1;
+      else if (prefix == "Dsigma0_")
+        var_name = DSigma0;
+      else if (prefix == "Dsigma1_")
+        var_name = DSigma1;
+      else if (prefix == "Dmaj_") {
+        var_name = DMaj;
+      } else if (prefix == "Dif_")
+        var_name = DCh;
+      else if (prefix == "DT_")
+        var_name = DT;
+      else if (prefix == "DK_")
+        var_name = DK;
+      else if (prefix == "Dadd.W.r0_")
+        var_name = Dadd_W_lc;
+      else if (prefix == "Dadd.W.r1_")
+        var_name = Dadd_W_hc;
+      else if (prefix == "Dadd.T.r0_")
+        var_name = Dadd_T_lc;
+      else if (prefix == "Dadd.T.r1_")
+        var_name = Dadd_T_hc;
+      else if (prefix == "Dadd.E.r0_")
+        var_name = Dadd_E_lc;
+      else if (prefix == "Dadd.A.r0_")
+        var_name = Dadd_A_lc;
+      else if (prefix == "Dadd.A.r1_")
+        var_name = Dadd_A_hc;
+      assert (var_name >= unknown && var_name <= Dadd_A_hc);
 
       if (prefix[0] == 'D')
         word.chars = string (32, '?');
@@ -272,41 +308,41 @@ int Propagator::cb_decide () {
   return lit;
 }
 
-void Propagator::propagate_operations () {
-  // cout << state.var_info[38160].word << endl;
-  // cout << state.var_info[38160].col << endl;
-  // cout << state.var_info[38160].step << endl;
-  // cout << int (state.var_info[38160].name == A) << endl;
-  // exit (0);
+void Propagator::custom_propagate () {
+  state.soft_refresh ();
   struct Operation {
     FunctionId function_id;
     SoftWord *operands;
-    Word *output;
+    vector<Word *> outputs;
+    int input_size, output_size;
   };
 
+  auto &pa = state.partial_assignment;
   for (int i = 0; i < state.order; i++) {
     auto &ops = state.operations[i];
     auto &step = state.steps[i];
 
     vector<Operation> operations = {
-        {maj, ops.maj.inputs, &step.maj},
-        {ch, ops.ch.inputs, &step.ch},
-        {xor3, ops.sigma0.inputs, &step.sigma0},
-        {xor3, ops.sigma1.inputs, &step.sigma1}};
+        {maj, ops.maj.inputs, {&step.maj}, 3, 1},
+        {ch, ops.ch.inputs, {&step.ch}, 3, 1},
+        {xor3, ops.sigma0.inputs, {&step.sigma0}, 3, 1},
+        {xor3, ops.sigma1.inputs, {&step.sigma1}, 3, 1}};
     if (i >= 16) {
-      operations.push_back ({xor3, ops.s0.inputs, &step.s0});
-      operations.push_back ({xor3, ops.s1.inputs, &step.s1});
+      operations.push_back ({xor3, ops.s0.inputs, {&step.s0}, 3, 1});
+      operations.push_back ({xor3, ops.s1.inputs, {&step.s1}, 3, 1});
     }
 
     for (auto &operation : operations) {
       FunctionId &function_id = operation.function_id;
       SoftWord *input_words = operation.operands;
-      Word *output_word = operation.output;
+      vector<Word *> output_words = operation.outputs;
+      auto output_word = output_words[0];
+      int input_size = operation.input_size,
+          output_size = operation.output_size;
       auto function = function_id == maj    ? maj_
                       : function_id == ch   ? ch_
                       : function_id == xor3 ? xor_
                                             : add_;
-
       vector<string> inputs (3);
       for (int k = 0; k < 3; k++)
         for (int j = 0; j < 32; j++) {
@@ -328,11 +364,9 @@ void Propagator::propagate_operations () {
         reason.input_ids.assign (3, {});
         reason.output_ids.assign (1, {});
         // cout << "Debug: " << i << " " << j << endl;
-        for (int x = 0; x < 3; x++) {
-          cout << inputs[x][j];
+        for (int x = 0; x < 3; x++)
           reason.differential.first += inputs[x][j];
-        }
-        cout << endl;
+
         assert (reason.differential.first.size () == 3);
         auto &pa = state.partial_assignment;
         for (int x = 0; x < 3; x++) {
@@ -342,6 +376,9 @@ void Propagator::propagate_operations () {
                                   input_words[x].diff_ids[j] + 1,
                                   input_words[x].diff_ids[j] + 2,
                                   input_words[x].diff_ids[j] + 3};
+          for (auto &id : ids)
+            reason.input_ids[x].push_back (id);
+
           vector<uint8_t> values (6);
           for (int y = 0; y < 6; y++)
             values[y] = pa.get (ids[y]);
@@ -358,20 +395,24 @@ void Propagator::propagate_operations () {
             return value == LIT_TRUE ? -1 : 1;
           };
           if (x_xp_known) {
-            reason.antecedent.push_back (_sign (values[0]) * ids[0]);
-            reason.antecedent.push_back (_sign (values[1]) * ids[1]);
+            for (int y = 0; y < 2; y++)
+              reason.antecedent.push_back (_sign (values[y]) * ids[y]);
           } else if (diff_bits_known) {
             for (int y = 2; y < 6; y++)
               reason.antecedent.push_back (_sign (values[y]) * ids[y]);
+          } else {
+            // cout << "Warning: " << reason.differential.first[x] << endl;
+            if (reason.differential.first[x] != '?') {
+              for (int z = 0; z < 6; z++)
+                printf ("%d ", values[z]);
+              printf ("\n");
+            }
+            assert (reason.differential.first[x] == '?');
           }
-
-          for (auto &id : ids)
-            reason.input_ids[x].push_back (id);
         }
-        assert (reason.antecedent.size () > 0);
+        if (reason.antecedent.empty ())
+          continue;
 
-        // cout << endl;
-        cout << outputs[0] << " " << outputs[1] << endl;
         reason.differential.second += outputs[1];
 
         uint32_t output_vars[] = {
@@ -386,16 +427,67 @@ void Propagator::propagate_operations () {
           if (pa.get (output_vars[x]) != LIT_UNDEF)
             continue;
 
+          if (values[x] == 1)
+            continue;
+
           int sign = values[x] == 1 ? 1 : -1;
           int lit = sign * output_vars[x];
           reasons[lit] = reason;
 
           propagation_lits.push_back (lit);
+          cout << "Inputs: " << reason.differential.first << endl;
+          cout << "Output[s]: " << outputs[0] << " -> " << outputs[1]
+               << endl;
           printf ("Adding propagation lit: %d (%d)\n", lit,
                   int (pa.get (output_vars[x])));
-          // printf ("Reason: %ld antecedent\n", reason.antecedent.size ());
         }
       }
+
+      // for (int j = 0; j < 32; j++) {
+      //   Reason reason;
+      //   reason.input_ids.assign (input_size, {});
+      //   reason.output_ids.assign (output_size, {});
+
+      //   // Fill out the differential
+      //   for (int k = 0; k < input_size; k++) {
+      //     assert (input_words[k].chars[j] != NULL);
+      //     reason.differential.first += *(input_words[k].chars[j]);
+
+      //     vector<uint32_t> ids = {input_words[k].ids_f[j],
+      //                             input_words[k].ids_g[j],
+      //                             input_words[k].diff_ids[j] + 0,
+      //                             input_words[k].diff_ids[j] + 1,
+      //                             input_words[k].diff_ids[j] + 2,
+      //                             input_words[k].diff_ids[j] + 3};
+      //     vector<uint8_t> values (6);
+      //     for (int y = 0; y < 6; y++)
+      //       values[y] = pa.get (ids[y]);
+
+      //     // x and x' known?; diff bits known?
+      //     bool x_xp_known = false, diff_bits_known = false;
+      //     if (values[0] != LIT_UNDEF && values[1] != LIT_UNDEF)
+      //       x_xp_known = true;
+      //     if (values[2] != LIT_UNDEF && values[3] != LIT_UNDEF &&
+      //         values[4] != LIT_UNDEF && values[5] != LIT_UNDEF)
+      //       diff_bits_known = true;
+      //     auto _sign = [] (uint8_t &value) {
+      //       return value == LIT_TRUE ? -1 : 1;
+      //     };
+      //     if (x_xp_known) {
+      //       reason.antecedent.push_back (_sign (values[0]) * ids[0]);
+      //       reason.antecedent.push_back (_sign (values[1]) * ids[1]);
+      //     } else if (diff_bits_known) {
+      //       for (int y = 2; y < 6; y++)
+      //         reason.antecedent.push_back (_sign (values[y]) * ids[y]);
+      //     }
+      //   }
+      //   assert (reason.antecedent.size () > 0);
+      //   assert (reason.differential.first.size () == input_size);
+      //   for (int k = 0; k < output_size; k++) {
+      //     reason.differential.second += output_words[k]->chars[j];
+      //   }
+      //   assert (reason.differential.second.size () == output_size);
+      // }
     }
   }
 }
@@ -404,8 +496,7 @@ int Propagator::cb_propagate () {
   Timer time (&stats.total_cb_time);
   if (propagation_lits.empty ()) {
     if (counter % 20 == 0) {
-      state.soft_refresh ();
-      propagate_operations ();
+      custom_propagate ();
 
       if (propagation_lits.size () > 0)
         goto PROVIDE_LIT;
@@ -425,7 +516,8 @@ PROVIDE_LIT:
     return 0;
   }
 
-  printf ("Debug: propagate %d\n", lit);
+  printf ("Debug: propagate %d (var %d)\n", lit,
+          state.var_info[abs (lit)].name);
   propagation_lits.pop_back ();
   assert (reason_it->second.antecedent.size () > 0);
 
@@ -449,7 +541,14 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     Reason reason = reasons_it->second;
     reasons.erase (reasons_it); // Consume the reason
 
-    printf ("Asked for reason of %d\n", propagated_lit);
+    if (reason.antecedent.size () == 4) {
+      printf ("Warning!\n");
+      cout << reason.differential.first << " " << reason.differential.second
+           << endl;
+    }
+
+    printf ("Asked for reason of %d (var %d)\n", propagated_lit,
+            state.var_info[abs (propagated_lit)].name);
     cout << "Reason: ";
     cout << reason.differential.first << " ";
     cout << reason.differential.second;
@@ -471,7 +570,7 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
       }
       cout << endl;
     }
-    printf ("Antedecent: ");
+    printf ("Antecedent: ");
     for (auto &lit : reason.antecedent) {
       printf ("%d ", lit);
     }
@@ -650,18 +749,24 @@ int Propagator::cb_add_external_clause_lit () {
   auto &clause = external_clauses.back ();
   assert (!clause.empty ());
   int lit = clause.back ();
+  printf ("Debug: gave EC lit %d (%d) %ld remaining\n", lit,
+          state.partial_assignment.get (abs (lit)), clause.size () - 1);
+
+  // Pop clause and remove if empty
   clause.pop_back ();
   if (clause.empty ()) {
     external_clauses.pop_back ();
     stats.clauses_count++;
+    printf ("Debug: EC ended\n");
   }
 
-  assert (lit < 0   ? state.partial_assignment.get (abs (lit)) == LIT_TRUE
-          : lit > 0 ? state.partial_assignment.get (abs (lit)) == LIT_FALSE
-                    : true);
+  // Sanity check for blocking clauses
+  // assert (lit < 0   ? state.partial_assignment.get (abs (lit)) ==
+  // LIT_TRUE
+  //         : lit > 0 ? state.partial_assignment.get (abs (lit)) ==
+  //         LIT_FALSE
+  //                   : true);
 
-  // printf ("Debug: gave EC lit %d (%d)\n", lit,
-  //         state.partial_assignment.get (abs (lit)));
   return lit;
 }
 
@@ -680,13 +785,23 @@ void Propagator::custom_branch () {
     srand (clock () + j);
     if (rand () % 2 == 0) {
       // u
-      decision_lits.push_back (word.ids_f[j]);
-      decision_lits.push_back (-word.ids_g[j]);
+      decision_lits.push_back (-(word.diff_ids[j] + 0));
+      decision_lits.push_back ((word.diff_ids[j] + 1));
+      decision_lits.push_back (-(word.diff_ids[j] + 2));
+      decision_lits.push_back (-(word.diff_ids[j] + 3));
     } else {
       // n
-      decision_lits.push_back (-word.ids_f[j]);
-      decision_lits.push_back (word.ids_g[j]);
+      decision_lits.push_back (-(word.diff_ids[j] + 0));
+      decision_lits.push_back (-(word.diff_ids[j] + 1));
+      decision_lits.push_back ((word.diff_ids[j] + 2));
+      decision_lits.push_back (-(word.diff_ids[j] + 3));
     }
+  };
+  auto ground_xnor = [] (list<int> &decision_lits, Word &word, int &j) {
+    decision_lits.push_back ((word.diff_ids[j] + 0));
+    decision_lits.push_back (-(word.diff_ids[j] + 1));
+    decision_lits.push_back (-(word.diff_ids[j] + 2));
+    decision_lits.push_back ((word.diff_ids[j] + 3));
   };
 
   // Stage 1
@@ -696,10 +811,7 @@ void Propagator::custom_branch () {
       auto &c = w.chars[j];
       // Impose '-' for '?'
       if (c == '?') {
-        decision_lits.push_back ((w.diff_ids[j] + 0));
-        decision_lits.push_back (-(w.diff_ids[j] + 1));
-        decision_lits.push_back (-(w.diff_ids[j] + 2));
-        decision_lits.push_back ((w.diff_ids[j] + 3));
+        ground_xnor (decision_lits, w, j);
         return;
       } else if (c == 'x') {
         // Impose 'u' or 'n' for '?'
@@ -719,19 +831,13 @@ void Propagator::custom_branch () {
       auto &a_c = a.chars[j];
       auto &e_c = e.chars[j];
       if (a_c == '?') {
-        decision_lits.push_back ((a.diff_ids[j] + 0));
-        decision_lits.push_back (-(a.diff_ids[j] + 1));
-        decision_lits.push_back (-(a.diff_ids[j] + 2));
-        decision_lits.push_back ((a.diff_ids[j] + 3));
+        ground_xnor (decision_lits, a, j);
         return;
       } else if (a_c == 'x') {
         rand_ground_x (decision_lits, a, j);
         return;
       } else if (e_c == '?') {
-        decision_lits.push_back ((e.diff_ids[j] + 0));
-        decision_lits.push_back (-(e.diff_ids[j] + 1));
-        decision_lits.push_back (-(e.diff_ids[j] + 2));
-        decision_lits.push_back ((e.diff_ids[j] + 3));
+        ground_xnor (decision_lits, e, j);
         return;
       } else if (e_c == 'x') {
         rand_ground_x (decision_lits, e, j);
