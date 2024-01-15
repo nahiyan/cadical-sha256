@@ -12,7 +12,7 @@
 #define LIT_TRUE 2
 #define LIT_FALSE 1
 #define LIT_UNDEF 0
-#define MAX_VAR_ID 100000
+#define MAX_VAR_ID 200000
 
 using namespace std;
 
