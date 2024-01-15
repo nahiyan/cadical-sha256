@@ -15,13 +15,21 @@ void State::set_operations () {
   char *zero_char = new char;
   *zero_char = '0';
 
-  auto to_soft_word = [] (Word &word) {
+  auto to_soft_word = [this, zero_char] (Word &word, int shift = 0) {
     SoftWord soft_word;
     for (int i = 0; i < 32; i++) {
-      soft_word.ids_f[i] = word.ids_f[i];
-      soft_word.ids_g[i] = word.ids_g[i];
-      soft_word.diff_ids[i] = word.diff_ids[i];
-      soft_word.chars[i] = &word.chars[i];
+      int shifted_pos = i + shift;
+      if (shifted_pos >= 0 && shifted_pos <= 31) {
+        soft_word.ids_f[i] = word.ids_f[shifted_pos];
+        soft_word.ids_g[i] = word.ids_g[shifted_pos];
+        soft_word.diff_ids[i] = word.diff_ids[shifted_pos];
+        soft_word.chars[i] = &word.chars[shifted_pos];
+      } else {
+        soft_word.ids_f[i] = zero;
+        soft_word.ids_g[i] = zero + 1;
+        soft_word.diff_ids[i] = zero + 2;
+        soft_word.chars[i] = zero_char;
+      }
     }
     return soft_word;
   };
@@ -111,6 +119,10 @@ void State::set_operations () {
                          &steps[i - 16].w};
         for (int j = 0; j < 4; j++)
           operations[i].add_w.inputs[j] = to_soft_word (*words[j]);
+        operations[i].add_w.inputs[4] =
+            to_soft_word (steps[i].add_w_r[0], 1);
+        operations[i].add_w.inputs[5] =
+            to_soft_word (steps[i].add_w_r[1], 2);
 
         for (int j = 0; j < 2; j++)
           operations[i].add_w.carries[j] =
@@ -191,8 +203,18 @@ void State::set_operations () {
       };
       for (int j = 0; j < 5; j++)
         operations[i].add_t.inputs[j] = to_soft_word (*words[j]);
+      operations[i].add_t.inputs[5] = to_soft_word (steps[i].add_t_r[0], 1);
+      operations[i].add_t.inputs[6] = to_soft_word (steps[i].add_t_r[1], 2);
+      // TODO: Redundant?
       for (int j = 0; j < 2; j++)
         operations[i].add_t.carries[j] = to_soft_word (steps[i].add_t_r[j]);
+
+      assert (operations[i].add_t.inputs[6].ids_f[31] == zero);
+      assert (operations[i].add_t.inputs[6].ids_f[30] == zero);
+      assert (operations[i].add_t.inputs[6].ids_f[29] ==
+              operations[i].add_t.carries[1].ids_f[31]);
+      assert (operations[i].add_t.inputs[6].ids_f[0] ==
+              operations[i].add_t.carries[1].ids_f[2]);
     }
     {
       // add.E
@@ -202,13 +224,22 @@ void State::set_operations () {
       };
       for (int j = 0; j < 2; j++)
         operations[i].add_e.inputs[j] = to_soft_word (*words[j]);
+      operations[i].add_e.inputs[2] = to_soft_word (steps[i].add_e_r[0], 1);
       operations[i].add_e.carries[0] = to_soft_word (steps[i].add_e_r[0]);
+
+      assert (operations[i].add_e.inputs[2].ids_f[31] == zero);
+      assert (operations[i].add_e.inputs[2].ids_f[30] ==
+              operations[i].add_e.carries[0].ids_f[31]);
+      assert (operations[i].add_e.inputs[2].ids_f[0] ==
+              operations[i].add_e.carries[0].ids_f[1]);
     }
     {
       // add.A
       Word *words[] = {&steps[i].t, &steps[i].sigma0, &steps[i].maj};
       for (int j = 0; j < 3; j++)
         operations[i].add_a.inputs[j] = to_soft_word (*words[j]);
+      operations[i].add_a.inputs[3] = to_soft_word (steps[i].add_a_r[0], 1);
+      operations[i].add_a.inputs[4] = to_soft_word (steps[i].add_a_r[1], 2);
       for (int j = 0; j < 2; j++)
         operations[i].add_a.carries[j] = to_soft_word (steps[i].add_a_r[j]);
     }

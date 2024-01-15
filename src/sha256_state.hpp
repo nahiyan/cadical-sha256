@@ -108,19 +108,19 @@ struct Operations {
     SoftWord inputs[3];
   } ch;
   struct AddW {
-    SoftWord inputs[4];
+    SoftWord inputs[6];
     SoftWord carries[2];
   } add_w;
   struct AddT {
-    SoftWord inputs[5];
+    SoftWord inputs[7];
     SoftWord carries[2];
   } add_t;
   struct AddE {
-    SoftWord inputs[2];
+    SoftWord inputs[3];
     SoftWord carries[1];
   } add_e;
   struct AddA {
-    SoftWord inputs[3];
+    SoftWord inputs[5];
     SoftWord carries[2];
   } add_a;
 };
