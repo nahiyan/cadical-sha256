@@ -23,6 +23,7 @@ struct Stats {
   clock_t total_cb_time;
   uint clauses_count;
   uint decisions_count;
+  uint reasons_count;
 };
 
 struct Reason {
