@@ -354,7 +354,6 @@ void Propagator::custom_propagate () {
     int input_size, output_size;
   };
 
-  auto &pa = state.partial_assignment;
   for (int i = 0; i < state.order; i++) {
     auto &ops = state.operations[i];
     auto &step = state.steps[i];
@@ -363,56 +362,79 @@ void Propagator::custom_propagate () {
         {maj, ops.maj.inputs, {&step.maj}, 3, 1},
         {ch, ops.ch.inputs, {&step.ch}, 3, 1},
         {xor3, ops.sigma0.inputs, {&step.sigma0}, 3, 1},
-        {xor3, ops.sigma1.inputs, {&step.sigma1}, 3, 1}};
+        {xor3, ops.sigma1.inputs, {&step.sigma1}, 3, 1},
+        {add,
+         ops.add_e.inputs,
+         {&step.add_e_r[0], &state.steps[ABS_STEP (i)].e},
+         3,
+         2},
+        {add,
+         ops.add_t.inputs,
+         {&step.add_t_r[1], &step.add_t_r[0], &step.t},
+         7,
+         3},
+        {add,
+         ops.add_a.inputs,
+         {&step.add_a_r[1], &step.add_a_r[0], &state.steps[ABS_STEP (i)].a},
+         5,
+         3}};
     if (i >= 16) {
       operations.push_back ({xor3, ops.s0.inputs, {&step.s0}, 3, 1});
       operations.push_back ({xor3, ops.s1.inputs, {&step.s1}, 3, 1});
+      operations.push_back ({add,
+                             ops.add_w.inputs,
+                             {&step.add_w_r[1], &step.add_w_r[0], &step.w},
+                             6,
+                             3});
     }
 
     for (auto &operation : operations) {
       FunctionId &function_id = operation.function_id;
       SoftWord *input_words = operation.operands;
       vector<Word *> output_words = operation.outputs;
-      auto output_word = output_words[0];
       int input_size = operation.input_size,
           output_size = operation.output_size;
       auto function = function_id == maj    ? maj_
                       : function_id == ch   ? ch_
                       : function_id == xor3 ? xor_
                                             : add_;
-      vector<string> inputs (3);
-      for (int k = 0; k < 3; k++)
-        for (int j = 0; j < 32; j++) {
-          assert (input_words[k].chars[j] != NULL);
-          inputs[k] += *(input_words[k].chars[j]);
-        }
-
-      string prop_output =
-          propagate (function_id, inputs, output_word->chars);
       for (int j = 0; j < 32; j++) {
-        if (prop_output[j] == output_word->chars[j])
-          continue;
-        if (output_word->chars[j] != '?')
-          continue;
-
-        char outputs[] = {output_word->chars[j], prop_output[j]};
-
         Reason reason;
-        reason.input_ids.assign (3, {});
-        reason.output_ids.assign (1, {});
-        // cout << "Debug: " << i << " " << j << endl;
-        for (int x = 0; x < 3; x++)
-          reason.differential.first += inputs[x][j];
+        reason.input_ids.assign (input_size, {});
+        reason.output_ids.assign (output_size, {});
 
-        assert (reason.differential.first.size () == 3);
+        string inputs;
+        for (int k = 0; k < input_size; k++) {
+          assert (input_words[k].chars[j] != NULL);
+          inputs += *(input_words[k].chars[j]);
+          reason.differential.first += inputs[k];
+        }
+        assert (int (reason.differential.first.size ()) == input_size);
+
+        string outputs;
+        for (int k = 0; k < output_size; k++)
+          outputs += output_words[k]->chars[j];
+        assert (int (outputs.size ()) == output_size);
+
+        bool add_lc_only = function == add_ && output_size == 2;
+
+        string prop_output = otf_propagate (
+            function, inputs, add_lc_only ? "0" + outputs : outputs);
+        if (add_lc_only)
+          prop_output = prop_output.substr (1, 2);
+        for (int k = 0; k < output_size; k++)
+          reason.differential.second += prop_output[k];
+
+        if (outputs == prop_output)
+          continue;
+
         auto &pa = state.partial_assignment;
-        for (int x = 0; x < 3; x++) {
-          vector<uint32_t> ids = {input_words[x].ids_f[j],
-                                  input_words[x].ids_g[j],
-                                  input_words[x].diff_ids[j] + 0,
-                                  input_words[x].diff_ids[j] + 1,
-                                  input_words[x].diff_ids[j] + 2,
-                                  input_words[x].diff_ids[j] + 3};
+        for (int x = 0; x < input_size; x++) {
+          auto &input_word = input_words[x];
+          vector<uint32_t> ids = {
+              input_word.ids_f[j],        input_word.ids_g[j],
+              input_word.diff_ids[j] + 0, input_word.diff_ids[j] + 1,
+              input_word.diff_ids[j] + 2, input_word.diff_ids[j] + 3};
           for (auto &id : ids)
             reason.input_ids[x].push_back (id);
 
@@ -420,10 +442,8 @@ void Propagator::custom_propagate () {
           for (int y = 0; y < 6; y++)
             values[y] = pa.get (ids[y]);
 
-          // x and x' known?; diff bits known?
-          bool x_xp_known = false, diff_bits_known = false;
-          if (values[0] != LIT_UNDEF && values[1] != LIT_UNDEF)
-            x_xp_known = true;
+          // diff bits known?
+          bool diff_bits_known = false;
           if (values[2] != LIT_UNDEF && values[3] != LIT_UNDEF &&
               values[4] != LIT_UNDEF && values[5] != LIT_UNDEF)
             diff_bits_known = true;
@@ -431,100 +451,110 @@ void Propagator::custom_propagate () {
           auto _sign = [] (uint8_t &value) {
             return value == LIT_TRUE ? -1 : 1;
           };
-          if (x_xp_known) {
-            for (int y = 0; y < 2; y++)
-              reason.antecedent.push_back (_sign (values[y]) * ids[y]);
-          } else if (diff_bits_known) {
+          if (diff_bits_known) {
             for (int y = 2; y < 6; y++)
               reason.antecedent.push_back (_sign (values[y]) * ids[y]);
+          } else if (values[3] == LIT_FALSE && values[4] == LIT_FALSE) {
+            reason.antecedent.push_back (_sign (values[3]) * ids[3]);
+            reason.antecedent.push_back (_sign (values[4]) * ids[4]);
+          } else if (values[2] == LIT_FALSE && values[5] == LIT_FALSE) {
+            reason.antecedent.push_back (_sign (values[2]) * ids[2]);
+            reason.antecedent.push_back (_sign (values[5]) * ids[5]);
           } else {
-            // cout << "Warning: " << reason.differential.first[x] << endl;
-            if (reason.differential.first[x] != '?') {
-              for (int z = 0; z < 6; z++)
-                printf ("%d ", values[z]);
-              printf ("\n");
-            }
             assert (reason.differential.first[x] == '?');
           }
         }
         if (reason.antecedent.empty ())
           continue;
 
-        reason.differential.second += outputs[1];
+        vector<int> lits;
+        for (int x = 0; x < output_size; x++) {
+          auto &output_word = output_words[x];
+          vector<uint32_t> ids = {
+              output_word->diff_ids[j] + 0, output_word->diff_ids[j] + 1,
+              output_word->diff_ids[j] + 2, output_word->diff_ids[j] + 3};
+          assert (state.var_info[ids[0]].col == j);
+          reason.output_ids[x].push_back (output_word->ids_f[j]);
+          reason.output_ids[x].push_back (output_word->ids_g[j]);
+          for (int y = 0; y < 4; y++)
+            reason.output_ids[x].push_back (ids[y]);
 
-        uint32_t output_vars[] = {
-            output_word->diff_ids[j] + 0, output_word->diff_ids[j] + 1,
-            output_word->diff_ids[j] + 2, output_word->diff_ids[j] + 3};
-        reason.output_ids[0].push_back (output_word->ids_f[j]);
-        reason.output_ids[0].push_back (output_word->ids_g[j]);
-        for (int x = 0; x < 4; x++)
-          reason.output_ids[0].push_back (output_vars[x]);
-        vector<int> values = gc_table[outputs[1]];
-        for (int x = 0; x < 4; x++) {
-          if (pa.get (output_vars[x]) != LIT_UNDEF)
+          // Output antecedent
+          bool has_output_antecedent = false;
+          {
+            vector<uint8_t> values (4);
+            for (int y = 0; y < 4; y++)
+              values[y] = pa.get (ids[y]);
+
+            // diff bits known?
+            bool diff_bits_known = false;
+            if (values[0] != LIT_UNDEF && values[1] != LIT_UNDEF &&
+                values[2] != LIT_UNDEF && values[3] != LIT_UNDEF)
+              diff_bits_known = true;
+
+            auto _sign = [] (uint8_t &value) {
+              return value == LIT_TRUE ? -1 : 1;
+            };
+            if (diff_bits_known) {
+              for (int y = 0; y < 4; y++)
+                reason.antecedent.push_back (_sign (values[y]) * ids[y]);
+              has_output_antecedent = true;
+            } else if (values[1] == LIT_FALSE && values[2] == LIT_FALSE) {
+              reason.antecedent.push_back (_sign (values[1]) * ids[1]);
+              reason.antecedent.push_back (_sign (values[2]) * ids[2]);
+              has_output_antecedent = true;
+            } else if (values[0] == LIT_FALSE && values[3] == LIT_FALSE) {
+              reason.antecedent.push_back (_sign (values[0]) * ids[0]);
+              reason.antecedent.push_back (_sign (values[3]) * ids[3]);
+              has_output_antecedent = true;
+            } else {
+              if (outputs[x] != '?')
+                printf ("outputs[x] = %c\n", outputs[x]);
+              assert (outputs[x] == '?');
+            }
+          }
+          if (outputs[x] != '?' && !has_output_antecedent)
+            cout << "Assert failed: " << outputs << endl;
+          assert (outputs[x] != '?' ? has_output_antecedent : true);
+
+          // TODO: Skip if the propagation derived more info
+          if (prop_output[x] == '?' || prop_output[x] == '#')
             continue;
 
-          if (values[x] == 1)
-            continue;
+          vector<int> values = gc_table[prop_output[x]];
+          assert (values.size () == 4);
+          printf ("Output (%d): %s to %s\n", x, outputs.c_str (),
+                  prop_output.c_str ());
+          for (int y = 0; y < 4; y++) {
+            int diff_id = ids[y];
+            if (pa.get (diff_id) != LIT_UNDEF)
+              continue;
+            if (values[y] == 1)
+              continue;
 
-          int sign = values[x] == 1 ? 1 : -1;
-          int lit = sign * output_vars[x];
-          reasons[lit] = reason;
+            int sign = values[y] == 1 ? 1 : -1;
+            int lit = sign * diff_id;
 
-          propagation_lits.push_back (lit);
-          cout << "Inputs: " << reason.differential.first << endl;
-          cout << "Output[s]: " << outputs[0] << " -> " << outputs[1]
-               << endl;
-          printf ("Adding propagation lit: %d (%d)\n", lit,
-                  int (pa.get (output_vars[x])));
+            propagation_lits.push_back (lit);
+            lits.push_back (lit);
+
+            assert (pa.get_ (diff_id) == pa.get (diff_id));
+            printf ("Adding propagation lit: %d (%d)\n", lit,
+                    int (pa.get (diff_id)));
+          }
         }
+        if (lits.size () > 0) {
+          printf ("Reasons for: ");
+          for (auto &lit : lits)
+            printf ("%d ", lit);
+          printf ("\n");
+
+          print_reason (reason, state);
+        }
+
+        for (auto &lit : lits)
+          reasons[lit] = reason;
       }
-
-      // for (int j = 0; j < 32; j++) {
-      //   Reason reason;
-      //   reason.input_ids.assign (input_size, {});
-      //   reason.output_ids.assign (output_size, {});
-
-      //   // Fill out the differential
-      //   for (int k = 0; k < input_size; k++) {
-      //     assert (input_words[k].chars[j] != NULL);
-      //     reason.differential.first += *(input_words[k].chars[j]);
-
-      //     vector<uint32_t> ids = {input_words[k].ids_f[j],
-      //                             input_words[k].ids_g[j],
-      //                             input_words[k].diff_ids[j] + 0,
-      //                             input_words[k].diff_ids[j] + 1,
-      //                             input_words[k].diff_ids[j] + 2,
-      //                             input_words[k].diff_ids[j] + 3};
-      //     vector<uint8_t> values (6);
-      //     for (int y = 0; y < 6; y++)
-      //       values[y] = pa.get (ids[y]);
-
-      //     // x and x' known?; diff bits known?
-      //     bool x_xp_known = false, diff_bits_known = false;
-      //     if (values[0] != LIT_UNDEF && values[1] != LIT_UNDEF)
-      //       x_xp_known = true;
-      //     if (values[2] != LIT_UNDEF && values[3] != LIT_UNDEF &&
-      //         values[4] != LIT_UNDEF && values[5] != LIT_UNDEF)
-      //       diff_bits_known = true;
-      //     auto _sign = [] (uint8_t &value) {
-      //       return value == LIT_TRUE ? -1 : 1;
-      //     };
-      //     if (x_xp_known) {
-      //       reason.antecedent.push_back (_sign (values[0]) * ids[0]);
-      //       reason.antecedent.push_back (_sign (values[1]) * ids[1]);
-      //     } else if (diff_bits_known) {
-      //       for (int y = 2; y < 6; y++)
-      //         reason.antecedent.push_back (_sign (values[y]) * ids[y]);
-      //     }
-      //   }
-      //   assert (reason.antecedent.size () > 0);
-      //   assert (reason.differential.first.size () == input_size);
-      //   for (int k = 0; k < output_size; k++) {
-      //     reason.differential.second += output_words[k]->chars[j];
-      //   }
-      //   assert (reason.differential.second.size () == output_size);
-      // }
     }
   }
 }
@@ -577,48 +607,23 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     assert (reasons_it != reasons.end ());
     Reason reason = reasons_it->second;
     reasons.erase (reasons_it); // Consume the reason
-
-    if (reason.antecedent.size () == 4) {
-      printf ("Warning!\n");
-      cout << reason.differential.first << " " << reason.differential.second
-           << endl;
-    }
+    stats.reasons_count++;
 
     printf ("Asked for reason of %d (var %d)\n", propagated_lit,
             state.var_info[abs (propagated_lit)].name);
-    cout << "Reason: ";
-    cout << reason.differential.first << " ";
-    cout << reason.differential.second;
-    cout << endl;
+
+    print_reason (reason, state);
+
     assert (reason.differential.first.size () > 0);
     assert (reason.differential.second.size () > 0);
     assert (reason.antecedent.size () > 0);
-    for (auto &ids : reason.input_ids) {
-      for (auto &id : ids) {
-        auto value = state.partial_assignment.get (id);
-        printf ("%d(%d) ", id, int (value));
-      }
-      cout << endl;
-    }
-    for (auto &ids : reason.output_ids) {
-      for (auto &id : ids) {
-        auto value = state.partial_assignment.get (id);
-        printf ("%d(%d) ", id, int (value));
-      }
-      cout << endl;
-    }
-    printf ("Antecedent: ");
-    for (auto &lit : reason.antecedent) {
-      printf ("%d ", lit);
-    }
-    printf ("\n");
-    printf ("Reason end\n");
+    for (auto &ids : reason.input_ids)
+      assert (ids.size () == 6);
+    for (auto &ids : reason.output_ids)
+      assert (ids.size () == 6);
 
     // Populate the reason clause
     for (auto &lit : reason.antecedent) {
-      // printf ("Debug: antecedent %d %d\n", lit,
-      //         int (state.partial_assignment.get (abs (lit))));
-
       // Sanity check
       assert (state.partial_assignment.get (abs (lit)) != LIT_UNDEF);
       assert (state.partial_assignment.get (abs (lit)) == LIT_TRUE
