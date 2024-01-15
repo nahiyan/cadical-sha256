@@ -244,15 +244,6 @@ void Propagator::parse_comment_line (string line,
 
 void Propagator::notify_assignment (int lit, bool is_fixed) {
   // Timer timer (&stats.total_cb_time);
-  // This literal shouldn't be in the trail
-  // if (state.partial_assignment.get_ (abs (lit)) != LIT_UNDEF) {
-  //   printf ("Trail stats: %ld %ld\n", state.current_trail.size (),
-  //           state.current_trail.front ().size ());
-  //   printf ("Already in trail: %d (%d) %d\n", lit,
-  //           state.partial_assignment.get_ (abs (lit)), is_fixed);
-  // }
-  // assert (state.partial_assignment.get_ (abs (lit)) == LIT_UNDEF);
-
   if (is_fixed) {
     state.current_trail.front ().push_back (lit);
     state.var_info[abs (lit)].is_fixed = true;
@@ -508,13 +499,11 @@ void Propagator::custom_propagate () {
               reason.antecedent.push_back (_sign (values[3]) * ids[3]);
               has_output_antecedent = true;
             } else {
-              if (outputs[x] != '?')
-                printf ("outputs[x] = %c\n", outputs[x]);
+              // if (outputs[x] != '?')
+              //   printf ("outputs[x] = %c\n", outputs[x]);
               assert (outputs[x] == '?');
             }
           }
-          if (outputs[x] != '?' && !has_output_antecedent)
-            cout << "Assert failed: " << outputs << endl;
           assert (outputs[x] != '?' ? has_output_antecedent : true);
 
           // TODO: Skip if the propagation derived more info
@@ -523,8 +512,8 @@ void Propagator::custom_propagate () {
 
           vector<int> values = gc_table[prop_output[x]];
           assert (values.size () == 4);
-          printf ("Output (%d): %s to %s\n", x, outputs.c_str (),
-                  prop_output.c_str ());
+          // printf ("Output (%d): %s to %s\n", x, outputs.c_str (),
+          //         prop_output.c_str ());
           for (int y = 0; y < 4; y++) {
             int diff_id = ids[y];
             if (pa.get (diff_id) != LIT_UNDEF)
@@ -543,14 +532,14 @@ void Propagator::custom_propagate () {
                     int (pa.get (diff_id)));
           }
         }
-        if (lits.size () > 0) {
-          printf ("Reasons for: ");
-          for (auto &lit : lits)
-            printf ("%d ", lit);
-          printf ("\n");
+        // if (lits.size () > 0) {
+        //   printf ("Reasons for: ");
+        //   for (auto &lit : lits)
+        //     printf ("%d ", lit);
+        //   printf ("\n");
 
-          print_reason (reason, state);
-        }
+        //   print_reason (reason, state);
+        // }
 
         for (auto &lit : lits)
           reasons[lit] = reason;
