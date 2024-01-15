@@ -155,6 +155,14 @@ void test_otf_propagate () {
     auto result = otf_propagate (add_, "-0nu0uDD", "??1");
     assert (result == "011");
   }
+  {
+    auto result = otf_propagate (add_, "110?100", "1??");
+    assert (result == "100");
+  }
+  {
+    auto result = otf_propagate (add_, "-??", "0?-");
+    assert (result == "0?-");
+  }
 }
 void test_otf_2bit_eqs () {
   {
