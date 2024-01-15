@@ -8,7 +8,7 @@
 using namespace std;
 
 namespace SHA256 {
-enum FunctionId { ch, maj, xor3 };
+enum FunctionId { ch, maj, xor3, add };
 // TODO: Integrate this
 enum AdditionId { add_a, add_e, add_w, add_t };
 

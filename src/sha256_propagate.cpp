@@ -714,8 +714,20 @@ void Propagator::prop_addition_weakly () {
   }
 }
 
+map<tuple<vector<int> (*) (vector<int>), string, string>, string>
+    otf_prop_cache;
 string otf_propagate (vector<int> (*func) (vector<int> inputs),
                       string inputs, string outputs) {
+  // Look in the cache
+  {
+    tuple<vector<int> (*) (vector<int>), string, string> key{func, inputs,
+                                                             outputs};
+    auto cache_it = otf_prop_cache.find (key);
+    if (cache_it != otf_prop_cache.end ()) {
+      return cache_it->second;
+    }
+  }
+
   int outputs_size = outputs.size ();
   auto conforms_to = [] (char c1, char c2) {
     auto c1_chars = symbols[c1], c2_chars = symbols[c2];
@@ -793,6 +805,8 @@ string otf_propagate (vector<int> (*func) (vector<int> inputs),
   for (auto &p : possibilities)
     propagated_output += gc_from_set (p);
 
+  // Cache the result
+  otf_prop_cache[{func, inputs, outputs}] = propagated_output;
   return propagated_output;
 }
 
