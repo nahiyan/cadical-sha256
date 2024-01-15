@@ -22,7 +22,31 @@ using namespace SHA256;
 int Propagator::order = 0;
 State Propagator::state = State ();
 uint64_t counter = 0;
-Stats Propagator::stats = Stats{0, 0, 0};
+Stats Propagator::stats = Stats{0, 0, 0, 0};
+
+void print_reason (Reason &reason, State &state) {
+  auto &pa = state.partial_assignment;
+  cout << "Reason: " << reason.differential.first << " -> "
+       << reason.differential.second << endl;
+  cout << "Input variables:" << endl;
+  for (int i = 0; i < int (reason.input_ids.size ()); i++) {
+    printf ("%d. ", i);
+    for (auto &id : reason.input_ids[i])
+      printf ("%d(%d) ", id, pa.get (id));
+    printf ("\n");
+  }
+  cout << "Output variables:" << endl;
+  for (int i = 0; i < int (reason.output_ids.size ()); i++) {
+    printf ("%d. ", i);
+    for (auto &id : reason.output_ids[i])
+      printf ("%d(%d) ", id, pa.get (id));
+    printf ("\n");
+  }
+  cout << "Antecedent: ";
+  for (auto &id : reason.antecedent)
+    printf ("%d ", id);
+  printf ("\n");
+}
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
 #ifndef NDEBUG
