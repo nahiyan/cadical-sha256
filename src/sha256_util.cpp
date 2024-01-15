@@ -149,4 +149,88 @@ vector<int> xor_ (vector<int> inputs) {
   return {value};
 }
 
+void gc_values (char c, uint8_t values[4]) {
+  if (c == '?') {
+    values[0] = 1;
+    values[1] = 1;
+    values[2] = 1;
+    values[3] = 1;
+  } else if (c == '-') {
+    values[0] = 1;
+    values[1] = 0;
+    values[2] = 0;
+    values[3] = 1;
+  } else if (c == 'x') {
+    values[0] = 0;
+    values[1] = 1;
+    values[2] = 1;
+    values[3] = 0;
+  } else if (c == '0') {
+    values[0] = 1;
+    values[1] = 0;
+    values[2] = 0;
+    values[3] = 0;
+  } else if (c == 'u') {
+    values[0] = 0;
+    values[1] = 1;
+    values[2] = 0;
+    values[3] = 0;
+  } else if (c == 'n') {
+    values[0] = 0;
+    values[1] = 0;
+    values[2] = 1;
+    values[3] = 0;
+  } else if (c == '1') {
+    values[0] = 0;
+    values[1] = 0;
+    values[2] = 0;
+    values[3] = 1;
+  } else if (c == '3') {
+    values[0] = 1;
+    values[1] = 1;
+    values[2] = 0;
+    values[3] = 0;
+  } else if (c == '5') {
+    values[0] = 1;
+    values[1] = 0;
+    values[2] = 1;
+    values[3] = 0;
+  } else if (c == '7') {
+    values[0] = 1;
+    values[1] = 1;
+    values[2] = 1;
+    values[3] = 0;
+  } else if (c == 'A') {
+    values[0] = 0;
+    values[1] = 1;
+    values[2] = 0;
+    values[3] = 1;
+  } else if (c == 'B') {
+    values[0] = 1;
+    values[1] = 1;
+    values[2] = 0;
+    values[3] = 1;
+  } else if (c == 'C') {
+    values[0] = 0;
+    values[1] = 0;
+    values[2] = 1;
+    values[3] = 1;
+  } else if (c == 'D') {
+    values[0] = 1;
+    values[1] = 0;
+    values[2] = 1;
+    values[3] = 1;
+  } else if (c == 'E') {
+    values[0] = 0;
+    values[1] = 1;
+    values[2] = 1;
+    values[3] = 1;
+  } else {
+    values[0] = 0;
+    values[1] = 0;
+    values[2] = 0;
+    values[3] = 0;
+  }
+}
+
 } // namespace SHA256

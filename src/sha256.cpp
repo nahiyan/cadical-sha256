@@ -292,7 +292,7 @@ void Propagator::notify_backtrack (size_t new_level) {
     if (!needs_propagation) {
       if (reason_it != reasons.end ())
         reasons.erase (reason_it);
-      printf ("Erased reason for %d\n", p_lit);
+      // printf ("Erased reason for %d\n", p_lit);
     }
   }
 }
@@ -433,26 +433,17 @@ void Propagator::custom_propagate () {
           for (int y = 0; y < 6; y++)
             values[y] = pa.get (ids[y]);
 
-          // diff bits known?
-          bool diff_bits_known = false;
-          if (values[2] != LIT_UNDEF && values[3] != LIT_UNDEF &&
-              values[4] != LIT_UNDEF && values[5] != LIT_UNDEF)
-            diff_bits_known = true;
+          if (inputs[x] != '?') {
+            uint8_t table_values[4];
+            gc_values (inputs[x], table_values);
 
-          auto _sign = [] (uint8_t &value) {
-            return value == LIT_TRUE ? -1 : 1;
-          };
-          if (diff_bits_known) {
-            for (int y = 2; y < 6; y++)
-              reason.antecedent.push_back (_sign (values[y]) * ids[y]);
-          } else if (values[3] == LIT_FALSE && values[4] == LIT_FALSE) {
-            reason.antecedent.push_back (_sign (values[3]) * ids[3]);
-            reason.antecedent.push_back (_sign (values[4]) * ids[4]);
-          } else if (values[2] == LIT_FALSE && values[5] == LIT_FALSE) {
-            reason.antecedent.push_back (_sign (values[2]) * ids[2]);
-            reason.antecedent.push_back (_sign (values[5]) * ids[5]);
-          } else {
-            assert (reason.differential.first[x] == '?');
+            for (int y = 0; y < 4; y++) {
+              if (table_values[y] != 0)
+                continue;
+              assert (state.partial_assignment.get (ids[2 + y]) !=
+                      LIT_UNDEF);
+              reason.antecedent.push_back (ids[2 + y]);
+            }
           }
         }
         if (reason.antecedent.empty ())
@@ -477,31 +468,17 @@ void Propagator::custom_propagate () {
             for (int y = 0; y < 4; y++)
               values[y] = pa.get (ids[y]);
 
-            // diff bits known?
-            bool diff_bits_known = false;
-            if (values[0] != LIT_UNDEF && values[1] != LIT_UNDEF &&
-                values[2] != LIT_UNDEF && values[3] != LIT_UNDEF)
-              diff_bits_known = true;
+            if (outputs[x] != '?') {
+              uint8_t table_values[4];
+              gc_values (outputs[x], table_values);
 
-            auto _sign = [] (uint8_t &value) {
-              return value == LIT_TRUE ? -1 : 1;
-            };
-            if (diff_bits_known) {
-              for (int y = 0; y < 4; y++)
-                reason.antecedent.push_back (_sign (values[y]) * ids[y]);
-              has_output_antecedent = true;
-            } else if (values[1] == LIT_FALSE && values[2] == LIT_FALSE) {
-              reason.antecedent.push_back (_sign (values[1]) * ids[1]);
-              reason.antecedent.push_back (_sign (values[2]) * ids[2]);
-              has_output_antecedent = true;
-            } else if (values[0] == LIT_FALSE && values[3] == LIT_FALSE) {
-              reason.antecedent.push_back (_sign (values[0]) * ids[0]);
-              reason.antecedent.push_back (_sign (values[3]) * ids[3]);
-              has_output_antecedent = true;
-            } else {
-              // if (outputs[x] != '?')
-              //   printf ("outputs[x] = %c\n", outputs[x]);
-              assert (outputs[x] == '?');
+              for (int y = 0; y < 4; y++) {
+                if (table_values[y] != 0)
+                  continue;
+                reason.antecedent.push_back (ids[y]);
+                has_output_antecedent = true;
+                assert (state.partial_assignment.get (ids[y]) != LIT_UNDEF);
+              }
             }
           }
           assert (outputs[x] != '?' ? has_output_antecedent : true);
@@ -510,8 +487,8 @@ void Propagator::custom_propagate () {
           if (prop_output[x] == '?' || prop_output[x] == '#')
             continue;
 
-          vector<int> values = gc_table[prop_output[x]];
-          assert (values.size () == 4);
+          uint8_t values[4];
+          gc_values (prop_output[x], values);
           // printf ("Output (%d): %s to %s\n", x, outputs.c_str (),
           //         prop_output.c_str ());
           for (int y = 0; y < 4; y++) {

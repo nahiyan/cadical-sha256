@@ -23,71 +23,39 @@ void State::refresh_char (Word &word, int &col) {
                     partial_assignment.get (diff_id + 2),
                     partial_assignment.get (diff_id + 3)};
 
-  if (diff[0] == LIT_TRUE && diff[1] == LIT_FALSE && diff[2] == LIT_FALSE &&
-      diff[3] == LIT_FALSE)
+  if (diff[1] == LIT_FALSE && diff[2] == LIT_FALSE && diff[3] == LIT_FALSE)
     c = '0';
-  else if (diff[0] == LIT_FALSE && diff[1] == LIT_TRUE &&
-           diff[2] == LIT_FALSE && diff[3] == LIT_FALSE)
+  else if (diff[0] == LIT_FALSE && diff[2] == LIT_FALSE &&
+           diff[3] == LIT_FALSE)
     c = 'u';
   else if (diff[0] == LIT_FALSE && diff[1] == LIT_FALSE &&
-           diff[2] == LIT_TRUE && diff[3] == LIT_FALSE)
+           diff[3] == LIT_FALSE)
     c = 'n';
   else if (diff[0] == LIT_FALSE && diff[1] == LIT_FALSE &&
-           diff[2] == LIT_FALSE && diff[3] == LIT_TRUE)
+           diff[2] == LIT_FALSE)
     c = '1';
-  else if (diff[0] == LIT_TRUE && diff[1] == LIT_FALSE &&
-           diff[2] == LIT_FALSE && diff[3] == LIT_TRUE)
+  else if (diff[1] == LIT_FALSE && diff[2] == LIT_FALSE)
     c = '-';
-  else if (diff[0] == LIT_FALSE && diff[1] == LIT_TRUE &&
-           diff[2] == LIT_TRUE && diff[3] == LIT_FALSE)
+  else if (diff[0] == LIT_FALSE && diff[3] == LIT_FALSE)
     c = 'x';
-  else if (diff[0] == LIT_TRUE && diff[1] == LIT_TRUE &&
-           diff[2] == LIT_FALSE && diff[3] == LIT_FALSE)
+  else if (diff[2] == LIT_FALSE && diff[3] == LIT_FALSE)
     c = '3';
-  else if (diff[0] == LIT_TRUE && diff[1] == LIT_FALSE &&
-           diff[2] == LIT_TRUE && diff[3] == LIT_FALSE)
+  else if (diff[1] == LIT_FALSE && diff[3] == LIT_FALSE)
     c = '5';
-  else if (diff[0] == LIT_TRUE && diff[1] == LIT_TRUE &&
-           diff[2] == LIT_TRUE && diff[3] == LIT_FALSE)
+  else if (diff[3] == LIT_FALSE)
     c = '7';
-  else if (diff[0] == LIT_FALSE && diff[1] == LIT_TRUE &&
-           diff[2] == LIT_FALSE && diff[3] == LIT_TRUE)
+  else if (diff[0] == LIT_FALSE && diff[2] == LIT_FALSE)
     c = 'A';
-  else if (diff[0] == LIT_TRUE && diff[1] == LIT_TRUE &&
-           diff[2] == LIT_FALSE && diff[3] == LIT_TRUE)
+  else if (diff[2] == LIT_FALSE)
     c = 'B';
-  else if (diff[0] == LIT_FALSE && diff[1] == LIT_FALSE &&
-           diff[2] == LIT_TRUE && diff[3] == LIT_TRUE)
+  else if (diff[0] == LIT_FALSE && diff[1] == LIT_FALSE)
     c = 'C';
-  else if (diff[0] == LIT_TRUE && diff[1] == LIT_FALSE &&
-           diff[2] == LIT_TRUE && diff[3] == LIT_TRUE)
+  else if (diff[1] == LIT_FALSE)
     c = 'D';
-  else if (diff[0] == LIT_FALSE && diff[1] == LIT_TRUE &&
-           diff[2] == LIT_TRUE && diff[3] == LIT_TRUE)
+  else if (diff[0] == LIT_FALSE)
     c = 'E';
   else
     c = '?';
-
-  if (c == '?') {
-    if (diff[0] != LIT_FALSE && diff[1] == LIT_FALSE &&
-        diff[2] == LIT_FALSE && diff[3] != LIT_FALSE)
-      c = '-';
-    else if (diff[0] == LIT_FALSE && diff[1] != LIT_FALSE &&
-             diff[2] != LIT_FALSE && diff[3] == LIT_FALSE)
-      c = 'x';
-  }
-
-  // if (c == '-' && (values[0] != LIT_UNDEF || values[1] != LIT_UNDEF))
-  //   c = values[0] == LIT_TRUE || values[1] == LIT_TRUE ? '1' : '0';
-  // else if (c == 'x' && (values[0] != LIT_UNDEF || values[1] !=
-  // LIT_UNDEF))
-  //   c = values[0] == LIT_TRUE || values[1] == LIT_FALSE ? 'u' : 'n';
-
-  // if (c == '?' && values[0] != LIT_UNDEF && values[1] != LIT_UNDEF)
-  //   c = values[0] == LIT_TRUE && values[1] == LIT_TRUE     ? '1'
-  //       : values[0] == LIT_FALSE && values[1] == LIT_FALSE ? '0'
-  //       : values[0] == LIT_TRUE && values[1] == LIT_FALSE  ? 'u'
-  //                                                          : 'n';
 }
 
 void State::refresh_word (Word &word) {

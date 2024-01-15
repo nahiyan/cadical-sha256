@@ -45,13 +45,6 @@ class Propagator : CaDiCaL::ExternalPropagator {
   list<int> decision_lits;
   TwoBit two_bit;
 
-  unordered_map<char, vector<int>> gc_table = {
-      {'?', {1, 1, 1, 1}}, {'-', {1, 0, 0, 1}}, {'x', {0, 1, 1, 0}},
-      {'0', {1, 0, 0, 0}}, {'u', {0, 1, 0, 0}}, {'n', {0, 0, 1, 0}},
-      {'1', {0, 0, 0, 1}}, {'3', {1, 1, 0, 0}}, {'5', {1, 0, 1, 0}},
-      {'7', {1, 1, 1, 0}}, {'A', {0, 1, 0, 1}}, {'B', {1, 1, 0, 1}},
-      {'C', {0, 0, 1, 1}}, {'D', {1, 0, 1, 1}}, {'E', {0, 1, 1, 1}}};
-
   void prop_addition_weakly ();
 
 public:

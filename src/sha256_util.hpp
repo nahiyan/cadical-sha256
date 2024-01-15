@@ -39,6 +39,7 @@ vector<int> add_ (vector<int> inputs);
 vector<int> ch_ (vector<int> inputs);
 vector<int> maj_ (vector<int> inputs);
 vector<int> xor_ (vector<int> inputs);
+void gc_values (char c, uint8_t values[4]);
 } // namespace SHA256
 
 #endif
