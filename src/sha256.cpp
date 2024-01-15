@@ -244,15 +244,26 @@ void Propagator::parse_comment_line (string line,
 
 void Propagator::notify_assignment (int lit, bool is_fixed) {
   // Timer timer (&stats.total_cb_time);
-  if (is_fixed)
+  // This literal shouldn't be in the trail
+  // if (state.partial_assignment.get_ (abs (lit)) != LIT_UNDEF) {
+  //   printf ("Trail stats: %ld %ld\n", state.current_trail.size (),
+  //           state.current_trail.front ().size ());
+  //   printf ("Already in trail: %d (%d) %d\n", lit,
+  //           state.partial_assignment.get_ (abs (lit)), is_fixed);
+  // }
+  // assert (state.partial_assignment.get_ (abs (lit)) == LIT_UNDEF);
+
+  if (is_fixed) {
     state.current_trail.front ().push_back (lit);
-  else
+    state.var_info[abs (lit)].is_fixed = true;
+  } else
     state.current_trail.back ().push_back (lit);
 
   // Assign the variable in the partial assignment
   state.partial_assignment.set (lit);
-  // printf ("Assign %d (%c)\n", lit, solver->is_decision (lit) ? 'd' :
-  // 'p');
+  // printf ("Assign %d (%c%c) in level %ld\n", lit,
+  //         solver->is_decision (lit) ? 'd' : 'p', is_fixed ? 'f' : 'l',
+  //         state.current_trail.size () - 1);
 }
 
 void Propagator::notify_backtrack (size_t new_level) {
@@ -262,10 +273,12 @@ void Propagator::notify_backtrack (size_t new_level) {
     auto &level = state.current_trail.back ();
     for (auto &lit : level) {
       state.partial_assignment.unset (lit);
-      // printf ("Unassign %d\n", lit);
+      // printf ("Unassign %d (%ld)\n", lit, state.current_trail.size () -
+      // 1);
     }
     state.current_trail.pop_back ();
   }
+  assert (!state.current_trail.empty ());
 
   // Remove literals that no longer need to be propagated
   for (auto &p_lit : propagation_lits) {

@@ -76,6 +76,7 @@ struct VarInfo {
   int col;
   int step;
   VariableName name;
+  bool is_fixed = false;
 
   VarInfo () {}
   VarInfo (Word *word, int col, int step, VariableName name) {
@@ -130,13 +131,15 @@ class PartialAssignment {
 public:
   stack<uint32_t> updated_variables;
   deque<vector<int>> *current_trail; // !Added for Debugging only
+  VarInfo *var_info;
 
-  PartialAssignment (int variables_count,
-                     deque<vector<int>> *current_trail) {
+  PartialAssignment (int variables_count, deque<vector<int>> *current_trail,
+                     VarInfo *var_info) {
     variables = new uint8_t[variables_count];
-    for (int i = 0; i < MAX_VAR_ID; i++)
+    for (int i = 0; i < variables_count; i++)
       variables[i] = LIT_UNDEF;
     this->current_trail = current_trail;
+    this->var_info = var_info;
   }
 
   ~PartialAssignment () { delete[] variables; }
@@ -169,6 +172,8 @@ public:
 
   void unset (int lit) {
     int id = abs (lit);
+    if (var_info[id].is_fixed)
+      return;
     variables[id] = LIT_UNDEF;
     updated_variables.push (id);
   }
@@ -183,11 +188,11 @@ public:
   deque<vector<int>> current_trail;
   int order;
   int zero;
-  PartialAssignment partial_assignment =
-      PartialAssignment (MAX_VAR_ID, &current_trail);
   Operations operations[64];
   Step steps[64 + 4];
   VarInfo var_info[MAX_VAR_ID];
+  PartialAssignment partial_assignment =
+      PartialAssignment (MAX_VAR_ID, &current_trail, var_info);
 
   void hard_refresh (bool will_propagate = false);
   void soft_refresh ();
