@@ -472,41 +472,40 @@ bool block_inconsistency (TwoBit &two_bit,
   auto inconsistent_eq_n = find_inconsistency_from_nullspace_vectors (
       two_bit, coeff_matrix, rhs, left_kernel_basis, inconsistency,
       block_index);
+  if (inconsistency == NULL)
+    return false;
 
   // Blocking inconsistencies
-  if (inconsistency != NULL) {
-    auto &inconsistency_deref = *inconsistency;
-    printf ("Debug: found inconsistencies (%d): %d equations\n",
-            inconsistent_eq_n, sum_dec_from_bin (inconsistency_deref));
+  auto &inconsistency_deref = *inconsistency;
+  printf ("Debug: found inconsistencies (%d): %d equations\n",
+          inconsistent_eq_n, sum_dec_from_bin (inconsistency_deref));
 
-    std::set<int> confl_clause_lits;
-    for (int eq_index = 0; eq_index < equations_n; eq_index++) {
-      if (inconsistency_deref[eq_index] == 0)
+  std::set<int> confl_clause_lits;
+  for (int eq_index = 0; eq_index < equations_n; eq_index++) {
+    if (inconsistency_deref[eq_index] == 0)
+      continue;
+
+    auto &equation = two_bit.equations[block_index][eq_index];
+    auto results_it = two_bit.equation_vars_map.find (equation);
+    assert (results_it != two_bit.equation_vars_map.end ());
+
+    // Instances refer to the function instances
+    auto &vars = results_it->second;
+    for (auto &var : vars) {
+      auto value = partial_assignment.get (var);
+      if (partial_assignment.get (var) == LIT_UNDEF)
         continue;
-
-      auto &equation = two_bit.equations[block_index][eq_index];
-      auto results_it = two_bit.equation_vars_map.find (equation);
-      assert (results_it != two_bit.equation_vars_map.end ());
-
-      // Instances refer to the function instances
-      auto &vars = results_it->second;
-      for (auto &var : vars) {
-        auto value = partial_assignment.get (var);
-        if (partial_assignment.get (var) == LIT_UNDEF)
-          continue;
-        auto polarity = value == LIT_TRUE ? -1 : 1;
-        confl_clause_lits.insert (polarity * var);
-      }
+      auto polarity = value == LIT_TRUE ? -1 : 1;
+      confl_clause_lits.insert (polarity * var);
     }
-    vector<int> clause;
-    for (auto &lit : confl_clause_lits)
-      clause.push_back (lit);
-    external_clauses.push_back (clause);
-    // Terminate since we've already detected a conflict clause
-    return true;
   }
+  vector<int> clause;
+  for (auto &lit : confl_clause_lits)
+    clause.push_back (lit);
+  external_clauses.push_back (clause);
 
-  return false;
+  // Terminate since we've already detected a conflict clause
+  return true;
 }
 
 void otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,

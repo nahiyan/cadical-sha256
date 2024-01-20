@@ -757,8 +757,9 @@ int Propagator::cb_add_external_clause_lit () {
   auto &clause = external_clauses.back ();
   assert (!clause.empty ());
   int lit = clause.back ();
-  printf ("Debug: gave EC lit %d (%d) %ld remaining\n", lit,
-          state.partial_assignment.get (abs (lit)), clause.size () - 1);
+  auto value = state.partial_assignment.get (abs (lit));
+  printf ("Debug: gave EC lit %d (%d) %ld remaining\n", lit, value,
+          clause.size () - 1);
 
   // Pop clause and remove if empty
   clause.pop_back ();
@@ -769,11 +770,9 @@ int Propagator::cb_add_external_clause_lit () {
   }
 
   // Sanity check for blocking clauses
-  // assert (lit < 0   ? state.partial_assignment.get (abs (lit)) ==
-  // LIT_TRUE
-  //         : lit > 0 ? state.partial_assignment.get (abs (lit)) ==
-  //         LIT_FALSE
-  //                   : true);
+  assert (lit < 0   ? value == LIT_TRUE
+          : lit > 0 ? value == LIT_FALSE
+                    : value != LIT_UNDEF);
 
   return lit;
 }
