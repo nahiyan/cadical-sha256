@@ -13,9 +13,8 @@
 #include <regex>
 #include <string>
 
-#define CUSTOM_BRANCHING true
-#define BLOCK_INCONS true
-#define BLOCK_ADDITION_INCONS true
+#define CUSTOM_BRANCHING false
+#define BLOCK_INCONS false
 
 using namespace SHA256;
 
@@ -505,8 +504,8 @@ void Propagator::custom_propagate () {
             lits.push_back (lit);
 
             assert (pa.get_ (diff_id) == pa.get (diff_id));
-            printf ("Adding propagation lit: %d (%d)\n", lit,
-                    int (pa.get (diff_id)));
+            // printf ("Adding propagation lit: %d (%d)\n", lit,
+            // int (pa.get (diff_id)));
           }
         }
         // if (lits.size () > 0) {
@@ -549,8 +548,8 @@ PROVIDE_LIT:
     return 0;
   }
 
-  printf ("Debug: propagate %d (var %d)\n", lit,
-          state.var_info[abs (lit)].name);
+  // printf ("Debug: propagate %d (var %d)\n", lit,
+  //         state.var_info[abs (lit)].name);
   propagation_lits.pop_back ();
   assert (reason_it->second.antecedent.size () > 0);
 
@@ -575,10 +574,10 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     reasons.erase (reasons_it); // Consume the reason
     stats.reasons_count++;
 
-    printf ("Asked for reason of %d (var %d)\n", propagated_lit,
-            state.var_info[abs (propagated_lit)].name);
+    // printf ("Asked for reason of %d (var %d)\n", propagated_lit,
+    //         state.var_info[abs (propagated_lit)].name);
 
-    print_reason (reason, state);
+    // print_reason (reason, state);
 
     assert (reason.differential.first.size () > 0);
     assert (reason.differential.second.size () > 0);
@@ -598,14 +597,19 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
       reason_clause.push_back (lit);
     }
     reason_clause.push_back (propagated_lit);
+
+    printf ("Reason clause: ");
+    for (auto &lit : reason_clause)
+      printf ("%d ", lit);
+    printf ("\n");
   }
 
   assert (reason_clause.size () > 0);
   int lit = reason_clause.back ();
   reason_clause.pop_back ();
-  printf ("Debug: providing reason clause %d: %d (%d); remaining %ld\n",
-          propagated_lit, lit, state.partial_assignment.get (abs (lit)),
-          reason_clause.size ());
+  // printf ("Debug: providing reason clause %d: %d (%d); remaining %ld\n",
+  //         propagated_lit, lit, state.partial_assignment.get (abs (lit)),
+  //         reason_clause.size ());
 
   return lit;
 }
@@ -679,30 +683,6 @@ bool Propagator::cb_has_external_clause () {
     state.soft_refresh ();
     state.print ();
   }
-
-  // Weak addition propagation
-#if BLOCK_ADDITION_INCONS
-  prop_addition_weakly ();
-  has_clause = !external_clauses.empty ();
-  if (has_clause) {
-    int shortest_index = -1, shortest_length = INT_MAX;
-    for (int i = 0; i < int (external_clauses.size ()); i++) {
-      int size = external_clauses[i].size ();
-      if (size >= shortest_length)
-        continue;
-
-      shortest_length = size;
-      shortest_index = i;
-    }
-    auto clause = external_clauses[shortest_index];
-    external_clauses.clear ();
-    external_clauses.push_back (clause);
-    printf ("Debug: keeping shortest (addition) clause of size %ld\n",
-            clause.size ());
-    // print (clause);
-    return true;
-  }
-#endif
 
   // Get the blocking clauses
   state.soft_refresh ();
