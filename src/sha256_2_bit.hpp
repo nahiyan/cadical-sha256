@@ -24,7 +24,6 @@ namespace SHA256 {
 struct Equation {
   // The equations are represented by their delta IDs
   uint32_t diff_ids[2];
-  string names[2];
   uint8_t diff;
 
   bool operator< (const Equation &other) const {

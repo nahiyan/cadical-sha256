@@ -71,19 +71,23 @@ struct SoftWord {
   char *chars[32];
 };
 
-struct VarInfo {
-  Word *word = NULL;
+struct VarIdentity {
   int col;
   int step;
   VariableName name;
+};
+
+struct VarInfo {
+  Word *word = NULL;
+  VarIdentity identity;
   bool is_fixed = false;
 
   VarInfo () {}
   VarInfo (Word *word, int col, int step, VariableName name) {
     this->word = word;
-    this->col = col;
-    this->step = step;
-    this->name = name;
+    this->identity.col = col;
+    this->identity.step = step;
+    this->identity.name = name;
   }
 };
 
@@ -131,7 +135,7 @@ class PartialAssignment {
 public:
   stack<uint32_t> updated_variables;
   deque<vector<int>> *current_trail; // !Added for Debugging only
-  VarInfo *var_info;
+  VarInfo *vars_info;
 
   PartialAssignment (int variables_count, deque<vector<int>> *current_trail,
                      VarInfo *var_info) {
@@ -139,7 +143,7 @@ public:
     for (int i = 0; i < variables_count; i++)
       variables[i] = LIT_UNDEF;
     this->current_trail = current_trail;
-    this->var_info = var_info;
+    this->vars_info = var_info;
   }
 
   ~PartialAssignment () { delete[] variables; }
@@ -172,7 +176,7 @@ public:
 
   void unset (int lit) {
     int id = abs (lit);
-    if (var_info[id].is_fixed)
+    if (vars_info[id].is_fixed)
       return;
     variables[id] = LIT_UNDEF;
     updated_variables.push (id);

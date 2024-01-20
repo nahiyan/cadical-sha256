@@ -60,10 +60,6 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
           equation.diff_ids[0] = selected_ids[0];
           equation.diff_ids[1] = selected_ids[1];
           equation.diff = diff;
-          if (!names.empty ()) {
-            equation.names[0] = names[i];
-            equation.names[1] = names[j];
-          }
           two_bit.equations[k].push_back (equation);
 
           // printf ("Equation: %s %s %s\n", equation.names[0].c_str (),
@@ -600,12 +596,7 @@ void otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
         continue;
 
       Equation eq;
-      eq.names[0] = names[i];
-      eq.names[1] = names[j];
       eq.diff = *diff_pairs[x].begin ();
-      // Equation eq_alt;
-      // eq.names[1] = names[i];
-      // eq.names[0] = names[j];
 
       if (names[i][0] == '?' || names[j][0] == '?')
         continue;
