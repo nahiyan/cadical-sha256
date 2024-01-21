@@ -72,9 +72,9 @@ struct SoftWord {
 };
 
 struct VarIdentity {
-  int col;
-  int step;
   VariableName name;
+  int step;
+  int col;
 };
 
 struct VarInfo {

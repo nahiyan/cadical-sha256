@@ -23,7 +23,7 @@ namespace SHA256 {
 
 struct Equation {
   // The equations are represented by their delta IDs
-  uint32_t diff_ids[2];
+  uint32_t char_ids[2];
   uint8_t diff;
 
   bool operator< (const Equation &other) const {
@@ -31,8 +31,8 @@ struct Equation {
       return diff < other.diff;
 
     for (int i = 0; i < 2; i++)
-      if (diff_ids[i] != other.diff_ids[i])
-        return diff_ids[i] < other.diff_ids[i];
+      if (char_ids[i] != other.char_ids[i])
+        return char_ids[i] < other.char_ids[i];
 
     return false; // Equal
   }
@@ -54,9 +54,9 @@ bool block_inconsistency (TwoBit &two_bit,
                           PartialAssignment &partial_assignment,
                           vector<vector<int>> &external_clauses,
                           int block_index = 0);
-void otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
-                   string outputs, vector<Equation> &equations,
-                   vector<string> names);
+vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
+                               string inputs, string outputs,
+                               vector<uint32_t> char_ids);
 } // namespace SHA256
 
 #endif

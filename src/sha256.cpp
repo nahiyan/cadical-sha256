@@ -617,62 +617,6 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 bool Propagator::cb_has_external_clause () {
   Timer time (&stats.total_cb_time);
 
-  // state.hard_refresh (true);
-  // vector<Equation> equations;
-  // for (int i = 0; i < state.order; i++) {
-  //   vector<Word *> inputs = {&state.steps[ABS_STEP (i - 4)].a,
-  //                            &state.steps[ABS_STEP (i - 4)].e,
-  //                            &state.steps[i].sigma1,
-  //                            &state.steps[i].ch,
-  //                            &state.steps[i].k,
-  //                            &state.steps[i].w};
-  //   Word *output = &state.steps[ABS_STEP (i)].e;
-  //   printf ("Addition %d\n", i);
-  //   char high_carry[32], low_carry[32];
-
-  //   for (int j = 31; j >= 0; j--) {
-  //     string inputs_, outputs_;
-  //     for (auto &input : inputs)
-  //       inputs_ += input->chars[j];
-  //     if (j < 31)
-  //       inputs_ += low_carry[j];
-  //     else
-  //       inputs_ += '0';
-  //     if (j < 30)
-  //       inputs_ += high_carry[j];
-  //     else
-  //       inputs_ += '0';
-  //     outputs_ = "??";
-  //     outputs_ += output->chars[j];
-  //     string propagation = otf_propagate (add_, inputs_, outputs_);
-  //     cout << 31 - j << " " << inputs_ << " " << propagation << endl;
-  //     if (j - 2 >= 0)
-  //       high_carry[j - 2] = propagation[0];
-  //     if (j - 1 >= 0)
-  //       low_carry[j - 1] = propagation[1];
-
-  //     vector<string> names = {
-  //         "A_" + to_string (i - 4) + "," + to_string (31 - j),
-  //         "E_" + to_string (i - 4) + "," + to_string (31 - j),
-  //         "?",
-  //         "?",
-  //         "?",
-  //         "?",
-  //         "?",
-  //         "W_" + to_string (i) + "," + to_string (31 - j),
-  //         "?",
-  //         "?",
-  //         "E_" + to_string (i) + "," + to_string (31 - j)};
-  //     otf_2bit_eqs (add_, inputs_, propagation, equations, names);
-  //   }
-  // }
-  // printf ("Equations count: %ld\n", equations.size ());
-  // for (auto &equation : equations) {
-  //   printf ("Debug: %s %s %s\n", equation.names[0].c_str (),
-  //           equation.diff == 0 ? "=" : "=/=", equation.names[1].c_str
-  //           ());
-  // }
-
 #if BLOCK_INCONS
   // Check for 2-bit inconsistencies here
   if (counter % 20 != 0)

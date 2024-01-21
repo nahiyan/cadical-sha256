@@ -2,10 +2,12 @@
 #include "sha256.hpp"
 #include "sha256_2_bit.hpp"
 #include "sha256_propagate.hpp"
+#include "sha256_state.hpp"
 #include "sha256_util.hpp"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <utility>
 
 namespace SHA256 {
 void test_int_diff () {
@@ -166,28 +168,25 @@ void test_otf_propagate () {
 }
 void test_otf_2bit_eqs () {
   {
-    vector<Equation> equations;
-    otf_2bit_eqs (
-        add_, "-0n10n", "5x-", equations,
-        {"A_{i-4}", "E_{i-4}", "?", "?", "?", "W_i", "?", "?", "E_i"});
-    assert (equations.size () == 1 && equations[0].names[0] == "A_{i-4}" &&
-            equations[0].names[1] == "E_i" && equations[0].diff == 1);
+    auto equations =
+        otf_2bit_eqs (add_, "-0n10n", "5x-", {1, 0, 0, 0, 0, 0, 0, 0, 2});
+    assert (equations.size () == 1);
+    assert (equations[0].char_ids[0] == 1 && equations[0].char_ids[1] == 2);
+    assert (equations[0].diff == 1);
   }
   {
-    vector<Equation> equations;
-    otf_2bit_eqs (add_, "-1101-11", "110", equations,
-                  {"A_{i-4}", "E_{i-4}", "?", "?", "?", "W_i", "?", "?",
-                   "?", "?", "E_i"});
-    assert (equations.size () == 1 && equations[0].names[0] == "A_{i-4}" &&
-            equations[0].names[1] == "W_i" && equations[0].diff == 1);
+    auto equations = otf_2bit_eqs (add_, "-1101-11", "110",
+                                   {1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0});
+    assert (equations.size () == 1);
+    assert (equations[0].char_ids[0] == 1 && equations[0].char_ids[1] == 2);
+    assert (equations[0].diff == 1);
   }
   {
-    vector<Equation> equations;
-    otf_2bit_eqs (add_, "u0u01-10", "un-", equations,
-                  {"A_{i-4}", "E_{i-4}", "?", "?", "?", "W_i", "?", "?",
-                   "?", "?", "E_i"});
-    assert (equations.size () == 1 && equations[0].names[0] == "W_i" &&
-            equations[0].names[1] == "E_i" && equations[0].diff == 0);
+    auto equations = otf_2bit_eqs (add_, "u0u01-10", "un-",
+                                   {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2});
+    assert (equations.size () == 1);
+    assert (equations[0].char_ids[0] == 1 && equations[0].char_ids[1] == 2);
+    assert (equations[0].diff == 0);
   }
 }
 

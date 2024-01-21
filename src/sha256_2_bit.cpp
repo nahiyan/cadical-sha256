@@ -40,8 +40,7 @@ void load_two_bit_rules (const char *path) {
 void derive_two_bit_equations (TwoBit &two_bit, State &state) {
   auto derive_from_matrix = [] (TwoBit &two_bit, string &key,
                                 string &matrix, vector<SoftWord *> &inputs,
-                                vector<Word *> &outputs, int col_index,
-                                vector<string> names = {}) {
+                                vector<Word *> &outputs, int col_index) {
     int matrix_i = -1;
     int words_count = inputs.size () + outputs.size ();
     for (int k = 0; k < 2; k++) {
@@ -57,8 +56,8 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
                                      inputs[j]->diff_ids[col_index]};
 
           Equation equation;
-          equation.diff_ids[0] = selected_ids[0];
-          equation.diff_ids[1] = selected_ids[1];
+          equation.char_ids[0] = selected_ids[0];
+          equation.char_ids[1] = selected_ids[1];
           equation.diff = diff;
           two_bit.equations[k].push_back (equation);
 
@@ -142,11 +141,7 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
           int indices[] = {(31 - j + 7) % 32, (31 - j + 18) % 32,
                            31 - j + 3};
           if (!value.empty ())
-            derive_from_matrix (
-                two_bit, key, value, inputs, outputs, j,
-                {"W_" + to_string (i - 15) + "," + to_string (indices[0]),
-                 "W_" + to_string (i - 15) + "," + to_string (indices[1]),
-                 "W_" + to_string (i - 15) + "," + to_string (indices[2])});
+            derive_from_matrix (two_bit, key, value, inputs, outputs, j);
         }
       }
       {
@@ -170,11 +165,7 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
           int indices[] = {(31 - j + 17) % 32, (31 - j + 19) % 32,
                            31 - j + 10};
           if (!value.empty ())
-            derive_from_matrix (
-                two_bit, key, value, inputs, outputs, j,
-                {"W_" + to_string (i - 2) + "," + to_string (indices[0]),
-                 "W_" + to_string (i - 2) + "," + to_string (indices[1]),
-                 "W_" + to_string (i - 2) + "," + to_string (indices[2])});
+            derive_from_matrix (two_bit, key, value, inputs, outputs, j);
         }
       }
     }
@@ -196,11 +187,7 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
         int indices[] = {(31 - j + 2) % 32, (31 - j + 13) % 32,
                          (31 - j + 22) % 32};
         if (!value.empty ())
-          derive_from_matrix (
-              two_bit, key, value, inputs, outputs, j,
-              {"A_" + to_string (i - 1) + "," + to_string (indices[0]),
-               "A_" + to_string (i - 1) + "," + to_string (indices[1]),
-               "A_" + to_string (i - 1) + "," + to_string (indices[2])});
+          derive_from_matrix (two_bit, key, value, inputs, outputs, j);
       }
     }
     {
@@ -220,11 +207,7 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
         int indices[] = {(31 - j + 6) % 32, (31 - j + 11) % 32,
                          (31 - j + 25) % 32};
         if (!value.empty ())
-          derive_from_matrix (
-              two_bit, key, value, inputs, outputs, j,
-              {"E_" + to_string (i - 1) + "," + to_string (indices[0]),
-               "E_" + to_string (i - 1) + "," + to_string (indices[1]),
-               "E_" + to_string (i - 1) + "," + to_string (indices[2])});
+          derive_from_matrix (two_bit, key, value, inputs, outputs, j);
       }
     }
     {
@@ -241,11 +224,7 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
         key += output_chars[j];
         string value = two_bit_rules[key];
         if (!value.empty ())
-          derive_from_matrix (
-              two_bit, key, value, inputs, outputs, j,
-              {"A_" + to_string (i - 1) + "," + to_string (31 - j),
-               "A_" + to_string (i - 2) + "," + to_string (31 - j),
-               "A_" + to_string (i - 3) + "," + to_string (31 - j)});
+          derive_from_matrix (two_bit, key, value, inputs, outputs, j);
       }
     }
     {
@@ -262,11 +241,7 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
         key += output_chars[j];
         string value = two_bit_rules[key];
         if (!value.empty ())
-          derive_from_matrix (
-              two_bit, key, value, inputs, outputs, j,
-              {"E_" + to_string (i - 1) + "," + to_string (31 - j),
-               "E_" + to_string (i - 2) + "," + to_string (31 - j),
-               "E_" + to_string (i - 3) + "," + to_string (31 - j)});
+          derive_from_matrix (two_bit, key, value, inputs, outputs, j);
       }
     }
   }
@@ -280,8 +255,8 @@ vector<Equation> check_consistency (vector<Equation> &equations,
   map<uint32_t, shared_ptr<set<int32_t>>> rels;
 
   for (auto &equation : equations) {
-    int lit1 = equation.diff_ids[0];
-    int lit2 = (equation.diff == 1 ? -1 : 1) * (equation.diff_ids[1]);
+    int lit1 = equation.char_ids[0];
+    int lit2 = (equation.diff == 1 ? -1 : 1) * (equation.char_ids[1]);
     auto var1 = abs (int (lit1));
     auto var2 = abs (int (lit2));
     auto var1_exists = rels.find (var1) == rels.end () ? false : true;
@@ -322,8 +297,8 @@ vector<Equation> check_consistency (vector<Equation> &equations,
         if ((var1_inv_exists && var1_exists) ||
             (var2_inv_exists && var2_exists)) {
           Equation confl_eq;
-          confl_eq.diff_ids[0] = var1;
-          confl_eq.diff_ids[1] = var2;
+          confl_eq.char_ids[0] = var1;
+          confl_eq.char_ids[1] = var2;
           confl_eq.diff = lit2 < 0 ? 1 : 0;
           conflicting_equations.push_back (confl_eq);
           if (!exhaustive)
@@ -388,8 +363,8 @@ void make_aug_matrix (TwoBit &two_bit, NTL::mat_GF2 &coeff_matrix,
   // Construct the coefficient matrix
   for (int eq_index = 0; eq_index < equations_n; eq_index++) {
     auto &equation = two_bit.equations[block_index][eq_index];
-    int &x = two_bit.aug_mtx_var_map[equation.diff_ids[0]];
-    int &y = two_bit.aug_mtx_var_map[equation.diff_ids[1]];
+    int &x = two_bit.aug_mtx_var_map[equation.char_ids[0]];
+    int &y = two_bit.aug_mtx_var_map[equation.char_ids[1]];
     for (int col_index = 0; col_index < variables_n; col_index++)
       coeff_matrix[eq_index][col_index] =
           NTL::to_GF2 (col_index == x || col_index == y ? 1 : 0);
@@ -504,9 +479,12 @@ bool block_inconsistency (TwoBit &two_bit,
   return true;
 }
 
-void otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
-                   string outputs, vector<Equation> &equations,
-                   vector<string> names) {
+vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
+                               string inputs, string outputs,
+                               vector<uint32_t> char_ids) {
+  vector<Equation> equations;
+  assert (inputs.size () + outputs.size () == char_ids.size ());
+
   auto all_chars = inputs;
   all_chars.insert (all_chars.end (), outputs.begin (), outputs.end ());
   assert (all_chars.size () == inputs.size () + outputs.size ());
@@ -516,7 +494,7 @@ void otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
       positions.push_back (i);
 
   if (positions.size () > 4)
-    return;
+    return {};
 
   vector<pair<string, string>> selections;
   int n = positions.size ();
@@ -589,21 +567,25 @@ void otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
   for (int i = 0; i < n; i++) {
     for (int j = i + 1; j < n; j++) {
       x += 1;
+      if (!char_ids[i] || !char_ids[j])
+        continue;
+
       if (!is_in (all_chars[i], {'-', 'x'}) ||
           !is_in (all_chars[j], {'-', 'x'}))
         continue;
+
       if (diff_pairs[x].size () != 1)
         continue;
 
       Equation eq;
       eq.diff = *diff_pairs[x].begin ();
-
-      if (names[i][0] == '?' || names[j][0] == '?')
-        continue;
-
+      eq.char_ids[0] = char_ids[i];
+      eq.char_ids[1] = char_ids[j];
       equations.push_back (eq);
     }
   }
+
+  return equations;
 }
 
 } // namespace SHA256
