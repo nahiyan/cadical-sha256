@@ -406,8 +406,8 @@ void Propagator::custom_propagate () {
           outputs += output_words[k]->chars[j];
         assert (int (outputs.size ()) == output_size);
 
+        // Has low carry only; no high carry
         bool add_lc_only = function == add_ && output_size == 2;
-
         string prop_output = otf_propagate (
             function, inputs, add_lc_only ? "0" + outputs : outputs);
         if (add_lc_only)
@@ -419,6 +419,7 @@ void Propagator::custom_propagate () {
           continue;
 
         auto &pa = state.partial_assignment;
+        int zeroes_count = 0;
         for (int x = 0; x < input_size; x++) {
           auto &input_word = input_words[x];
           vector<uint32_t> ids = {
@@ -428,21 +429,28 @@ void Propagator::custom_propagate () {
           for (auto &id : ids)
             reason.input_ids[x].push_back (id);
 
+          bool is_zero = false;
+          if (ids[0] == uint32_t (state.zero)) {
+            is_zero = true;
+            zeroes_count++;
+          }
+
           vector<uint8_t> values (6);
           for (int y = 0; y < 6; y++)
             values[y] = pa.get (ids[y]);
 
-          if (inputs[x] != '?') {
-            uint8_t table_values[4];
-            gc_values (inputs[x], table_values);
+          // Don't add zeroes or '?'
+          if (inputs[x] == '?' || is_zero)
+            continue;
 
-            for (int y = 0; y < 4; y++) {
-              if (table_values[y] != 0)
-                continue;
-              assert (state.partial_assignment.get (ids[2 + y]) !=
-                      LIT_UNDEF);
-              reason.antecedent.push_back (ids[2 + y]);
-            }
+          uint8_t table_values[4];
+          gc_values (inputs[x], table_values);
+
+          for (int y = 0; y < 4; y++) {
+            if (table_values[y] != 0)
+              continue;
+            assert (state.partial_assignment.get (ids[2 + y]) != LIT_UNDEF);
+            reason.antecedent.push_back (ids[2 + y]);
           }
         }
         if (reason.antecedent.empty ())
@@ -459,6 +467,11 @@ void Propagator::custom_propagate () {
           reason.output_ids[x].push_back (output_word->ids_g[j]);
           for (int y = 0; y < 4; y++)
             reason.output_ids[x].push_back (ids[y]);
+
+          // Ignore the high carry if there's only a low carry
+          if (function_id == add && output_size == 3 && x == 0 &&
+              (input_size - zeroes_count) < 4)
+            continue;
 
           // Output antecedent
           bool has_output_antecedent = false;
