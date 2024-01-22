@@ -841,15 +841,15 @@ int Propagator::cb_add_external_clause_lit () {
   assert (!clause.empty ());
   int lit = clause.back ();
   auto value = state.partial_assignment.get (abs (lit));
-  printf ("Debug: gave EC lit %d (%d) %ld remaining\n", lit, value,
-          clause.size () - 1);
+  // printf ("Debug: gave EC lit %d (%d) %ld remaining\n", lit, value,
+  //         clause.size () - 1);
 
   // Pop clause and remove if empty
   clause.pop_back ();
   if (clause.empty ()) {
     external_clauses.pop_back ();
     stats.clauses_count++;
-    printf ("Debug: EC ended\n");
+    // printf ("Debug: EC ended\n");
   }
 
   // Sanity check for blocking clauses
