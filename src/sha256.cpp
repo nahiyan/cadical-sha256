@@ -823,51 +823,8 @@ bool Propagator::cb_has_external_clause () {
   // Check for 2-bit inconsistencies here
   if (counter % 20 != 0)
     return false;
-  bool has_clause = false;
 
-  if (counter % 1000000 == 0) {
-    state.soft_refresh ();
-    state.print ();
-  }
-
-  // Get the blocking clauses
-  state.soft_refresh ();
-  two_bit = TwoBit{};
-  derive_two_bit_equations (two_bit, state);
-  // printf ("Debug: derived %ld equations\n", two_bit.equations[0].size
-  // ());
-  for (int block_index = 0; block_index < 2; block_index++) {
-    auto confl_equations =
-        check_consistency (two_bit.equations[block_index], false);
-    bool is_inconsistent = !confl_equations.empty ();
-
-    // Block inconsistencies
-    if (is_inconsistent) {
-      block_inconsistency (two_bit, state.partial_assignment,
-                           external_clauses, block_index);
-      has_clause = true;
-      break;
-    }
-  }
-  // Keep only the shortest clause
-  if (has_clause) {
-    int shortest_index = -1, shortest_length = INT_MAX;
-    for (int i = 0; i < int (external_clauses.size ()); i++) {
-      int size = external_clauses[i].size ();
-      if (size >= shortest_length)
-        continue;
-
-      shortest_length = size;
-      shortest_index = i;
-    }
-    auto clause = external_clauses[shortest_index];
-    external_clauses.clear ();
-    external_clauses.push_back (clause);
-    printf ("Debug: keeping shortest clause of size %ld\n", clause.size ());
-    // print (clause);
-  }
-
-  return has_clause;
+  return custom_block ();
 #else
   if (!external_clauses.empty ())
     return true;
