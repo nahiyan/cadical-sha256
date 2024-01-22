@@ -448,8 +448,8 @@ bool block_inconsistency (TwoBit &two_bit,
 
   // Blocking inconsistencies
   auto &inconsistency_deref = *inconsistency;
-  printf ("Debug: found inconsistencies (%d): %d equations\n",
-          inconsistent_eq_n, sum_dec_from_bin (inconsistency_deref));
+  // printf ("Debug: found inconsistencies (%d): %d equations\n",
+  //         inconsistent_eq_n, sum_dec_from_bin (inconsistency_deref));
 
   std::set<int> confl_clause_lits;
   for (int eq_index = 0; eq_index < equations_n; eq_index++) {
@@ -457,33 +457,41 @@ bool block_inconsistency (TwoBit &two_bit,
       continue;
 
     auto &equation = two_bit.equations[block_index][eq_index];
-    auto results_it = two_bit.equation_vars_map.find (equation);
-    assert (results_it != two_bit.equation_vars_map.end ());
+    auto eq_vars_result = two_bit.equation_vars_map.find (equation);
+    assert (eq_vars_result != two_bit.equation_vars_map.end ());
+
+    // printf ("Blocking equation: %d %s %d\n", equation.char_ids[0],
+    //         equation.diff == 1 ? "=/=" : "=", equation.char_ids[1]);
 
     // Instances refer to the function instances
-    auto &vars = results_it->second;
+    auto &vars = eq_vars_result->second;
+    assert (!vars.empty ());
     for (auto &var : vars) {
       auto value = partial_assignment.get (var);
-      if (partial_assignment.get (var) == LIT_UNDEF)
-        continue;
+      assert (partial_assignment.get (var) != LIT_UNDEF);
       auto polarity = value == LIT_TRUE ? -1 : 1;
       confl_clause_lits.insert (polarity * var);
     }
   }
+  assert (!confl_clause_lits.empty ());
+
+  // Push the blocking/conflict clause
   vector<int> clause;
   for (auto &lit : confl_clause_lits)
     clause.push_back (lit);
+  assert (!clause.empty ());
   external_clauses.push_back (clause);
 
-  // Terminate since we've already detected a conflict clause
   return true;
 }
 
+// TODO: Add caching mechanism
 vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
                                string inputs, string outputs,
-                               vector<uint32_t> char_ids) {
+                               vector<uint32_t> char_ids, string mask) {
   vector<Equation> equations;
   assert (inputs.size () + outputs.size () == char_ids.size ());
+  assert (char_ids.size () == mask.size ());
 
   auto all_chars = inputs;
   all_chars.insert (all_chars.end (), outputs.begin (), outputs.end ());
@@ -567,7 +575,7 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
   for (int i = 0; i < n; i++) {
     for (int j = i + 1; j < n; j++) {
       x += 1;
-      if (!char_ids[i] || !char_ids[j])
+      if (mask[i] != '+' || mask[j] != '+')
         continue;
 
       if (!is_in (all_chars[i], {'-', 'x'}) ||

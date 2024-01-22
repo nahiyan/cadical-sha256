@@ -70,6 +70,7 @@ public:
   static void parse_comment_line (string line, CaDiCaL::Solver *&solver);
   void custom_propagate ();
   void custom_branch ();
+  bool custom_block ();
 };
 } // namespace SHA256
 

@@ -800,6 +800,7 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     }
     reason_clause.push_back (propagated_lit);
 
+    // print_reason (reason, state);
     printf ("Reason clause: ");
     for (auto &lit : reason_clause)
       printf ("%d ", lit);
