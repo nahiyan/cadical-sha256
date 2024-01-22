@@ -11,7 +11,7 @@ void State::set_operations () {
     return vec;
   };
 
-  // !IMPORTANT: Free up this heap allocation later
+  // TODO: Free up this heap allocation later
   char *zero_char = new char;
   *zero_char = '0';
 
@@ -242,6 +242,20 @@ void State::set_operations () {
       operations[i].add_a.inputs[4] = to_soft_word (steps[i].add_a_r[1], 2);
       for (int j = 0; j < 2; j++)
         operations[i].add_a.carries[j] = to_soft_word (steps[i].add_a_r[j]);
+
+      assert (operations[i].add_a.inputs[4].ids_f[31] == zero);
+      assert (operations[i].add_a.inputs[4].ids_f[30] == zero);
+      assert (operations[i].add_a.inputs[4].ids_f[29] != zero);
+      assert (operations[i].add_a.inputs[3].ids_f[31] == zero);
+      assert (operations[i].add_a.inputs[3].ids_f[30] != zero);
+      assert (operations[i].add_a.inputs[4].ids_f[29] ==
+              operations[i].add_a.carries[1].ids_f[31]);
+      assert (operations[i].add_a.inputs[4].ids_f[0] ==
+              operations[i].add_a.carries[1].ids_f[2]);
+      assert (operations[i].add_a.inputs[3].ids_f[29] ==
+              operations[i].add_a.carries[0].ids_f[30]);
+      assert (operations[i].add_a.inputs[3].ids_f[0] ==
+              operations[i].add_a.carries[0].ids_f[1]);
     }
   }
 }
