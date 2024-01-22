@@ -537,6 +537,195 @@ void Propagator::custom_propagate () {
   }
 }
 
+bool Propagator::custom_block () {
+  state.soft_refresh ();
+  two_bit = TwoBit{};
+  // printf ("Cleared two-bit\n");
+
+  struct Operation {
+    FunctionId function_id;
+    SoftWord *operands;
+    vector<Word *> outputs;
+    int input_size, output_size;
+    string mask;
+  };
+
+  for (int i = 0; i < state.order; i++) {
+    auto &ops = state.operations[i];
+    auto &step = state.steps[i];
+
+    vector<Operation> operations = {
+        {maj, ops.maj.inputs, {&step.maj}, 3, 1, "+++."},
+        {ch, ops.ch.inputs, {&step.ch}, 3, 1, "+++."},
+        {xor3, ops.sigma0.inputs, {&step.sigma0}, 3, 1, "+++."},
+        {xor3, ops.sigma1.inputs, {&step.sigma1}, 3, 1, "+++."},
+        {add,
+         ops.add_e.inputs,
+         {&step.add_e_r[0], &state.steps[ABS_STEP (i)].e},
+         3,
+         2,
+         "++..+"},
+        {add,
+         ops.add_t.inputs,
+         {&step.add_t_r[1], &step.add_t_r[0], &step.t},
+         7,
+         3,
+         "+...+....+"},
+        {add,
+         ops.add_a.inputs,
+         {&step.add_a_r[1], &step.add_a_r[0], &state.steps[ABS_STEP (i)].a},
+         5,
+         3,
+         "+......+"}};
+    if (i >= 16) {
+      operations.push_back (
+          {xor3, ops.s0.inputs, {&step.s0}, 3, 1, "+++."});
+      operations.push_back (
+          {xor3, ops.s1.inputs, {&step.s1}, 3, 1, "+++."});
+      operations.push_back ({add,
+                             ops.add_w.inputs,
+                             {&step.add_w_r[1], &step.add_w_r[0], &step.w},
+                             6,
+                             3,
+                             ".+.+....+"});
+    }
+    for (auto &operation : operations) {
+      FunctionId &function_id = operation.function_id;
+      SoftWord *input_words = operation.operands;
+      vector<Word *> output_words = operation.outputs;
+      int input_size = operation.input_size,
+          output_size = operation.output_size;
+      string mask = operation.mask;
+      auto function = function_id == maj    ? maj_
+                      : function_id == ch   ? ch_
+                      : function_id == xor3 ? xor_
+                                            : add_;
+      for (int j = 0; j < 32; j++) {
+        assert (int (mask.size ()) == input_size + output_size);
+        vector<uint32_t> char_base_ids;
+
+        string inputs;
+        for (int k = 0; k < input_size; k++) {
+          assert (input_words[k].chars[j] != NULL);
+          inputs += *(input_words[k].chars[j]);
+          char_base_ids.push_back (input_words[k].diff_ids[j]);
+        }
+
+        string outputs;
+        for (int k = 0; k < output_size; k++) {
+          outputs += output_words[k]->chars[j];
+          char_base_ids.push_back (output_words[k]->diff_ids[j]);
+        }
+
+        assert (int (char_base_ids.size ()) == input_size + output_size);
+
+        auto equations =
+            otf_2bit_eqs (function, inputs, outputs, char_base_ids, mask);
+        // if (equations.size () > 0) {
+        //   printf ("%d %s %s\n", function_id, inputs.c_str (),
+        //           outputs.c_str ());
+        //   printf ("Char IDs: ");
+        //   for (auto &base_id : char_base_ids) {
+        //     for (int k = 0; k < 4; k++)
+        //       printf ("%d ", base_id + k);
+        //   }
+        //   printf ("\n");
+
+        //   for (auto &equation : equations) {
+        //     printf ("Equation: %d %s %d\n", equation.char_ids[0],
+        //             equation.diff == 1 ? "=/=" : "=",
+        //             equation.char_ids[1]);
+        //   }
+        // }
+        string all_chars = inputs + outputs;
+        for (auto &equation : equations) {
+          two_bit.equations[0].push_back (equation);
+          if (two_bit.equation_vars_map.find (equation) ==
+              two_bit.equation_vars_map.end ())
+            two_bit.equation_vars_map[equation] = {};
+          int x = -1;
+          for (auto &base_id : char_base_ids) {
+            x++;
+
+            if (all_chars[x] == '?')
+              continue;
+
+            uint8_t values[4];
+            gc_values (all_chars[x], values);
+            for (int k = 0; k < 4; k++) {
+              if (values[k] == 1)
+                continue;
+
+              int var = base_id + k;
+              assert (state.partial_assignment.get (var) == LIT_FALSE);
+              two_bit.equation_vars_map[equation].push_back (var);
+            }
+          }
+          assert (!two_bit.equation_vars_map[equation].empty ());
+
+          // Map the equation variables (if they don't exist)
+          for (int i = 0; i < 2; i++)
+            if (two_bit.aug_mtx_var_map.find (equation.char_ids[i]) ==
+                two_bit.aug_mtx_var_map.end ())
+              two_bit.aug_mtx_var_map[equation.char_ids[i]] =
+                  two_bit.aug_mtx_var_map.size ();
+        }
+      }
+    }
+  }
+
+  bool has_clause = false;
+  // TODO: Add support for 2 blocks
+  for (int block_index = 0; block_index < 1; block_index++) {
+    auto confl_equations =
+        check_consistency (two_bit.equations[block_index], false);
+    bool is_consistent = confl_equations.empty ();
+    if (is_consistent)
+      continue;
+
+    // printf ("Equations in stash:\n");
+    // for (auto &eq : two_bit.equations[block_index]) {
+    //   printf ("%d %s %d\n", eq.char_ids[0], eq.diff == 1 ? "=/=" : "=",
+    //           eq.char_ids[1]);
+    // }
+
+    // printf ("Conflict equations (in %ld equations):\n",
+    //         two_bit.equations[block_index].size ());
+    // for (auto &eq : confl_equations)
+    //   printf ("%d %s %d\n", eq.char_ids[0], eq.diff == 1 ? "=/=" : "=",
+    //           eq.char_ids[1]);
+
+    // Block inconsistencies
+    block_inconsistency (two_bit, state.partial_assignment,
+                         external_clauses, block_index);
+    has_clause = true;
+    break;
+  }
+  // Keep only the shortest clause
+  if (has_clause) {
+    assert (!external_clauses.empty ());
+    int shortest_index = -1, shortest_length = INT_MAX;
+    for (int i = 0; i < int (external_clauses.size ()); i++) {
+      int size = external_clauses[i].size ();
+      if (size >= shortest_length)
+        continue;
+
+      shortest_length = size;
+      shortest_index = i;
+    }
+    auto clause = external_clauses[shortest_index];
+    assert (!clause.empty ());
+    external_clauses.clear ();
+    external_clauses.push_back (clause);
+    // printf ("Debug: keeping shortest clause of size %ld\n", clause.size
+    // ());
+    printf ("Blocking clause: ");
+    print (clause);
+  }
+
+  return has_clause;
+}
+
 int Propagator::cb_propagate () {
   Timer time (&stats.total_cb_time);
   if (propagation_lits.empty ()) {
