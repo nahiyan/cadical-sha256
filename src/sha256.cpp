@@ -640,9 +640,9 @@ bool Propagator::custom_block () {
         string all_chars = inputs + outputs;
         for (auto &equation : equations) {
           two_bit.equations[0].push_back (equation);
-          if (two_bit.equation_vars_map.find (equation) ==
-              two_bit.equation_vars_map.end ())
-            two_bit.equation_vars_map[equation] = {};
+          if (two_bit.equation_vars.find (equation) ==
+              two_bit.equation_vars.end ())
+            two_bit.equation_vars[equation] = {};
           int x = -1;
           for (auto &base_id : char_base_ids) {
             x++;
@@ -658,10 +658,12 @@ bool Propagator::custom_block () {
 
               int var = base_id + k;
               assert (state.partial_assignment.get (var) == LIT_FALSE);
-              two_bit.equation_vars_map[equation].push_back (var);
+              if (var >= state.zero && var < state.zero + 6)
+                continue;
+              two_bit.equation_vars[equation].push_back (var);
             }
           }
-          assert (!two_bit.equation_vars_map[equation].empty ());
+          assert (!two_bit.equation_vars[equation].empty ());
 
           // Map the equation variables (if they don't exist)
           for (int i = 0; i < 2; i++)

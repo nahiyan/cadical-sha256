@@ -166,6 +166,7 @@ void test_otf_propagate () {
     assert (result == "0?-");
   }
 }
+
 void test_otf_2bit_eqs () {
   {
     auto equations = otf_2bit_eqs (
