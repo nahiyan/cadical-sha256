@@ -772,8 +772,8 @@ int Propagator::cb_propagate () {
   if (!propagation_lits.empty ())
     goto PROVIDE_LIT;
 
-  // if (counter % 20 == 0)
-  custom_propagate ();
+  if (counter % 20 == 0)
+    custom_propagate ();
 
   if (propagation_lits.empty ())
     return 0;
