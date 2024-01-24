@@ -52,8 +52,8 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
             continue;
 
           uint8_t diff = matrix[matrix_i] == '1' ? 0 : 1;
-          uint32_t selected_ids[] = {inputs[i]->diff_ids[col_index],
-                                     inputs[j]->diff_ids[col_index]};
+          uint32_t selected_ids[] = {inputs[i]->char_ids[col_index],
+                                     inputs[j]->char_ids[col_index]};
 
           Equation equation;
           equation.char_ids[0] = selected_ids[0];
@@ -70,7 +70,7 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
             tuple<uint32_t, uint32_t, uint32_t> key = {
                 word->ids_f[col_index],
                 word->ids_g[col_index],
-                word->diff_ids[col_index],
+                word->char_ids[col_index],
             };
             if (two_bit.bit_constraints_count.find (key) !=
                 two_bit.bit_constraints_count.end ())
@@ -92,20 +92,20 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
             vars.push_back (word->ids_f[col_index]);
             vars.push_back (word->ids_g[col_index]);
             for (int x = 0; x < 4; x++)
-              vars.push_back (word->diff_ids[col_index] + j);
+              vars.push_back (word->char_ids[col_index] + j);
           }
           for (auto &word : outputs) {
             vars.push_back (word->ids_f[col_index]);
             vars.push_back (word->ids_g[col_index]);
             for (int x = 0; x < 4; x++)
-              vars.push_back (word->diff_ids[col_index] + j);
+              vars.push_back (word->char_ids[col_index] + j);
           }
 
-          auto equation_vars_it = two_bit.equation_vars_map.find (equation);
-          if (equation_vars_it == two_bit.equation_vars_map.end ())
-            two_bit.equation_vars_map.insert ({equation, {}});
+          auto equation_vars_it = two_bit.equation_vars.find (equation);
+          if (equation_vars_it == two_bit.equation_vars.end ())
+            two_bit.equation_vars.insert ({equation, {}});
 
-          auto &equation_vars = two_bit.equation_vars_map[equation];
+          auto &equation_vars = two_bit.equation_vars[equation];
           assert (!vars.empty ());
           for (auto &var : vars)
             equation_vars.push_back (var);
@@ -457,8 +457,8 @@ bool block_inconsistency (TwoBit &two_bit,
       continue;
 
     auto &equation = two_bit.equations[block_index][eq_index];
-    auto eq_vars_result = two_bit.equation_vars_map.find (equation);
-    assert (eq_vars_result != two_bit.equation_vars_map.end ());
+    auto eq_vars_result = two_bit.equation_vars.find (equation);
+    assert (eq_vars_result != two_bit.equation_vars.end ());
 
     // printf ("Blocking equation: %d %s %d\n", equation.char_ids[0],
     //         equation.diff == 1 ? "=/=" : "=", equation.char_ids[1]);
@@ -485,92 +485,99 @@ bool block_inconsistency (TwoBit &two_bit,
   return true;
 }
 
+map<tuple<vector<int> (*) (vector<int>), string, string>, vector<set<int>>>
+    otf_2bit_cache;
 // TODO: Add caching mechanism
 vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
                                string inputs, string outputs,
                                vector<uint32_t> char_ids, string mask) {
   vector<Equation> equations;
+  vector<set<int>> diff_pairs;
   assert (inputs.size () + outputs.size () == char_ids.size ());
   assert (char_ids.size () == mask.size ());
 
-  auto all_chars = inputs;
-  all_chars.insert (all_chars.end (), outputs.begin (), outputs.end ());
+  bool is_cached = false;
+  auto otf_2bit_cache_it = otf_2bit_cache.find ({func, inputs, outputs});
+  if (otf_2bit_cache_it != otf_2bit_cache.end ()) {
+    is_cached = true;
+    diff_pairs = otf_2bit_cache_it->second;
+  }
+
+  auto all_chars = inputs + outputs;
   assert (all_chars.size () == inputs.size () + outputs.size ());
-  vector<int> positions;
-  for (int i = 0; i < int (all_chars.size ()); i++)
-    if (is_in (all_chars[i], {'x', '-'}))
-      positions.push_back (i);
 
-  if (positions.size () > 4)
-    return {};
+  if (!is_cached) {
+    vector<int> positions;
+    for (int i = 0; i < int (all_chars.size ()); i++)
+      if (is_in (all_chars[i], {'x', '-'}))
+        positions.push_back (i);
 
-  vector<pair<string, string>> selections;
-  int n = positions.size ();
-  for (int i = 0; i < pow (2, n); i++) {
-    int values[n];
-    for (int j = 0; j < n; j++)
-      values[j] = i >> j & 1;
-    auto candidate = all_chars;
-    for (int j = 0; j < n; j++) {
-      auto value = values[j];
-      auto c = candidate[positions[j]];
-      candidate[positions[j]] =
-          c == 'x' ? (value == 1 ? 'u' : 'n') : (value == 1 ? '1' : '0');
+    if (positions.size () > 4)
+      return {};
+
+    vector<pair<string, string>> selections;
+    int n = positions.size ();
+    for (int i = 0; i < pow (2, n); i++) {
+      int values[n];
+      for (int j = 0; j < n; j++)
+        values[j] = i >> j & 1;
+      auto candidate = all_chars;
+      for (int j = 0; j < n; j++) {
+        auto value = values[j];
+        auto c = candidate[positions[j]];
+        candidate[positions[j]] =
+            c == 'x' ? (value == 1 ? 'u' : 'n') : (value == 1 ? '1' : '0');
+      }
+
+      string candidate_inputs = candidate.substr (0, inputs.size ());
+      string candidate_outputs =
+          candidate.substr (inputs.size (), outputs.size ());
+      auto propagation =
+          otf_propagate (func, candidate_inputs, candidate_outputs);
+      bool skip = false;
+      for (auto &c : propagation) {
+        if (c == '#') {
+          skip = true;
+          break;
+        }
+      }
+      if (skip)
+        continue;
+
+      selections.push_back ({candidate_inputs, candidate_outputs});
     }
 
-    string candidate_inputs = candidate.substr (0, inputs.size ());
-    string candidate_outputs =
-        candidate.substr (inputs.size (), outputs.size ());
-    auto propagation =
-        otf_propagate (func, candidate_inputs, candidate_outputs);
-    bool skip = false;
-    for (auto &c : propagation) {
-      if (c == '#') {
-        skip = true;
-        break;
+    int pairs_count = 0;
+    {
+      int n = all_chars.size ();
+      for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++)
+          pairs_count += 1;
       }
     }
-    if (skip)
-      continue;
 
-    selections.push_back ({candidate_inputs, candidate_outputs});
-  }
-
-  int pairs_count = 0;
-  {
-    int n = all_chars.size ();
-    for (int i = 0; i < n; i++) {
-      for (int j = i + 1; j < n; j++)
-        pairs_count += 1;
-    }
-  }
-
-  vector<set<int>> diff_pairs;
-  for (int i = 0; i < pairs_count; i++)
-    diff_pairs.push_back ({});
-  auto break_gc = [] (char gc) { return gc == 'u' || gc == '1' ? 1 : 0; };
-  for (auto &selection : selections) {
-    auto combined = selection.first + selection.second;
-    int x = 0;
-    int n = combined.size ();
-    for (int i = 0; i < n; i++) {
-      for (int j = i + 1; j < n; j++) {
-        int c1 = break_gc (combined[i]);
-        int c2 = break_gc (combined[j]);
-        diff_pairs[x].insert (c1 ^ c2);
-        x++;
+    for (int i = 0; i < pairs_count; i++)
+      diff_pairs.push_back ({});
+    auto break_gc = [] (char gc) { return gc == 'u' || gc == '1' ? 1 : 0; };
+    for (auto &selection : selections) {
+      auto combined = selection.first + selection.second;
+      int x = 0;
+      int n = combined.size ();
+      for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+          int c1 = break_gc (combined[i]);
+          int c2 = break_gc (combined[j]);
+          diff_pairs[x].insert (c1 ^ c2);
+          x++;
+        }
       }
     }
+
+    // Add to the cache
+    otf_2bit_cache[{func, inputs, outputs}] = diff_pairs;
   }
 
-  // printf ("Diff pairs:\n");
-  // for (auto &pairs : diff_pairs) {
-  //   for (auto &p : pairs)
-  //     cout << p << " ";
-  //   cout << endl;
-  // }
-
-  n = all_chars.size ();
+  int n = all_chars.size ();
   int x = -1;
   for (int i = 0; i < n; i++) {
     for (int j = i + 1; j < n; j++) {

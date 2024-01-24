@@ -18,7 +18,7 @@ using namespace std;
 
 namespace SHA256 {
 enum VariableName {
-  unknown,
+  Unknown,
   A,
   E,
   W,
@@ -57,16 +57,29 @@ enum VariableName {
   Dadd_A_hc,
 };
 
+enum OperationId {
+  op_s0,
+  op_s1,
+  op_sigma0,
+  op_sigma1,
+  op_maj,
+  op_ch,
+  op_add_w,
+  op_add_a,
+  op_add_e,
+  op_add_t,
+};
+
 struct Word {
   // f and g refer to the 2 blocks of SHA-256
-  uint32_t ids_f[32], ids_g[32], diff_ids[32];
+  uint32_t ids_f[32], ids_g[32], char_ids[32];
   // Differential characteristics
   string chars;
 };
 // A soft word has its characteristics defined in another word
 struct SoftWord {
   // f and g refer to the 2 blocks of SHA-256
-  uint32_t ids_f[32], ids_g[32], diff_ids[32];
+  uint32_t ids_f[32], ids_g[32], char_ids[32];
   // Differential characteristics
   char *chars[32];
 };
@@ -81,6 +94,9 @@ struct VarInfo {
   Word *word = NULL;
   VarIdentity identity;
   bool is_fixed = false;
+
+  // Operation ID, step, and bit position
+  vector<tuple<OperationId, int, int>> operations;
 
   VarInfo () {}
   VarInfo (Word *word, int col, int step, VariableName name) {
@@ -133,7 +149,9 @@ class PartialAssignment {
   uint8_t *variables;
 
 public:
-  stack<uint32_t> updated_variables;
+  stack<uint32_t> updated_vars;
+  stack<uint32_t> updated_prop_vars;
+  stack<uint32_t> updated_two_bit_vars;
   deque<vector<int>> *current_trail; // !Added for Debugging only
   VarInfo *vars_info;
 
@@ -148,11 +166,19 @@ public:
 
   ~PartialAssignment () { delete[] variables; }
 
+  void mark_updated_var (int id) {
+    assert (id > 0);
+    updated_vars.push (id);
+    updated_prop_vars.push (id);
+    updated_two_bit_vars.push (id);
+  }
+
   void set (int lit) {
     int id = abs (lit);
     variables[id] = lit > 0 ? LIT_TRUE : LIT_FALSE;
-    updated_variables.push (id);
+    mark_updated_var (id);
   }
+
   uint8_t get (int id) {
     assert (id > 0);
     return variables[id];
@@ -179,7 +205,7 @@ public:
     if (vars_info[id].is_fixed)
       return;
     variables[id] = LIT_UNDEF;
-    updated_variables.push (id);
+    mark_updated_var (id);
   }
 };
 
@@ -194,9 +220,9 @@ public:
   int zero;
   Operations operations[64];
   Step steps[64 + 4];
-  VarInfo var_info[MAX_VAR_ID];
+  VarInfo vars_info[MAX_VAR_ID];
   PartialAssignment partial_assignment =
-      PartialAssignment (MAX_VAR_ID, &current_trail, var_info);
+      PartialAssignment (MAX_VAR_ID, &current_trail, vars_info);
 
   void hard_refresh (bool will_propagate = false);
   void soft_refresh ();

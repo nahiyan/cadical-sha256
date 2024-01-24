@@ -135,7 +135,7 @@ void Propagator::parse_comment_line (string line,
       if (prefix != actual_prefix)
         continue;
 
-      VariableName var_name = unknown;
+      VariableName var_name = Unknown;
       if (prefix == "A_")
         var_name = A;
       else if (prefix == "E_")
@@ -208,7 +208,7 @@ void Propagator::parse_comment_line (string line,
         var_name = Dadd_A_lc;
       else if (prefix == "Dadd.A.r1_")
         var_name = Dadd_A_hc;
-      assert (var_name >= unknown && var_name <= Dadd_A_hc);
+      assert (var_name >= Unknown && var_name <= Dadd_A_hc);
 
       if (prefix[0] == 'D')
         word.chars = string (32, '?');
@@ -217,25 +217,25 @@ void Propagator::parse_comment_line (string line,
       for (int i = 31, id = value, id2 = value; i >= 0;
            i--, id++, id2 += 4) {
         if (prefix[0] == 'D') {
-          word.diff_ids[i] = id2;
+          word.char_ids[i] = id2;
           for (int j = 0; j < 4; j++)
-            state.var_info[id2 + j] = {&word, i, step, var_name};
+            state.vars_info[id2 + j] = {&word, i, step, var_name};
         } else if (is_f) {
           word.ids_f[i] = id;
-          state.var_info[id] = {&word, i, step, var_name};
+          state.vars_info[id] = {&word, i, step, var_name};
         } else {
           word.ids_g[i] = id;
-          state.var_info[id] = {&word, i, step, var_name};
+          state.vars_info[id] = {&word, i, step, var_name};
         }
       }
 
       // Add to observed vars
-      if (word.ids_f[0] != 0 && word.ids_g[0] != 0 && word.diff_ids[0] != 0)
+      if (word.ids_f[0] != 0 && word.ids_g[0] != 0 && word.char_ids[0] != 0)
         for (int i = 0; i < 32; i++) {
           solver->add_observed_var (word.ids_f[i]);
           solver->add_observed_var (word.ids_g[i]);
           for (int j = 0; j < 4; j++)
-            solver->add_observed_var (word.diff_ids[i] + j);
+            solver->add_observed_var (word.char_ids[i] + j);
         }
     }
   }
@@ -245,7 +245,7 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
   // Timer timer (&stats.total_cb_time);
   if (is_fixed) {
     state.current_trail.front ().push_back (lit);
-    state.var_info[abs (lit)].is_fixed = true;
+    state.vars_info[abs (lit)].is_fixed = true;
   } else
     state.current_trail.back ().push_back (lit);
 
@@ -424,8 +424,8 @@ void Propagator::custom_propagate () {
           auto &input_word = input_words[x];
           vector<uint32_t> ids = {
               input_word.ids_f[j],        input_word.ids_g[j],
-              input_word.diff_ids[j] + 0, input_word.diff_ids[j] + 1,
-              input_word.diff_ids[j] + 2, input_word.diff_ids[j] + 3};
+              input_word.char_ids[j] + 0, input_word.char_ids[j] + 1,
+              input_word.char_ids[j] + 2, input_word.char_ids[j] + 3};
           for (auto &id : ids)
             reason.input_ids[x].push_back (id);
 
@@ -460,9 +460,9 @@ void Propagator::custom_propagate () {
         for (int x = 0; x < output_size; x++) {
           auto &output_word = output_words[x];
           vector<uint32_t> ids = {
-              output_word->diff_ids[j] + 0, output_word->diff_ids[j] + 1,
-              output_word->diff_ids[j] + 2, output_word->diff_ids[j] + 3};
-          assert (state.var_info[ids[0]].identity.col == j);
+              output_word->char_ids[j] + 0, output_word->char_ids[j] + 1,
+              output_word->char_ids[j] + 2, output_word->char_ids[j] + 3};
+          assert (state.vars_info[ids[0]].identity.col == j);
           reason.output_ids[x].push_back (output_word->ids_f[j]);
           reason.output_ids[x].push_back (output_word->ids_g[j]);
           for (int y = 0; y < 4; y++)
@@ -608,13 +608,13 @@ bool Propagator::custom_block () {
         for (int k = 0; k < input_size; k++) {
           assert (input_words[k].chars[j] != NULL);
           inputs += *(input_words[k].chars[j]);
-          char_base_ids.push_back (input_words[k].diff_ids[j]);
+          char_base_ids.push_back (input_words[k].char_ids[j]);
         }
 
         string outputs;
         for (int k = 0; k < output_size; k++) {
           outputs += output_words[k]->chars[j];
-          char_base_ids.push_back (output_words[k]->diff_ids[j]);
+          char_base_ids.push_back (output_words[k]->char_ids[j]);
         }
 
         assert (int (char_base_ids.size ()) == input_size + output_size);
@@ -650,6 +650,8 @@ bool Propagator::custom_block () {
             if (all_chars[x] == '?')
               continue;
 
+            // TODO: Ignore the high carry when input bits count <= 3
+
             uint8_t values[4];
             gc_values (all_chars[x], values);
             for (int k = 0; k < 4; k++) {
@@ -658,6 +660,7 @@ bool Propagator::custom_block () {
 
               int var = base_id + k;
               assert (state.partial_assignment.get (var) == LIT_FALSE);
+              // Ignore the zero vars to reduce the clause size
               if (var >= state.zero && var < state.zero + 6)
                 continue;
               two_bit.equation_vars[equation].push_back (var);
@@ -878,23 +881,23 @@ void Propagator::custom_branch () {
     srand (clock () + j);
     if (rand () % 2 == 0) {
       // u
-      decision_lits.push_back (-(word.diff_ids[j] + 0));
-      decision_lits.push_back ((word.diff_ids[j] + 1));
-      decision_lits.push_back (-(word.diff_ids[j] + 2));
-      decision_lits.push_back (-(word.diff_ids[j] + 3));
+      decision_lits.push_back (-(word.char_ids[j] + 0));
+      decision_lits.push_back ((word.char_ids[j] + 1));
+      decision_lits.push_back (-(word.char_ids[j] + 2));
+      decision_lits.push_back (-(word.char_ids[j] + 3));
     } else {
       // n
-      decision_lits.push_back (-(word.diff_ids[j] + 0));
-      decision_lits.push_back (-(word.diff_ids[j] + 1));
-      decision_lits.push_back ((word.diff_ids[j] + 2));
-      decision_lits.push_back (-(word.diff_ids[j] + 3));
+      decision_lits.push_back (-(word.char_ids[j] + 0));
+      decision_lits.push_back (-(word.char_ids[j] + 1));
+      decision_lits.push_back ((word.char_ids[j] + 2));
+      decision_lits.push_back (-(word.char_ids[j] + 3));
     }
   };
   auto ground_xnor = [] (list<int> &decision_lits, Word &word, int &j) {
-    decision_lits.push_back ((word.diff_ids[j] + 0));
-    decision_lits.push_back (-(word.diff_ids[j] + 1));
-    decision_lits.push_back (-(word.diff_ids[j] + 2));
-    decision_lits.push_back ((word.diff_ids[j] + 3));
+    decision_lits.push_back ((word.char_ids[j] + 0));
+    decision_lits.push_back (-(word.char_ids[j] + 1));
+    decision_lits.push_back (-(word.char_ids[j] + 2));
+    decision_lits.push_back ((word.char_ids[j] + 3));
   };
 
   // Stage 1

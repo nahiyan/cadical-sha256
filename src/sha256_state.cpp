@@ -7,7 +7,7 @@ using namespace SHA256;
 void State::refresh_char (Word &word, int &col) {
   auto &id_f = word.ids_f[col];
   auto &id_g = word.ids_g[col];
-  auto &diff_id = word.diff_ids[col];
+  auto &diff_id = word.char_ids[col];
   char &c = word.chars[col];
 
   if (id_f == 0 || id_g == 0 || diff_id == 0) {
@@ -214,10 +214,10 @@ void State::hard_refresh (bool will_propagate) {
 }
 
 void State::soft_refresh () {
-  while (!partial_assignment.updated_variables.empty ()) {
-    auto var = partial_assignment.updated_variables.top ();
-    partial_assignment.updated_variables.pop ();
-    auto &info = var_info[var];
+  while (!partial_assignment.updated_vars.empty ()) {
+    auto var = partial_assignment.updated_vars.top ();
+    partial_assignment.updated_vars.pop ();
+    auto &info = vars_info[var];
     if (info.word == NULL)
       continue;
     refresh_char (*info.word, info.identity.col);
