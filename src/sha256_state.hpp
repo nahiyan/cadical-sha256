@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <set>
 #include <stack>
 #include <string>
 #include <vector>
@@ -150,7 +151,7 @@ class PartialAssignment {
 
 public:
   stack<uint32_t> updated_vars;
-  stack<uint32_t> updated_prop_vars;
+  std::set<uint32_t> updated_prop_vars;
   stack<uint32_t> updated_two_bit_vars;
   deque<vector<int>> *current_trail; // !Added for Debugging only
   VarInfo *vars_info;
@@ -169,8 +170,9 @@ public:
   void mark_updated_var (int id) {
     assert (id > 0);
     updated_vars.push (id);
-    updated_prop_vars.push (id);
-    updated_two_bit_vars.push (id);
+    if (vars_info[id].identity.name >= DA)
+      updated_prop_vars.insert (id);
+    // updated_two_bit_vars.push (id);
   }
 
   void set (int lit) {

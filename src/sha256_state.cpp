@@ -16,8 +16,8 @@ void State::refresh_char (Word &word, int &col) {
   }
   assert (word.chars.size () == 32);
 
-  uint8_t values[] = {partial_assignment.get (id_f),
-                      partial_assignment.get (id_g)};
+  // uint8_t values[] = {partial_assignment.get (id_f),
+  //                     partial_assignment.get (id_g)};
   uint8_t diff[] = {partial_assignment.get (diff_id + 0),
                     partial_assignment.get (diff_id + 1),
                     partial_assignment.get (diff_id + 2),

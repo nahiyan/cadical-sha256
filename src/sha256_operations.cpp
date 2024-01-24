@@ -36,33 +36,33 @@ void State::set_operations () {
 
   auto add_var_info_sword = [this] (SoftWord *word, int step,
                                     OperationId op_id) {
-    for (int i = 0; i < 32; i++) {
-      if (word->ids_f[i] == this->zero)
+    for (int pos = 0; pos < 32; pos++) {
+      if (word->ids_f[pos] == this->zero)
         continue;
 
-      this->vars_info[word->ids_f[i]].operations.push_back (
-          {op_id, step, i});
-      this->vars_info[word->ids_g[i]].operations.push_back (
-          {op_id, step, i});
+      this->vars_info[word->ids_f[pos]].operations.push_back (
+          {op_id, step, pos});
+      this->vars_info[word->ids_g[pos]].operations.push_back (
+          {op_id, step, pos});
       for (int k = 0; k < 4; k++)
-        this->vars_info[word->char_ids[i + k]].operations.push_back (
-            {op_id, step, i});
+        this->vars_info[word->char_ids[pos] + k].operations.push_back (
+            {op_id, step, pos});
     }
   };
 
   auto add_var_info_word = [this] (Word *word, int step,
                                    OperationId op_id) {
-    for (int i = 0; i < 32; i++) {
-      if (word->ids_f[i] == this->zero)
+    for (int pos = 0; pos < 32; pos++) {
+      if (word->ids_f[pos] == this->zero)
         continue;
 
-      this->vars_info[word->ids_f[i]].operations.push_back (
-          {op_id, step, i});
-      this->vars_info[word->ids_g[i]].operations.push_back (
-          {op_id, step, i});
+      this->vars_info[word->ids_f[pos]].operations.push_back (
+          {op_id, step, pos});
+      this->vars_info[word->ids_g[pos]].operations.push_back (
+          {op_id, step, pos});
       for (int k = 0; k < 4; k++)
-        this->vars_info[word->char_ids[i + k]].operations.push_back (
-            {op_id, step, i});
+        this->vars_info[word->char_ids[pos] + k].operations.push_back (
+            {op_id, step, pos});
     }
   };
 
@@ -243,7 +243,7 @@ void State::set_operations () {
     }
     {
       // ch
-      auto &operands = operations[i].maj.inputs;
+      auto &operands = operations[i].ch.inputs;
       for (int j = 1; j <= 3; j++)
         operands[j - 1] = to_soft_word (steps[ABS_STEP (i - j)].e);
 
@@ -300,7 +300,7 @@ void State::set_operations () {
 
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_add_e);
-      add_var_info_word (&steps[i].e, ABS_STEP (i), op_add_e);
+      add_var_info_word (&steps[i].e, i, op_add_e);
     }
     {
       // add.A
@@ -329,7 +329,7 @@ void State::set_operations () {
 
       for (int j = 0; j < 5; j++)
         add_var_info_sword (&operands[j], i, op_add_a);
-      add_var_info_word (&steps[i].a, ABS_STEP (i), op_add_a);
+      add_var_info_word (&steps[i].a, i, op_add_a);
     }
   }
 }
