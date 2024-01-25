@@ -154,94 +154,34 @@ uint8_t gc_values (char c) {
   uint8_t values = 0;
   if (c == '?') {
     values = 15;
-    assert ((values >> 0 & 1) == 1);
-    assert ((values >> 1 & 1) == 1);
-    assert ((values >> 2 & 1) == 1);
-    assert ((values >> 3 & 1) == 1);
   } else if (c == '-') {
     values = 9;
-    assert ((values >> 0 & 1) == 1);
-    assert ((values >> 1 & 1) == 0);
-    assert ((values >> 2 & 1) == 0);
-    assert ((values >> 3 & 1) == 1);
   } else if (c == 'x') {
     values = 6;
-    assert ((values >> 0 & 1) == 0);
-    assert ((values >> 1 & 1) == 1);
-    assert ((values >> 2 & 1) == 1);
-    assert ((values >> 3 & 1) == 0);
   } else if (c == '0') {
     values = 1;
-    assert ((values >> 0 & 1) == 1);
-    assert ((values >> 1 & 1) == 0);
-    assert ((values >> 2 & 1) == 0);
-    assert ((values >> 3 & 1) == 0);
   } else if (c == 'u') {
     values = 2;
-    assert ((values >> 0 & 1) == 0);
-    assert ((values >> 1 & 1) == 1);
-    assert ((values >> 2 & 1) == 0);
-    assert ((values >> 3 & 1) == 0);
   } else if (c == 'n') {
     values = 4;
-    assert ((values >> 0 & 1) == 0);
-    assert ((values >> 1 & 1) == 0);
-    assert ((values >> 2 & 1) == 1);
-    assert ((values >> 3 & 1) == 0);
   } else if (c == '1') {
     values = 8;
-    assert ((values >> 0 & 1) == 0);
-    assert ((values >> 1 & 1) == 0);
-    assert ((values >> 2 & 1) == 0);
-    assert ((values >> 3 & 1) == 1);
   } else if (c == '3') {
     values = 3;
-    assert ((values >> 0 & 1) == 1);
-    assert ((values >> 1 & 1) == 1);
-    assert ((values >> 2 & 1) == 0);
-    assert ((values >> 3 & 1) == 0);
   } else if (c == '5') {
     values = 5;
-    assert ((values >> 0 & 1) == 1);
-    assert ((values >> 1 & 1) == 0);
-    assert ((values >> 2 & 1) == 1);
-    assert ((values >> 3 & 1) == 0);
   } else if (c == '7') {
     values = 7;
-    assert ((values >> 0 & 1) == 1);
-    assert ((values >> 1 & 1) == 1);
-    assert ((values >> 2 & 1) == 1);
-    assert ((values >> 3 & 1) == 0);
   } else if (c == 'A') {
     values = 10;
-    assert ((values >> 0 & 1) == 0);
-    assert ((values >> 1 & 1) == 1);
-    assert ((values >> 2 & 1) == 0);
-    assert ((values >> 3 & 1) == 1);
   } else if (c == 'B') {
     values = 11;
-    assert ((values >> 0 & 1) == 1);
-    assert ((values >> 1 & 1) == 1);
-    assert ((values >> 2 & 1) == 0);
-    assert ((values >> 3 & 1) == 1);
   } else if (c == 'C') {
     values = 12;
-    assert ((values >> 0 & 1) == 0);
-    assert ((values >> 1 & 1) == 0);
-    assert ((values >> 2 & 1) == 1);
-    assert ((values >> 3 & 1) == 1);
   } else if (c == 'D') {
     values = 13;
-    assert ((values >> 0 & 1) == 1);
-    assert ((values >> 1 & 1) == 0);
-    assert ((values >> 2 & 1) == 1);
-    assert ((values >> 3 & 1) == 1);
   } else if (c == 'E') {
     values = 14;
-    assert ((values >> 0 & 1) == 0);
-    assert ((values >> 1 & 1) == 1);
-    assert ((values >> 2 & 1) == 1);
-    assert ((values >> 3 & 1) == 1);
   } else if (c == '#')
     values = 0;
   else

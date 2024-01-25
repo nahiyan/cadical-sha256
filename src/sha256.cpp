@@ -335,8 +335,8 @@ int Propagator::cb_decide () {
   return lit;
 }
 
-Differential
-Propagator::get_next_differential (set<uint32_t> &updated_vars) {
+void Propagator::get_next_differentials (set<uint32_t> &updated_vars,
+                                         vector<Differential> &diffs) {
   struct Operation {
     FunctionId function_id;
     SoftWord *operands;
@@ -398,7 +398,7 @@ Propagator::get_next_differential (set<uint32_t> &updated_vars) {
 
   auto &pa = state.partial_assignment;
   if (updated_vars.empty ())
-    return Differential{};
+    return;
 
   auto &var_id = *pa.updated_prop_vars.begin ();
   pa.updated_prop_vars.erase (pa.updated_prop_vars.begin ());
@@ -453,116 +453,118 @@ Propagator::get_next_differential (set<uint32_t> &updated_vars) {
     assert (int (diff.char_base_ids.second.size ()) == output_size);
     assert (int (diff.table_values.second.size ()) == output_size);
 
-    return diff;
+    diffs.push_back (diff);
   }
-
-  return Differential{};
 }
 
 void Propagator::custom_propagate () {
   state.soft_refresh ();
   while (true) {
-    Reason reason;
-    reason.differential =
-        get_next_differential (state.partial_assignment.updated_prop_vars);
-    auto &diff = reason.differential;
-    if (diff.inputs.empty ())
-      break;
+    vector<Differential> diffs;
+    get_next_differentials (state.partial_assignment.updated_prop_vars,
+                            diffs);
+    if (diffs.empty ())
+      return;
+    for (auto &diff_ : diffs) {
+      Reason reason;
+      reason.differential = diff_;
+      auto &diff = reason.differential;
+      assert (!diff.inputs.empty ());
 
-    // Has low carry only; no high carry
-    bool add_lc_only = diff.function == add_ && diff.outputs.size () == 2;
-    string prop_output =
-        otf_propagate (diff.function, diff.inputs,
-                       add_lc_only ? "0" + diff.outputs : diff.outputs);
-    if (add_lc_only)
-      prop_output = prop_output.substr (1, 2);
+      // Has low carry only; no high carry
+      bool add_lc_only = diff.function == add_ && diff.outputs.size () == 2;
+      string prop_output =
+          otf_propagate (diff.function, diff.inputs,
+                         add_lc_only ? "0" + diff.outputs : diff.outputs);
+      if (add_lc_only)
+        prop_output = prop_output.substr (1, 2);
 
-    if (diff.outputs == prop_output)
-      continue;
-
-    // Construct the antecedent (part 1: inputs)
-    int zeroes_count = 0;
-    for (unsigned long x = 0; x < diff.inputs.size (); x++) {
-      // Count the const zeroes
-      bool is_zero = false;
-      if (diff.char_base_ids.first[x] == state.zero + 2) {
-        zeroes_count++;
-        is_zero = true;
-      }
-
-      // Don't add zeroes or '?'
-      if (diff.inputs[x] == '?' || is_zero)
+      if (diff.outputs == prop_output)
         continue;
 
-      // Add lits
-      for (int y = 0; y < 4; y++) {
-        auto &base_id = diff.char_base_ids.first[x];
-        if ((diff.table_values.first[x] >> y & 1) == 1)
+      // Construct the antecedent (part 1: inputs)
+      int zeroes_count = 0;
+      for (unsigned long x = 0; x < diff.inputs.size (); x++) {
+        // Count the const zeroes
+        bool is_zero = false;
+        if (diff.char_base_ids.first[x] == state.zero + 2) {
+          zeroes_count++;
+          is_zero = true;
+        }
+
+        // Don't add zeroes or '?'
+        if (diff.inputs[x] == '?' || is_zero)
           continue;
-        assert (state.partial_assignment.get (base_id + y) != LIT_UNDEF);
-        reason.antecedent.push_back (base_id + y);
-      }
-    }
 
-    if (reason.antecedent.empty ())
-      continue;
-
-    // Construct the antecedent (part 2: outputs)
-    vector<int> prop_lits;
-    for (unsigned long x = 0; x < diff.outputs.size (); x++) {
-      // Ignore the high carry if there's only a low carry
-      if (diff.function == add_ && diff.outputs.size () == 3 && x == 0 &&
-          (diff.inputs.size () - zeroes_count) < 4)
-        continue;
-
-      auto &table_values = diff.table_values.second[x];
-      bool has_output_antecedent = false;
-      {
-        if (diff.outputs[x] != '?') {
-          assert (table_values != 15);
-          for (int y = 0; y < 4; y++) {
-            auto &base_id = diff.char_base_ids.second[x];
-            if ((table_values >> y & 1) == 1)
-              continue;
-            reason.antecedent.push_back (base_id + y);
-            assert (state.partial_assignment.get (base_id + y) !=
-                    LIT_UNDEF);
-            has_output_antecedent = true;
-          }
+        // Add lits
+        for (int y = 0; y < 4; y++) {
+          auto &base_id = diff.char_base_ids.first[x];
+          if ((diff.table_values.first[x] >> y & 1) == 1)
+            continue;
+          assert (state.partial_assignment.get (base_id + y) != LIT_UNDEF);
+          reason.antecedent.push_back (base_id + y);
         }
       }
-      assert (diff.outputs[x] != '?' ? has_output_antecedent : true);
 
-      // TODO: Skip if the propagation derived more info
-      if (prop_output[x] == '?' || prop_output[x] == '#')
+      if (reason.antecedent.empty ())
         continue;
 
-      auto prop_table_values = gc_values (prop_output[x]);
-      for (int y = 0; y < 4; y++) {
-        int id = diff.char_base_ids.second[x] + y;
-
-        uint8_t value = prop_table_values >> y & 1;
-        if (value == 1)
+      // Construct the antecedent (part 2: outputs)
+      vector<int> prop_lits;
+      for (unsigned long x = 0; x < diff.outputs.size (); x++) {
+        // Ignore the high carry if there's only a low carry
+        if (diff.function == add_ && diff.outputs.size () == 3 && x == 0 &&
+            (diff.inputs.size () - zeroes_count) < 4)
           continue;
 
-        if (state.partial_assignment.get (id) != LIT_UNDEF)
+        auto &table_values = diff.table_values.second[x];
+        bool has_output_antecedent = false;
+        {
+          if (diff.outputs[x] != '?') {
+            assert (table_values != 15);
+            for (int y = 0; y < 4; y++) {
+              auto &base_id = diff.char_base_ids.second[x];
+              if ((table_values >> y & 1) == 1)
+                continue;
+              reason.antecedent.push_back (base_id + y);
+              assert (state.partial_assignment.get (base_id + y) !=
+                      LIT_UNDEF);
+              has_output_antecedent = true;
+            }
+          }
+        }
+        assert (diff.outputs[x] != '?' ? has_output_antecedent : true);
+
+        if (prop_output[x] == '?' || prop_output[x] == '#')
           continue;
 
-        int sign = value == 1 ? 1 : -1;
-        int lit = sign * id;
+        auto prop_table_values = gc_values (prop_output[x]);
+        for (int y = 0; y < 4; y++) {
+          int id = diff.char_base_ids.second[x] + y;
 
-        propagation_lits.push_back (lit);
-        prop_lits.push_back (lit);
+          uint8_t value = prop_table_values >> y & 1;
+          if (value == 1)
+            continue;
+
+          if (state.partial_assignment.get (id) != LIT_UNDEF)
+            continue;
+
+          int sign = value == 1 ? 1 : -1;
+          int lit = sign * id;
+
+          propagation_lits.push_back (lit);
+          prop_lits.push_back (lit);
+        }
       }
+
+      diff.outputs = prop_output;
+
+      for (auto &lit : prop_lits)
+        reasons[lit] = reason;
     }
 
-    diff.outputs = prop_output;
-
-    for (auto &lit : prop_lits)
-      reasons[lit] = reason;
-
     if (!propagation_lits.empty ())
-      break;
+      return;
   }
 }
 
@@ -767,8 +769,8 @@ int Propagator::cb_propagate () {
   if (!propagation_lits.empty ())
     goto PROVIDE_LIT;
 
-  // if (counter % 20 == 0)
-  custom_propagate ();
+  if (counter % 20 == 0)
+    custom_propagate ();
 
   if (propagation_lits.empty ())
     return 0;
