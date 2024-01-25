@@ -219,7 +219,7 @@ class State {
 public:
   deque<vector<int>> current_trail;
   int order;
-  int zero;
+  uint32_t zero;
   Operations operations[64];
   Step steps[64 + 4];
   VarInfo vars_info[MAX_VAR_ID];

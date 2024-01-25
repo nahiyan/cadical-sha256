@@ -26,9 +26,19 @@ struct Stats {
   uint reasons_count;
 };
 
+struct Differential {
+  string inputs;
+  string outputs;
+  pair<vector<uint32_t>, vector<uint32_t>> char_base_ids;
+  pair<vector<uint8_t>, vector<uint8_t>> table_values;
+  vector<int> (*function) (vector<int>) = NULL;
+  OperationId operation_id;
+  int step_index;
+  int bit_pos;
+};
+
 struct Reason {
-  pair<string, string> differential;
-  vector<vector<int>> input_ids, output_ids;
+  Differential differential;
   vector<int> antecedent;
 };
 
@@ -71,6 +81,7 @@ public:
   void custom_propagate ();
   void custom_branch ();
   bool custom_block ();
+  Differential get_next_differential (set<uint32_t> &updated_vars);
 };
 } // namespace SHA256
 

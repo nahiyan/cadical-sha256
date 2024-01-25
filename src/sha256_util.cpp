@@ -1,6 +1,7 @@
 #include "sha256_util.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <ctime>
@@ -149,88 +150,104 @@ vector<int> xor_ (vector<int> inputs) {
   return {value};
 }
 
-void gc_values (char c, uint8_t values[4]) {
+uint8_t gc_values (char c) {
+  uint8_t values = 0;
   if (c == '?') {
-    values[0] = 1;
-    values[1] = 1;
-    values[2] = 1;
-    values[3] = 1;
+    values = 15;
+    assert ((values >> 0 & 1) == 1);
+    assert ((values >> 1 & 1) == 1);
+    assert ((values >> 2 & 1) == 1);
+    assert ((values >> 3 & 1) == 1);
   } else if (c == '-') {
-    values[0] = 1;
-    values[1] = 0;
-    values[2] = 0;
-    values[3] = 1;
+    values = 9;
+    assert ((values >> 0 & 1) == 1);
+    assert ((values >> 1 & 1) == 0);
+    assert ((values >> 2 & 1) == 0);
+    assert ((values >> 3 & 1) == 1);
   } else if (c == 'x') {
-    values[0] = 0;
-    values[1] = 1;
-    values[2] = 1;
-    values[3] = 0;
+    values = 6;
+    assert ((values >> 0 & 1) == 0);
+    assert ((values >> 1 & 1) == 1);
+    assert ((values >> 2 & 1) == 1);
+    assert ((values >> 3 & 1) == 0);
   } else if (c == '0') {
-    values[0] = 1;
-    values[1] = 0;
-    values[2] = 0;
-    values[3] = 0;
+    values = 1;
+    assert ((values >> 0 & 1) == 1);
+    assert ((values >> 1 & 1) == 0);
+    assert ((values >> 2 & 1) == 0);
+    assert ((values >> 3 & 1) == 0);
   } else if (c == 'u') {
-    values[0] = 0;
-    values[1] = 1;
-    values[2] = 0;
-    values[3] = 0;
+    values = 2;
+    assert ((values >> 0 & 1) == 0);
+    assert ((values >> 1 & 1) == 1);
+    assert ((values >> 2 & 1) == 0);
+    assert ((values >> 3 & 1) == 0);
   } else if (c == 'n') {
-    values[0] = 0;
-    values[1] = 0;
-    values[2] = 1;
-    values[3] = 0;
+    values = 4;
+    assert ((values >> 0 & 1) == 0);
+    assert ((values >> 1 & 1) == 0);
+    assert ((values >> 2 & 1) == 1);
+    assert ((values >> 3 & 1) == 0);
   } else if (c == '1') {
-    values[0] = 0;
-    values[1] = 0;
-    values[2] = 0;
-    values[3] = 1;
+    values = 8;
+    assert ((values >> 0 & 1) == 0);
+    assert ((values >> 1 & 1) == 0);
+    assert ((values >> 2 & 1) == 0);
+    assert ((values >> 3 & 1) == 1);
   } else if (c == '3') {
-    values[0] = 1;
-    values[1] = 1;
-    values[2] = 0;
-    values[3] = 0;
+    values = 3;
+    assert ((values >> 0 & 1) == 1);
+    assert ((values >> 1 & 1) == 1);
+    assert ((values >> 2 & 1) == 0);
+    assert ((values >> 3 & 1) == 0);
   } else if (c == '5') {
-    values[0] = 1;
-    values[1] = 0;
-    values[2] = 1;
-    values[3] = 0;
+    values = 5;
+    assert ((values >> 0 & 1) == 1);
+    assert ((values >> 1 & 1) == 0);
+    assert ((values >> 2 & 1) == 1);
+    assert ((values >> 3 & 1) == 0);
   } else if (c == '7') {
-    values[0] = 1;
-    values[1] = 1;
-    values[2] = 1;
-    values[3] = 0;
+    values = 7;
+    assert ((values >> 0 & 1) == 1);
+    assert ((values >> 1 & 1) == 1);
+    assert ((values >> 2 & 1) == 1);
+    assert ((values >> 3 & 1) == 0);
   } else if (c == 'A') {
-    values[0] = 0;
-    values[1] = 1;
-    values[2] = 0;
-    values[3] = 1;
+    values = 10;
+    assert ((values >> 0 & 1) == 0);
+    assert ((values >> 1 & 1) == 1);
+    assert ((values >> 2 & 1) == 0);
+    assert ((values >> 3 & 1) == 1);
   } else if (c == 'B') {
-    values[0] = 1;
-    values[1] = 1;
-    values[2] = 0;
-    values[3] = 1;
+    values = 11;
+    assert ((values >> 0 & 1) == 1);
+    assert ((values >> 1 & 1) == 1);
+    assert ((values >> 2 & 1) == 0);
+    assert ((values >> 3 & 1) == 1);
   } else if (c == 'C') {
-    values[0] = 0;
-    values[1] = 0;
-    values[2] = 1;
-    values[3] = 1;
+    values = 12;
+    assert ((values >> 0 & 1) == 0);
+    assert ((values >> 1 & 1) == 0);
+    assert ((values >> 2 & 1) == 1);
+    assert ((values >> 3 & 1) == 1);
   } else if (c == 'D') {
-    values[0] = 1;
-    values[1] = 0;
-    values[2] = 1;
-    values[3] = 1;
+    values = 13;
+    assert ((values >> 0 & 1) == 1);
+    assert ((values >> 1 & 1) == 0);
+    assert ((values >> 2 & 1) == 1);
+    assert ((values >> 3 & 1) == 1);
   } else if (c == 'E') {
-    values[0] = 0;
-    values[1] = 1;
-    values[2] = 1;
-    values[3] = 1;
-  } else {
-    values[0] = 0;
-    values[1] = 0;
-    values[2] = 0;
-    values[3] = 0;
-  }
+    values = 14;
+    assert ((values >> 0 & 1) == 0);
+    assert ((values >> 1 & 1) == 1);
+    assert ((values >> 2 & 1) == 1);
+    assert ((values >> 3 & 1) == 1);
+  } else if (c == '#')
+    values = 0;
+  else
+    assert (true);
+
+  return values;
 }
 
 } // namespace SHA256

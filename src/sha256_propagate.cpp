@@ -514,6 +514,7 @@ map<tuple<vector<int> (*) (vector<int>), string, string>, string>
     otf_prop_cache;
 string otf_propagate (vector<int> (*func) (vector<int> inputs),
                       string inputs, string outputs) {
+  assert (func == add_ ? outputs.size () == 3 : true);
   // Look in the cache
   {
     tuple<vector<int> (*) (vector<int>), string, string> key{func, inputs,

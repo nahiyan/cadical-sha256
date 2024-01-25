@@ -23,29 +23,29 @@ State Propagator::state = State ();
 uint64_t counter = 0;
 Stats Propagator::stats = Stats{0, 0, 0, 0};
 
-void print_reason (Reason &reason, State &state) {
-  auto &pa = state.partial_assignment;
-  cout << "Reason: " << reason.differential.first << " -> "
-       << reason.differential.second << endl;
-  cout << "Input variables:" << endl;
-  for (int i = 0; i < int (reason.input_ids.size ()); i++) {
-    printf ("%d. ", i);
-    for (auto &id : reason.input_ids[i])
-      printf ("%d(%d) ", id, pa.get (id));
-    printf ("\n");
-  }
-  cout << "Output variables:" << endl;
-  for (int i = 0; i < int (reason.output_ids.size ()); i++) {
-    printf ("%d. ", i);
-    for (auto &id : reason.output_ids[i])
-      printf ("%d(%d) ", id, pa.get (id));
-    printf ("\n");
-  }
-  cout << "Antecedent: ";
-  for (auto &id : reason.antecedent)
-    printf ("%d ", id);
-  printf ("\n");
-}
+// void print_reason (Reason &reason, State &state) {
+//   auto &pa = state.partial_assignment;
+//   cout << "Reason: " << reason.differential.first << " -> "
+//        << reason.differential.second << endl;
+//   cout << "Input variables:" << endl;
+//   for (int i = 0; i < int (reason.input_ids.size ()); i++) {
+//     printf ("%d. ", i);
+//     for (auto &id : reason.input_ids[i])
+//       printf ("%d(%d) ", id, pa.get (id));
+//     printf ("\n");
+//   }
+//   cout << "Output variables:" << endl;
+//   for (int i = 0; i < int (reason.output_ids.size ()); i++) {
+//     printf ("%d. ", i);
+//     for (auto &id : reason.output_ids[i])
+//       printf ("%d(%d) ", id, pa.get (id));
+//     printf ("\n");
+//   }
+//   cout << "Antecedent: ";
+//   for (auto &id : reason.antecedent)
+//     printf ("%d ", id);
+//   printf ("\n");
+// }
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
 #ifndef NDEBUG
@@ -335,13 +335,12 @@ int Propagator::cb_decide () {
   return lit;
 }
 
-void Propagator::custom_propagate () {
-  state.soft_refresh ();
+Differential
+Propagator::get_next_differential (set<uint32_t> &updated_vars) {
   struct Operation {
     FunctionId function_id;
     SoftWord *operands;
     vector<Word *> outputs;
-    // TODO: Unnecessary, can be derived from the vector sizes
     int input_size, output_size;
   };
 
@@ -398,382 +397,378 @@ void Propagator::custom_propagate () {
   };
 
   auto &pa = state.partial_assignment;
-  // printf ("Stack size: %ld\n", pa.updated_prop_vars.size ());
-  if (pa.updated_prop_vars.empty ())
-    return;
-  while (!pa.updated_prop_vars.empty ()) {
-    auto &var_id = *pa.updated_prop_vars.begin ();
-    pa.updated_prop_vars.erase (pa.updated_prop_vars.begin ());
-    // printf ("Var ID: %d (%ld remaining)\n", var_id,
-    //         pa.updated_prop_vars.size ());
-    auto &var_info_ops = state.vars_info[var_id].operations;
-    for (auto &var_info_op : var_info_ops) {
-      auto &op_id = get<0> (var_info_op);
-      auto &i = get<1> (var_info_op);
-      auto &j = get<2> (var_info_op);
+  if (updated_vars.empty ())
+    return Differential{};
 
-      auto operation = get_operation (op_id, i);
-      FunctionId &function_id = operation.function_id;
-      SoftWord *input_words = operation.operands;
-      vector<Word *> output_words = operation.outputs;
-      int input_size = operation.input_size,
-          output_size = operation.output_size;
-      auto function = function_id == maj    ? maj_
-                      : function_id == ch   ? ch_
-                      : function_id == xor3 ? xor_
-                                            : add_;
+  auto &var_id = *pa.updated_prop_vars.begin ();
+  pa.updated_prop_vars.erase (pa.updated_prop_vars.begin ());
+  // printf ("Var ID: %d (%ld remaining)\n", var_id,
+  //         pa.updated_prop_vars.size ());
+  auto &var_info_ops = state.vars_info[var_id].operations;
+  for (auto &var_info_op : var_info_ops) {
+    auto &op_id = get<0> (var_info_op);
+    auto &i = get<1> (var_info_op);
+    auto &j = get<2> (var_info_op);
 
-      Reason reason;
-      reason.input_ids.assign (input_size, {});
-      reason.output_ids.assign (output_size, {});
+    auto operation = get_operation (op_id, i);
+    FunctionId &function_id = operation.function_id;
+    SoftWord *input_words = operation.operands;
+    vector<Word *> output_words = operation.outputs;
+    int input_size = operation.input_size,
+        output_size = operation.output_size;
+    auto function = function_id == maj    ? maj_
+                    : function_id == ch   ? ch_
+                    : function_id == xor3 ? xor_
+                                          : add_;
 
-      string inputs;
-      for (int k = 0; k < input_size; k++) {
-        assert (input_words[k].chars[j] != NULL);
-        inputs += *(input_words[k].chars[j]);
-        reason.differential.first += inputs[k];
+    Differential diff;
+    diff.function = function;
+    diff.operation_id = op_id;
+    diff.step_index = i;
+    diff.bit_pos = j;
+
+    for (int x = 0; x < input_size; x++) {
+      auto &input_word = input_words[x];
+      assert (input_word.chars[j] != NULL);
+      diff.inputs += *(input_word.chars[j]);
+      diff.char_base_ids.first.push_back (input_word.char_ids[j]);
+
+      diff.table_values.first.push_back (gc_values (*input_word.chars[j]));
+      assert (diff.table_values.first[x] != 0);
+    }
+    assert (int (diff.inputs.size ()) == input_size);
+    assert (int (diff.char_base_ids.first.size ()) == input_size);
+    assert (int (diff.table_values.first.size ()) == input_size);
+
+    for (int x = 0; x < output_size; x++) {
+      auto &output_word = output_words[x];
+      diff.outputs += output_word->chars[j];
+      diff.char_base_ids.second.push_back (output_word->char_ids[j]);
+
+      diff.table_values.second.push_back (
+          gc_values (output_word->chars[j]));
+      assert (diff.table_values.second[x] != 0);
+    }
+    assert (int (diff.outputs.size ()) == output_size);
+    assert (int (diff.char_base_ids.second.size ()) == output_size);
+    assert (int (diff.table_values.second.size ()) == output_size);
+
+    return diff;
+  }
+
+  return Differential{};
+}
+
+void Propagator::custom_propagate () {
+  state.soft_refresh ();
+  while (true) {
+    Reason reason;
+    reason.differential =
+        get_next_differential (state.partial_assignment.updated_prop_vars);
+    auto &diff = reason.differential;
+    if (diff.inputs.empty ())
+      break;
+
+    // Has low carry only; no high carry
+    bool add_lc_only = diff.function == add_ && diff.outputs.size () == 2;
+    string prop_output =
+        otf_propagate (diff.function, diff.inputs,
+                       add_lc_only ? "0" + diff.outputs : diff.outputs);
+    if (add_lc_only)
+      prop_output = prop_output.substr (1, 2);
+
+    if (diff.outputs == prop_output)
+      continue;
+
+    // Construct the antecedent (part 1: inputs)
+    int zeroes_count = 0;
+    for (unsigned long x = 0; x < diff.inputs.size (); x++) {
+      // Count the const zeroes
+      bool is_zero = false;
+      if (diff.char_base_ids.first[x] == state.zero + 2) {
+        zeroes_count++;
+        is_zero = true;
       }
-      assert (int (reason.differential.first.size ()) == input_size);
 
-      string outputs;
-      for (int k = 0; k < output_size; k++)
-        outputs += output_words[k]->chars[j];
-      assert (int (outputs.size ()) == output_size);
-
-      // Has low carry only; no high carry
-      bool add_lc_only = function == add_ && output_size == 2;
-      string prop_output = otf_propagate (
-          function, inputs, add_lc_only ? "0" + outputs : outputs);
-      if (add_lc_only)
-        prop_output = prop_output.substr (1, 2);
-      for (int k = 0; k < output_size; k++)
-        reason.differential.second += prop_output[k];
-
-      if (outputs == prop_output)
+      // Don't add zeroes or '?'
+      if (diff.inputs[x] == '?' || is_zero)
         continue;
 
-      auto &pa = state.partial_assignment;
-      int zeroes_count = 0;
-      for (int x = 0; x < input_size; x++) {
-        auto &input_word = input_words[x];
-        vector<uint32_t> ids = {
-            input_word.ids_f[j],        input_word.ids_g[j],
-            input_word.char_ids[j] + 0, input_word.char_ids[j] + 1,
-            input_word.char_ids[j] + 2, input_word.char_ids[j] + 3};
-        for (auto &id : ids)
-          reason.input_ids[x].push_back (id);
-
-        bool is_zero = false;
-        if (ids[0] == uint32_t (state.zero)) {
-          is_zero = true;
-          zeroes_count++;
-        }
-
-        vector<uint8_t> values (6);
-        for (int y = 0; y < 6; y++)
-          values[y] = pa.get (ids[y]);
-
-        // Don't add zeroes or '?'
-        if (inputs[x] == '?' || is_zero)
+      // Add lits
+      for (int y = 0; y < 4; y++) {
+        auto &base_id = diff.char_base_ids.first[x];
+        if ((diff.table_values.first[x] >> y & 1) == 1)
           continue;
-
-        uint8_t table_values[4];
-        gc_values (inputs[x], table_values);
-
-        for (int y = 0; y < 4; y++) {
-          if (table_values[y] != 0)
-            continue;
-          assert (state.partial_assignment.get (ids[2 + y]) != LIT_UNDEF);
-          reason.antecedent.push_back (ids[2 + y]);
-        }
+        assert (state.partial_assignment.get (base_id + y) != LIT_UNDEF);
+        reason.antecedent.push_back (base_id + y);
       }
-      if (reason.antecedent.empty ())
+    }
+
+    if (reason.antecedent.empty ())
+      continue;
+
+    // Construct the antecedent (part 2: outputs)
+    vector<int> prop_lits;
+    for (unsigned long x = 0; x < diff.outputs.size (); x++) {
+      // Ignore the high carry if there's only a low carry
+      if (diff.function == add_ && diff.outputs.size () == 3 && x == 0 &&
+          (diff.inputs.size () - zeroes_count) < 4)
         continue;
 
-      vector<int> lits;
-      for (int x = 0; x < output_size; x++) {
-        auto &output_word = output_words[x];
-        vector<uint32_t> ids = {
-            output_word->char_ids[j] + 0, output_word->char_ids[j] + 1,
-            output_word->char_ids[j] + 2, output_word->char_ids[j] + 3};
-        assert (state.vars_info[ids[0]].identity.col == j);
-        reason.output_ids[x].push_back (output_word->ids_f[j]);
-        reason.output_ids[x].push_back (output_word->ids_g[j]);
-        for (int y = 0; y < 4; y++)
-          reason.output_ids[x].push_back (ids[y]);
-
-        // Ignore the high carry if there's only a low carry
-        if (function_id == add && output_size == 3 && x == 0 &&
-            (input_size - zeroes_count) < 4)
-          continue;
-
-        // Output antecedent
-        bool has_output_antecedent = false;
-        {
-          vector<uint8_t> values (4);
-          for (int y = 0; y < 4; y++)
-            values[y] = pa.get (ids[y]);
-
-          if (outputs[x] != '?') {
-            uint8_t table_values[4];
-            gc_values (outputs[x], table_values);
-
-            for (int y = 0; y < 4; y++) {
-              if (table_values[y] != 0)
-                continue;
-              reason.antecedent.push_back (ids[y]);
-              has_output_antecedent = true;
-              assert (state.partial_assignment.get (ids[y]) != LIT_UNDEF);
-            }
+      auto &table_values = diff.table_values.second[x];
+      bool has_output_antecedent = false;
+      {
+        if (diff.outputs[x] != '?') {
+          assert (table_values != 15);
+          for (int y = 0; y < 4; y++) {
+            auto &base_id = diff.char_base_ids.second[x];
+            if ((table_values >> y & 1) == 1)
+              continue;
+            reason.antecedent.push_back (base_id + y);
+            assert (state.partial_assignment.get (base_id + y) !=
+                    LIT_UNDEF);
+            has_output_antecedent = true;
           }
         }
-        assert (outputs[x] != '?' ? has_output_antecedent : true);
+      }
+      assert (diff.outputs[x] != '?' ? has_output_antecedent : true);
 
-        // TODO: Skip if the propagation derived more info
-        if (prop_output[x] == '?' || prop_output[x] == '#')
+      // TODO: Skip if the propagation derived more info
+      if (prop_output[x] == '?' || prop_output[x] == '#')
+        continue;
+
+      auto prop_table_values = gc_values (prop_output[x]);
+      for (int y = 0; y < 4; y++) {
+        int id = diff.char_base_ids.second[x] + y;
+
+        uint8_t value = prop_table_values >> y & 1;
+        if (value == 1)
           continue;
 
-        uint8_t values[4];
-        gc_values (prop_output[x], values);
-        // printf ("Output (%d): %s to %s\n", x, outputs.c_str (),
-        //         prop_output.c_str ());
-        for (int y = 0; y < 4; y++) {
-          int diff_id = ids[y];
-          if (pa.get (diff_id) != LIT_UNDEF)
-            continue;
-          if (values[y] == 1)
-            continue;
+        if (state.partial_assignment.get (id) != LIT_UNDEF)
+          continue;
 
-          int sign = values[y] == 1 ? 1 : -1;
-          int lit = sign * diff_id;
+        int sign = value == 1 ? 1 : -1;
+        int lit = sign * id;
 
-          propagation_lits.push_back (lit);
-          lits.push_back (lit);
-
-          assert (pa.get_ (diff_id) == pa.get (diff_id));
-          // printf ("Adding propagation lit: %d (%d)\n", lit,
-          // int (pa.get (diff_id)));
-        }
+        propagation_lits.push_back (lit);
+        prop_lits.push_back (lit);
       }
-      // if (lits.size () > 0) {
-      //   printf ("Reasons for: ");
-      //   for (auto &lit : lits)
-      //     printf ("%d ", lit);
-      //   printf ("\n");
-
-      //   print_reason (reason, state);
-      // }
-
-      for (auto &lit : lits)
-        reasons[lit] = reason;
     }
+
+    diff.outputs = prop_output;
+
+    for (auto &lit : prop_lits)
+      reasons[lit] = reason;
 
     if (!propagation_lits.empty ())
       break;
   }
 }
 
-bool Propagator::custom_block () {
-  state.soft_refresh ();
-  two_bit = TwoBit{};
-  // printf ("Cleared two-bit\n");
+// bool Propagator::custom_block () {
+//   state.soft_refresh ();
+//   two_bit = TwoBit{};
+//   // printf ("Cleared two-bit\n");
 
-  struct Operation {
-    FunctionId function_id;
-    SoftWord *operands;
-    vector<Word *> outputs;
-    int input_size, output_size;
-    string mask;
-  };
+//   struct Operation {
+//     FunctionId function_id;
+//     SoftWord *operands;
+//     vector<Word *> outputs;
+//     int input_size, output_size;
+//     string mask;
+//   };
 
-  for (int i = 0; i < state.order; i++) {
-    auto &ops = state.operations[i];
-    auto &step = state.steps[i];
+//   for (int i = 0; i < state.order; i++) {
+//     auto &ops = state.operations[i];
+//     auto &step = state.steps[i];
 
-    vector<Operation> operations = {
-        {maj, ops.maj.inputs, {&step.maj}, 3, 1, "+++."},
-        {ch, ops.ch.inputs, {&step.ch}, 3, 1, "+++."},
-        {xor3, ops.sigma0.inputs, {&step.sigma0}, 3, 1, "+++."},
-        {xor3, ops.sigma1.inputs, {&step.sigma1}, 3, 1, "+++."},
-        {add,
-         ops.add_e.inputs,
-         {&step.add_e_r[0], &state.steps[ABS_STEP (i)].e},
-         3,
-         2,
-         "++..+"},
-        {add,
-         ops.add_t.inputs,
-         {&step.add_t_r[1], &step.add_t_r[0], &step.t},
-         7,
-         3,
-         "+...+....+"},
-        {add,
-         ops.add_a.inputs,
-         {&step.add_a_r[1], &step.add_a_r[0], &state.steps[ABS_STEP (i)].a},
-         5,
-         3,
-         "+......+"}};
-    if (i >= 16) {
-      operations.push_back (
-          {xor3, ops.s0.inputs, {&step.s0}, 3, 1, "+++."});
-      operations.push_back (
-          {xor3, ops.s1.inputs, {&step.s1}, 3, 1, "+++."});
-      operations.push_back ({add,
-                             ops.add_w.inputs,
-                             {&step.add_w_r[1], &step.add_w_r[0], &step.w},
-                             6,
-                             3,
-                             ".+.+....+"});
-    }
-    for (auto &operation : operations) {
-      FunctionId &function_id = operation.function_id;
-      SoftWord *input_words = operation.operands;
-      vector<Word *> output_words = operation.outputs;
-      int input_size = operation.input_size,
-          output_size = operation.output_size;
-      string mask = operation.mask;
-      auto function = function_id == maj    ? maj_
-                      : function_id == ch   ? ch_
-                      : function_id == xor3 ? xor_
-                                            : add_;
-      for (int j = 0; j < 32; j++) {
-        assert (int (mask.size ()) == input_size + output_size);
-        vector<uint32_t> char_base_ids;
+//     vector<Operation> operations = {
+//         {maj, ops.maj.inputs, {&step.maj}, 3, 1, "+++."},
+//         {ch, ops.ch.inputs, {&step.ch}, 3, 1, "+++."},
+//         {xor3, ops.sigma0.inputs, {&step.sigma0}, 3, 1, "+++."},
+//         {xor3, ops.sigma1.inputs, {&step.sigma1}, 3, 1, "+++."},
+//         {add,
+//          ops.add_e.inputs,
+//          {&step.add_e_r[0], &state.steps[ABS_STEP (i)].e},
+//          3,
+//          2,
+//          "++..+"},
+//         {add,
+//          ops.add_t.inputs,
+//          {&step.add_t_r[1], &step.add_t_r[0], &step.t},
+//          7,
+//          3,
+//          "+...+....+"},
+//         {add,
+//          ops.add_a.inputs,
+//          {&step.add_a_r[1], &step.add_a_r[0], &state.steps[ABS_STEP
+//          (i)].a}, 5, 3,
+//          "+......+"}};
+//     if (i >= 16) {
+//       operations.push_back (
+//           {xor3, ops.s0.inputs, {&step.s0}, 3, 1, "+++."});
+//       operations.push_back (
+//           {xor3, ops.s1.inputs, {&step.s1}, 3, 1, "+++."});
+//       operations.push_back ({add,
+//                              ops.add_w.inputs,
+//                              {&step.add_w_r[1], &step.add_w_r[0],
+//                              &step.w}, 6, 3,
+//                              ".+.+....+"});
+//     }
+//     for (auto &operation : operations) {
+//       FunctionId &function_id = operation.function_id;
+//       SoftWord *input_words = operation.operands;
+//       vector<Word *> output_words = operation.outputs;
+//       int input_size = operation.input_size,
+//           output_size = operation.output_size;
+//       string mask = operation.mask;
+//       auto function = function_id == maj    ? maj_
+//                       : function_id == ch   ? ch_
+//                       : function_id == xor3 ? xor_
+//                                             : add_;
+//       for (int j = 0; j < 32; j++) {
+//         assert (int (mask.size ()) == input_size + output_size);
+//         vector<uint32_t> char_base_ids;
 
-        string inputs;
-        for (int k = 0; k < input_size; k++) {
-          assert (input_words[k].chars[j] != NULL);
-          inputs += *(input_words[k].chars[j]);
-          char_base_ids.push_back (input_words[k].char_ids[j]);
-        }
+//         string inputs;
+//         for (int k = 0; k < input_size; k++) {
+//           assert (input_words[k].chars[j] != NULL);
+//           inputs += *(input_words[k].chars[j]);
+//           char_base_ids.push_back (input_words[k].char_ids[j]);
+//         }
 
-        string outputs;
-        for (int k = 0; k < output_size; k++) {
-          outputs += output_words[k]->chars[j];
-          char_base_ids.push_back (output_words[k]->char_ids[j]);
-        }
+//         string outputs;
+//         for (int k = 0; k < output_size; k++) {
+//           outputs += output_words[k]->chars[j];
+//           char_base_ids.push_back (output_words[k]->char_ids[j]);
+//         }
 
-        assert (int (char_base_ids.size ()) == input_size + output_size);
+//         assert (int (char_base_ids.size ()) == input_size + output_size);
 
-        auto equations =
-            otf_2bit_eqs (function, inputs, outputs, char_base_ids, mask);
-        // if (equations.size () > 0) {
-        //   printf ("%d %s %s\n", function_id, inputs.c_str (),
-        //           outputs.c_str ());
-        //   printf ("Char IDs: ");
-        //   for (auto &base_id : char_base_ids) {
-        //     for (int k = 0; k < 4; k++)
-        //       printf ("%d ", base_id + k);
-        //   }
-        //   printf ("\n");
+//         auto equations =
+//             otf_2bit_eqs (function, inputs, outputs, char_base_ids,
+//             mask);
+//         // if (equations.size () > 0) {
+//         //   printf ("%d %s %s\n", function_id, inputs.c_str (),
+//         //           outputs.c_str ());
+//         //   printf ("Char IDs: ");
+//         //   for (auto &base_id : char_base_ids) {
+//         //     for (int k = 0; k < 4; k++)
+//         //       printf ("%d ", base_id + k);
+//         //   }
+//         //   printf ("\n");
 
-        //   for (auto &equation : equations) {
-        //     printf ("Equation: %d %s %d\n", equation.char_ids[0],
-        //             equation.diff == 1 ? "=/=" : "=",
-        //             equation.char_ids[1]);
-        //   }
-        // }
-        string all_chars = inputs + outputs;
-        for (auto &equation : equations) {
-          two_bit.equations[0].push_back (equation);
-          if (two_bit.equation_vars.find (equation) ==
-              two_bit.equation_vars.end ())
-            two_bit.equation_vars[equation] = {};
-          int x = -1;
-          for (auto &base_id : char_base_ids) {
-            x++;
+//         //   for (auto &equation : equations) {
+//         //     printf ("Equation: %d %s %d\n", equation.char_ids[0],
+//         //             equation.diff == 1 ? "=/=" : "=",
+//         //             equation.char_ids[1]);
+//         //   }
+//         // }
+//         string all_chars = inputs + outputs;
+//         for (auto &equation : equations) {
+//           two_bit.equations[0].push_back (equation);
+//           if (two_bit.equation_vars.find (equation) ==
+//               two_bit.equation_vars.end ())
+//             two_bit.equation_vars[equation] = {};
+//           int x = -1;
+//           for (auto &base_id : char_base_ids) {
+//             x++;
 
-            if (all_chars[x] == '?')
-              continue;
+//             if (all_chars[x] == '?')
+//               continue;
 
-            // TODO: Ignore the high carry when input bits count <= 3
+//             // TODO: Ignore the high carry when input bits count <= 3
 
-            uint8_t values[4];
-            gc_values (all_chars[x], values);
-            for (int k = 0; k < 4; k++) {
-              if (values[k] == 1)
-                continue;
+//             uint8_t values;
+//             gc_values (all_chars[x], values);
+//             for (int k = 0; k < 4; k++) {
+//               if ((values >> k & 1) == 1)
+//                 continue;
 
-              int var = base_id + k;
-              assert (state.partial_assignment.get (var) == LIT_FALSE);
-              // Ignore the zero vars to reduce the clause size
-              if (var >= state.zero && var < state.zero + 6)
-                continue;
-              two_bit.equation_vars[equation].push_back (var);
-            }
-          }
-          assert (!two_bit.equation_vars[equation].empty ());
+//               uint32_t var = base_id + k;
+//               assert (state.partial_assignment.get (var) == LIT_FALSE);
+//               // Ignore the zero vars to reduce the clause size
+//               if (var >= state.zero && var < state.zero + 6)
+//                 continue;
+//               two_bit.equation_vars[equation].push_back (var);
+//             }
+//           }
+//           assert (!two_bit.equation_vars[equation].empty ());
 
-          // Map the equation variables (if they don't exist)
-          for (int i = 0; i < 2; i++)
-            if (two_bit.aug_mtx_var_map.find (equation.char_ids[i]) ==
-                two_bit.aug_mtx_var_map.end ())
-              two_bit.aug_mtx_var_map[equation.char_ids[i]] =
-                  two_bit.aug_mtx_var_map.size ();
-        }
-      }
-    }
-  }
+//           // Map the equation variables (if they don't exist)
+//           for (int i = 0; i < 2; i++)
+//             if (two_bit.aug_mtx_var_map.find (equation.char_ids[i]) ==
+//                 two_bit.aug_mtx_var_map.end ())
+//               two_bit.aug_mtx_var_map[equation.char_ids[i]] =
+//                   two_bit.aug_mtx_var_map.size ();
+//         }
+//       }
+//     }
+//   }
 
-  bool has_clause = false;
-  // TODO: Add support for 2 blocks
-  for (int block_index = 0; block_index < 1; block_index++) {
-    auto confl_equations =
-        check_consistency (two_bit.equations[block_index], false);
-    bool is_consistent = confl_equations.empty ();
-    if (is_consistent)
-      continue;
+//   bool has_clause = false;
+//   // TODO: Add support for 2 blocks
+//   for (int block_index = 0; block_index < 1; block_index++) {
+//     auto confl_equations =
+//         check_consistency (two_bit.equations[block_index], false);
+//     bool is_consistent = confl_equations.empty ();
+//     if (is_consistent)
+//       continue;
 
-    // printf ("Equations in stash:\n");
-    // for (auto &eq : two_bit.equations[block_index]) {
-    //   printf ("%d %s %d\n", eq.char_ids[0], eq.diff == 1 ? "=/=" : "=",
-    //           eq.char_ids[1]);
-    // }
+//     // printf ("Equations in stash:\n");
+//     // for (auto &eq : two_bit.equations[block_index]) {
+//     //   printf ("%d %s %d\n", eq.char_ids[0], eq.diff == 1 ? "=/=" :
+//     "=",
+//     //           eq.char_ids[1]);
+//     // }
 
-    // printf ("Conflict equations (in %ld equations):\n",
-    //         two_bit.equations[block_index].size ());
-    // for (auto &eq : confl_equations)
-    //   printf ("%d %s %d\n", eq.char_ids[0], eq.diff == 1 ? "=/=" : "=",
-    //           eq.char_ids[1]);
+//     // printf ("Conflict equations (in %ld equations):\n",
+//     //         two_bit.equations[block_index].size ());
+//     // for (auto &eq : confl_equations)
+//     //   printf ("%d %s %d\n", eq.char_ids[0], eq.diff == 1 ? "=/=" :
+//     "=",
+//     //           eq.char_ids[1]);
 
-    // Block inconsistencies
-    block_inconsistency (two_bit, state.partial_assignment,
-                         external_clauses, block_index);
-    has_clause = true;
-    break;
-  }
-  // Keep only the shortest clause
-  if (has_clause) {
-    assert (!external_clauses.empty ());
-    int shortest_index = -1, shortest_length = INT_MAX;
-    for (int i = 0; i < int (external_clauses.size ()); i++) {
-      int size = external_clauses[i].size ();
-      if (size >= shortest_length)
-        continue;
+//     // Block inconsistencies
+//     block_inconsistency (two_bit, state.partial_assignment,
+//                          external_clauses, block_index);
+//     has_clause = true;
+//     break;
+//   }
+//   // Keep only the shortest clause
+//   if (has_clause) {
+//     assert (!external_clauses.empty ());
+//     int shortest_index = -1, shortest_length = INT_MAX;
+//     for (int i = 0; i < int (external_clauses.size ()); i++) {
+//       int size = external_clauses[i].size ();
+//       if (size >= shortest_length)
+//         continue;
 
-      shortest_length = size;
-      shortest_index = i;
-    }
-    auto clause = external_clauses[shortest_index];
-    assert (!clause.empty ());
-    external_clauses.clear ();
-    external_clauses.push_back (clause);
-    // printf ("Debug: keeping shortest clause of size %ld\n", clause.size
-    // ());
-    printf ("Blocking clause: ");
-    print (clause);
-  }
+//       shortest_length = size;
+//       shortest_index = i;
+//     }
+//     auto clause = external_clauses[shortest_index];
+//     assert (!clause.empty ());
+//     external_clauses.clear ();
+//     external_clauses.push_back (clause);
+//     // printf ("Debug: keeping shortest clause of size %ld\n",
+//     clause.size
+//     // ());
+//     printf ("Blocking clause: ");
+//     print (clause);
+//   }
 
-  return has_clause;
-}
+//   return has_clause;
+// }
 
 int Propagator::cb_propagate () {
   Timer time (&stats.total_cb_time);
   if (!propagation_lits.empty ())
     goto PROVIDE_LIT;
 
-  if (counter % 20 == 0)
-    custom_propagate ();
+  // if (counter % 20 == 0)
+  custom_propagate ();
 
   if (propagation_lits.empty ())
     return 0;
@@ -820,13 +815,9 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 
     // print_reason (reason, state);
 
-    assert (reason.differential.first.size () > 0);
-    assert (reason.differential.second.size () > 0);
+    assert (reason.differential.inputs.size () > 0);
+    assert (reason.differential.outputs.size () > 0);
     assert (reason.antecedent.size () > 0);
-    for (auto &ids : reason.input_ids)
-      assert (ids.size () == 6);
-    for (auto &ids : reason.output_ids)
-      assert (ids.size () == 6);
 
     // Populate the reason clause
     for (auto &lit : reason.antecedent) {
