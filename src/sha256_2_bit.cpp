@@ -101,11 +101,11 @@ void derive_two_bit_equations (TwoBit &two_bit, State &state) {
               vars.push_back (word->char_ids[col_index] + j);
           }
 
-          auto equation_vars_it = two_bit.equation_vars.find (equation);
-          if (equation_vars_it == two_bit.equation_vars.end ())
-            two_bit.equation_vars.insert ({equation, {}});
+          auto equation_vars_it = two_bit.eq_antecedents.find (equation);
+          if (equation_vars_it == two_bit.eq_antecedents.end ())
+            two_bit.eq_antecedents.insert ({equation, {}});
 
-          auto &equation_vars = two_bit.equation_vars[equation];
+          auto &equation_vars = two_bit.eq_antecedents[equation];
           assert (!vars.empty ());
           for (auto &var : vars)
             equation_vars.push_back (var);
@@ -457,8 +457,8 @@ bool block_inconsistency (TwoBit &two_bit,
       continue;
 
     auto &equation = two_bit.equations[block_index][eq_index];
-    auto eq_vars_result = two_bit.equation_vars.find (equation);
-    assert (eq_vars_result != two_bit.equation_vars.end ());
+    auto eq_vars_result = two_bit.eq_antecedents.find (equation);
+    assert (eq_vars_result != two_bit.eq_antecedents.end ());
 
     // printf ("Blocking equation: %d %s %d\n", equation.char_ids[0],
     //         equation.diff == 1 ? "=/=" : "=", equation.char_ids[1]);

@@ -152,37 +152,37 @@ vector<int> xor_ (vector<int> inputs) {
 
 uint8_t gc_values (char c) {
   uint8_t values = 0;
-  if (c == '?') {
+  if (c == '?')
     values = 15;
-  } else if (c == '-') {
+  else if (c == '-')
     values = 9;
-  } else if (c == 'x') {
+  else if (c == 'x')
     values = 6;
-  } else if (c == '0') {
+  else if (c == '0')
     values = 1;
-  } else if (c == 'u') {
+  else if (c == 'u')
     values = 2;
-  } else if (c == 'n') {
+  else if (c == 'n')
     values = 4;
-  } else if (c == '1') {
+  else if (c == '1')
     values = 8;
-  } else if (c == '3') {
+  else if (c == '3')
     values = 3;
-  } else if (c == '5') {
+  else if (c == '5')
     values = 5;
-  } else if (c == '7') {
+  else if (c == '7')
     values = 7;
-  } else if (c == 'A') {
+  else if (c == 'A')
     values = 10;
-  } else if (c == 'B') {
+  else if (c == 'B')
     values = 11;
-  } else if (c == 'C') {
+  else if (c == 'C')
     values = 12;
-  } else if (c == 'D') {
+  else if (c == 'D')
     values = 13;
-  } else if (c == 'E') {
+  else if (c == 'E')
     values = 14;
-  } else if (c == '#')
+  else if (c == '#')
     values = 0;
   else
     assert (true);

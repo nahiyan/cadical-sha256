@@ -35,6 +35,7 @@ struct Differential {
   OperationId operation_id;
   int step_index;
   int bit_pos;
+  string mask;
 };
 
 struct Reason {
