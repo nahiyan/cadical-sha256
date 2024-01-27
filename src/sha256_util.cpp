@@ -190,4 +190,26 @@ uint8_t gc_values (char c) {
   return values;
 }
 
+// Compare two characteristics by their scores
+bool compare_gcs (char c1, char c2) {
+  uint8_t scores[2];
+  auto get_score = [] (char c) -> uint8_t {
+    if (c == '?')
+      return 0;
+    if (c == '7' || c == 'B' || c == 'D' || c == 'E')
+      return 1;
+    if (c == '-' || c == 'x' || c == '3' || c == '5' || c == 'A' ||
+        c == 'C')
+      return 2;
+    if (c == '0' || c == 'u' || c == 'n' || c == '1')
+      return 3;
+
+    assert (c == '#');
+
+    return 4;
+  };
+
+  return get_score (c2) > get_score (c1);
+}
+
 } // namespace SHA256

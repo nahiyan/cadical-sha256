@@ -40,6 +40,7 @@ vector<int> ch_ (vector<int> inputs);
 vector<int> maj_ (vector<int> inputs);
 vector<int> xor_ (vector<int> inputs);
 uint8_t gc_values (char c);
+bool compare_gcs (char c1, char c2);
 } // namespace SHA256
 
 #endif

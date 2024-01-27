@@ -4,16 +4,16 @@
 
 namespace SHA256 {
 void State::set_operations () {
+  // TODO: Free up this heap allocation later
+  char *zero_char = new char;
+  *zero_char = '0';
+
   auto to_vec = [] (uint32_t *ids) {
     vector<uint32_t> vec (32);
     for (int i = 0; i < 32; i++)
       vec[i] = ids[i];
     return vec;
   };
-
-  // TODO: Free up this heap allocation later
-  char *zero_char = new char;
-  *zero_char = '0';
 
   auto to_soft_word = [this, zero_char] (Word &word, int shift = 0) {
     SoftWord soft_word;
@@ -65,6 +65,12 @@ void State::set_operations () {
             {op_id, step, pos});
     }
   };
+
+  // Set updated operations array
+  for (int i = 0; i < 10; i++)
+    for (int j = 0; j < 64; j++)
+      for (int k = 0; k < 32; k++)
+        marked_operations[i][j][k] = false;
 
   for (int i = 0; i < order; i++) {
     if (i >= 16) {

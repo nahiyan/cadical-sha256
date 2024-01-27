@@ -82,8 +82,7 @@ public:
   void custom_propagate ();
   void custom_branch ();
   bool custom_block ();
-  void get_next_differentials (set<uint32_t> &updated_vars,
-                               vector<Differential> &diffs);
+  void get_next_differentials (vector<Differential> &diffs);
 };
 } // namespace SHA256
 

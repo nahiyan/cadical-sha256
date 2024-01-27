@@ -1,6 +1,7 @@
 #include "sha256_state.hpp"
 #include "sha256.hpp"
 #include "sha256_propagate.hpp"
+#include "sha256_util.hpp"
 
 using namespace SHA256;
 
@@ -9,6 +10,7 @@ void State::refresh_char (Word &word, int &col) {
   auto &id_g = word.ids_g[col];
   auto &diff_id = word.char_ids[col];
   char &c = word.chars[col];
+  char c_before = c;
 
   if (id_f == 0 || id_g == 0 || diff_id == 0) {
     c = '?';
@@ -56,6 +58,21 @@ void State::refresh_char (Word &word, int &col) {
     c = 'E';
   else
     c = '?';
+
+  char c_after = c;
+  if (c_before == c_after)
+    return;
+  // Mark the operation if the new char has a higher score
+  if (c_before == '?' || compare_gcs (c_before, c_after)) {
+    auto &operations = vars_info[diff_id].operations;
+    for (auto &operation : operations) {
+      auto &op_id = get<0> (operation);
+      auto &step = get<1> (operation);
+      auto &pos = get<2> (operation);
+      marked_operations[op_id][step][pos] = true;
+      last_marked_op = {op_id, step, pos};
+    }
+  }
 }
 
 void State::refresh_word (Word &word) {

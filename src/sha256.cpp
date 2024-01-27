@@ -335,8 +335,7 @@ int Propagator::cb_decide () {
   return lit;
 }
 
-void Propagator::get_next_differentials (set<uint32_t> &updated_vars,
-                                         vector<Differential> &diffs) {
+void Propagator::get_next_differentials (vector<Differential> &diffs) {
   struct Operation {
     FunctionId function_id;
     SoftWord *operands;
@@ -403,74 +402,66 @@ void Propagator::get_next_differentials (set<uint32_t> &updated_vars,
     }
   };
 
-  auto &pa = state.partial_assignment;
-  if (updated_vars.empty ())
+  auto last_marked_op = state.last_marked_op;
+  if (get<1> (last_marked_op) == -1)
     return;
+  auto &op_id = get<0> (last_marked_op);
+  auto &i = get<1> (last_marked_op);
+  assert (i >= 0);
+  auto &j = get<2> (last_marked_op);
+  state.last_marked_op = {op_s0, -1, -1};
 
-  auto &var_id = *pa.updated_prop_vars.begin ();
-  pa.updated_prop_vars.erase (pa.updated_prop_vars.begin ());
-  // printf ("Var ID: %d (%ld remaining)\n", var_id,
-  //         pa.updated_prop_vars.size ());
-  auto &var_info_ops = state.vars_info[var_id].operations;
-  for (auto &var_info_op : var_info_ops) {
-    auto &op_id = get<0> (var_info_op);
-    auto &i = get<1> (var_info_op);
-    auto &j = get<2> (var_info_op);
+  auto operation = get_operation (op_id, i);
+  FunctionId &function_id = operation.function_id;
+  SoftWord *input_words = operation.operands;
+  vector<Word *> output_words = operation.outputs;
+  int input_size = operation.input_size,
+      output_size = operation.output_size;
+  auto function = function_id == maj    ? maj_
+                  : function_id == ch   ? ch_
+                  : function_id == xor3 ? xor_
+                                        : add_;
 
-    auto operation = get_operation (op_id, i);
-    FunctionId &function_id = operation.function_id;
-    SoftWord *input_words = operation.operands;
-    vector<Word *> output_words = operation.outputs;
-    int input_size = operation.input_size,
-        output_size = operation.output_size;
-    auto function = function_id == maj    ? maj_
-                    : function_id == ch   ? ch_
-                    : function_id == xor3 ? xor_
-                                          : add_;
+  Differential diff;
+  diff.function = function;
+  diff.operation_id = op_id;
+  diff.step_index = i;
+  diff.bit_pos = j;
+  diff.mask = operation.mask;
 
-    Differential diff;
-    diff.function = function;
-    diff.operation_id = op_id;
-    diff.step_index = i;
-    diff.bit_pos = j;
-    diff.mask = operation.mask;
+  for (int x = 0; x < input_size; x++) {
+    auto &input_word = input_words[x];
+    assert (input_word.chars[j] != NULL);
+    diff.inputs += *(input_word.chars[j]);
+    diff.char_base_ids.first.push_back (input_word.char_ids[j]);
 
-    for (int x = 0; x < input_size; x++) {
-      auto &input_word = input_words[x];
-      assert (input_word.chars[j] != NULL);
-      diff.inputs += *(input_word.chars[j]);
-      diff.char_base_ids.first.push_back (input_word.char_ids[j]);
-
-      diff.table_values.first.push_back (gc_values (*input_word.chars[j]));
-      assert (diff.table_values.first[x] != 0);
-    }
-    assert (int (diff.inputs.size ()) == input_size);
-    assert (int (diff.char_base_ids.first.size ()) == input_size);
-    assert (int (diff.table_values.first.size ()) == input_size);
-
-    for (int x = 0; x < output_size; x++) {
-      auto &output_word = output_words[x];
-      diff.outputs += output_word->chars[j];
-      diff.char_base_ids.second.push_back (output_word->char_ids[j]);
-
-      diff.table_values.second.push_back (
-          gc_values (output_word->chars[j]));
-      assert (diff.table_values.second[x] != 0);
-    }
-    assert (int (diff.outputs.size ()) == output_size);
-    assert (int (diff.char_base_ids.second.size ()) == output_size);
-    assert (int (diff.table_values.second.size ()) == output_size);
-
-    diffs.push_back (diff);
+    diff.table_values.first.push_back (gc_values (*input_word.chars[j]));
+    assert (diff.table_values.first[x] != 0);
   }
+  assert (int (diff.inputs.size ()) == input_size);
+  assert (int (diff.char_base_ids.first.size ()) == input_size);
+  assert (int (diff.table_values.first.size ()) == input_size);
+
+  for (int x = 0; x < output_size; x++) {
+    auto &output_word = output_words[x];
+    diff.outputs += output_word->chars[j];
+    diff.char_base_ids.second.push_back (output_word->char_ids[j]);
+
+    diff.table_values.second.push_back (gc_values (output_word->chars[j]));
+    assert (diff.table_values.second[x] != 0);
+  }
+  assert (int (diff.outputs.size ()) == output_size);
+  assert (int (diff.char_base_ids.second.size ()) == output_size);
+  assert (int (diff.table_values.second.size ()) == output_size);
+
+  diffs.push_back (diff);
 }
 
 void Propagator::custom_propagate () {
   state.soft_refresh ();
   while (true) {
     vector<Differential> diffs;
-    get_next_differentials (state.partial_assignment.updated_prop_vars,
-                            diffs);
+    get_next_differentials (diffs);
     if (diffs.empty ())
       return;
     for (auto &diff_ : diffs) {
@@ -580,8 +571,7 @@ bool Propagator::custom_block () {
   state.soft_refresh ();
   while (true) {
     vector<Differential> diffs;
-    get_next_differentials (state.partial_assignment.updated_prop_vars,
-                            diffs);
+    get_next_differentials (diffs);
     if (diffs.empty ())
       return false;
     for (auto &diff : diffs) {

@@ -151,15 +151,13 @@ class PartialAssignment {
 
 public:
   stack<uint32_t> updated_vars;
-  std::set<uint32_t> updated_prop_vars;
-  stack<uint32_t> updated_two_bit_vars;
   deque<vector<int>> *current_trail; // !Added for Debugging only
   VarInfo *vars_info;
 
-  PartialAssignment (int variables_count, deque<vector<int>> *current_trail,
+  PartialAssignment (int max_var_id, deque<vector<int>> *current_trail,
                      VarInfo *var_info) {
-    variables = new uint8_t[variables_count];
-    for (int i = 0; i < variables_count; i++)
+    variables = new uint8_t[max_var_id];
+    for (int i = 0; i < max_var_id; i++)
       variables[i] = LIT_UNDEF;
     this->current_trail = current_trail;
     this->vars_info = var_info;
@@ -170,9 +168,6 @@ public:
   void mark_updated_var (int id) {
     assert (id > 0);
     updated_vars.push (id);
-    if (vars_info[id].identity.name >= DA)
-      updated_prop_vars.insert (id);
-    // updated_two_bit_vars.push (id);
   }
 
   void set (int lit) {
@@ -225,6 +220,9 @@ public:
   VarInfo vars_info[MAX_VAR_ID];
   PartialAssignment partial_assignment =
       PartialAssignment (MAX_VAR_ID, &current_trail, vars_info);
+  // Operation ID, step index, bit position
+  bool marked_operations[10][64][32];
+  tuple<OperationId, int, int> last_marked_op = {op_s0, -1, -1};
 
   void hard_refresh (bool will_propagate = false);
   void soft_refresh ();
