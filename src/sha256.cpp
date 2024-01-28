@@ -14,13 +14,14 @@
 #include <string>
 
 #define CUSTOM_BRANCHING false
-#define BLOCK_INCONS false
+#define BLOCK_INCONS true
 
 using namespace SHA256;
 
 int Propagator::order = 0;
 State Propagator::state = State ();
 uint64_t counter = 0;
+uint64_t block_counter = 0;
 Stats Propagator::stats = Stats{0, 0, 0, 0};
 
 // void print_reason (Reason &reason, State &state) {
@@ -593,10 +594,12 @@ bool Propagator::custom_block () {
 
           // Replace the equations for this particular spot
           auto &op_eqs = two_bit.eqs_by_op[op_id][step_i][pos];
-          op_eqs = otf_2bit_eqs (diff.function, diff.inputs, diff.outputs,
-                                 char_base_ids, diff.mask);
+          op_eqs.clear ();
+          auto equations =
+              otf_2bit_eqs (diff.function, diff.inputs, diff.outputs,
+                            char_base_ids, diff.mask);
           string all_chars = diff.inputs + diff.outputs;
-          for (auto &equation : op_eqs) {
+          for (auto &equation : equations) {
             // Process inputs
             int const_zeroes_count = 0;
             for (int input_i = 0;
@@ -676,6 +679,8 @@ bool Propagator::custom_block () {
           if (skip)
             continue;
 
+          assert (!eq.antecedent.empty ());
+
           two_bit.eqs[0].insert (eq);
           eq_vars.insert (eq.char_ids[0]);
           eq_vars.insert (eq.char_ids[1]);
@@ -683,6 +688,8 @@ bool Propagator::custom_block () {
 
   if (two_bit.eqs[0].empty ())
     return false;
+
+  assert (!eq_vars.empty ());
 
   // Form the augmented matrix
   // Used to map the augmented matrix variable IDs
@@ -818,10 +825,10 @@ bool Propagator::cb_has_external_clause () {
   Timer time (&stats.total_cb_time);
 
 #if BLOCK_INCONS
-  // Check for 2-bit inconsistencies here
-  // if (counter % 20 != 0)
+  // if (++block_counter % 20 != 0)
   //   return false;
 
+  // Check for 2-bit inconsistencies here
   return custom_block ();
 #else
   if (!external_clauses.empty ())

@@ -452,10 +452,9 @@ bool block_inconsistency (TwoBit &two_bit,
   //         inconsistent_eq_n, sum_dec_from_bin (inconsistency_deref));
 
   std::set<int> confl_clause_lits;
-  int eq_index = -1;
+  int eq_index = 0;
   for (auto &equation : two_bit.eqs[block_index]) {
-    eq_index++;
-    if (inconsistency_deref[eq_index] == 0)
+    if (inconsistency_deref[eq_index++] == 0)
       continue;
 
     // printf ("Blocking equation: %d %s %d\n", equation.char_ids[0],
