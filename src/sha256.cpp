@@ -82,7 +82,7 @@ void Propagator::parse_comment_line (string line,
 
     return;
   } else if (key == "zero_g") {
-    state.zero = value;
+    state.zero_var_id = value;
     assert (value != 0);
     for (int i = 0; i < 6; i++)
       solver->add_observed_var (value + i);
@@ -335,7 +335,9 @@ int Propagator::cb_decide () {
   return lit;
 }
 
-void Propagator::get_next_differentials (vector<Differential> &diffs) {
+void Propagator::get_differential (OperationId op_id, int step_i,
+                                   int bit_pos,
+                                   vector<Differential> &diffs) {
   struct Operation {
     FunctionId function_id;
     SoftWord *operands;
@@ -381,13 +383,13 @@ void Propagator::get_next_differentials (vector<Differential> &diffs) {
                        3,
                        "+......+"};
     case op_add_e:
-      return Operation{
-          add,
-          ops.add_e.inputs,
-          {&step.add_e_r[0], &state.steps[ABS_STEP (step_i)].e},
-          3,
-          2,
-          "++..+"};
+      return Operation{add,
+                       ops.add_e.inputs,
+                       {&state.zero_word, &step.add_e_r[0],
+                        &state.steps[ABS_STEP (step_i)].e},
+                       3,
+                       3,
+                       "++...+"};
     case op_add_t:
       return Operation{add,
                        ops.add_t.inputs,
@@ -397,21 +399,12 @@ void Propagator::get_next_differentials (vector<Differential> &diffs) {
                        "+...+....+"};
     default:
       // This condition shouldn't be met
-      assert (true);
+      assert (false);
       return Operation{};
     }
   };
 
-  auto last_marked_op = state.last_marked_op;
-  if (get<1> (last_marked_op) == -1)
-    return;
-  auto &op_id = get<0> (last_marked_op);
-  auto &i = get<1> (last_marked_op);
-  assert (i >= 0);
-  auto &j = get<2> (last_marked_op);
-  state.last_marked_op = {op_s0, -1, -1};
-
-  auto operation = get_operation (op_id, i);
+  auto operation = get_operation (op_id, step_i);
   FunctionId &function_id = operation.function_id;
   SoftWord *input_words = operation.operands;
   vector<Word *> output_words = operation.outputs;
@@ -421,6 +414,8 @@ void Propagator::get_next_differentials (vector<Differential> &diffs) {
                   : function_id == ch   ? ch_
                   : function_id == xor3 ? xor_
                                         : add_;
+  auto &i = step_i;
+  auto &j = bit_pos;
 
   Differential diff;
   diff.function = function;
@@ -460,8 +455,14 @@ void Propagator::get_next_differentials (vector<Differential> &diffs) {
 void Propagator::custom_propagate () {
   state.soft_refresh ();
   while (true) {
+    auto &step_i = get<1> (state.last_marked_op);
+    if (get<1> (state.last_marked_op) == -1)
+      return;
+    auto &op_id = get<0> (state.last_marked_op);
+    auto &bit_pos = get<2> (state.last_marked_op);
     vector<Differential> diffs;
-    get_next_differentials (diffs);
+    get_differential (op_id, step_i, bit_pos, diffs);
+    state.last_marked_op = {op_s0, -1, -1};
     if (diffs.empty ())
       return;
     for (auto &diff_ : diffs) {
@@ -470,34 +471,28 @@ void Propagator::custom_propagate () {
       auto &diff = reason.differential;
       assert (!diff.inputs.empty ());
 
-      // Has low carry only; no high carry
-      bool add_lc_only = diff.function == add_ && diff.outputs.size () == 2;
       string prop_output =
-          otf_propagate (diff.function, diff.inputs,
-                         add_lc_only ? "0" + diff.outputs : diff.outputs);
-      if (add_lc_only)
-        prop_output = prop_output.substr (1, 2);
-
+          otf_propagate (diff.function, diff.inputs, diff.outputs);
       if (diff.outputs == prop_output)
         continue;
 
-      // Construct the antecedent (part 1: inputs)
-      int zeroes_count = 0;
+      // Construct the antecedent with inputs
+      int const_zeroes_count = 0;
       for (unsigned long x = 0; x < diff.inputs.size (); x++) {
         // Count the const zeroes
-        bool is_zero = false;
-        if (diff.char_base_ids.first[x] == state.zero + 2) {
-          zeroes_count++;
-          is_zero = true;
+        bool is_const_zero = false;
+        if (diff.char_base_ids.first[x] == state.zero_var_id + 2) {
+          const_zeroes_count++;
+          is_const_zero = true;
         }
 
         // Don't add zeroes or '?'
-        if (diff.inputs[x] == '?' || is_zero)
+        if (diff.inputs[x] == '?' || is_const_zero)
           continue;
 
         // Add lits
+        auto &base_id = diff.char_base_ids.first[x];
         for (int y = 0; y < 4; y++) {
-          auto &base_id = diff.char_base_ids.first[x];
           if ((diff.table_values.first[x] >> y & 1) == 1)
             continue;
           assert (state.partial_assignment.get (base_id + y) != LIT_UNDEF);
@@ -508,12 +503,15 @@ void Propagator::custom_propagate () {
       if (reason.antecedent.empty ())
         continue;
 
-      // Construct the antecedent (part 2: outputs)
+      // Construct the antecedent with outputs
       vector<int> prop_lits;
       for (unsigned long x = 0; x < diff.outputs.size (); x++) {
-        // Ignore the high carry if there's only a low carry
-        if (diff.function == add_ && diff.outputs.size () == 3 && x == 0 &&
-            (diff.inputs.size () - zeroes_count) < 4)
+        // // Ignore the high carry if there's only a low carry
+        if (diff.function == add_ && x == 0 &&
+            (diff.inputs.size () - const_zeroes_count) < 4)
+          continue;
+
+        if (diff.char_base_ids.second[x] == state.zero_var_id + 2)
           continue;
 
         auto &table_values = diff.table_values.second[x];
@@ -569,64 +567,106 @@ void Propagator::custom_propagate () {
 
 bool Propagator::custom_block () {
   state.soft_refresh ();
-  while (true) {
-    vector<Differential> diffs;
-    get_next_differentials (diffs);
-    if (diffs.empty ())
-      return false;
-    for (auto &diff : diffs) {
-      auto char_base_ids = diff.char_base_ids.first;
-      copy (diff.char_base_ids.second.begin (),
-            diff.char_base_ids.second.end (), char_base_ids.end ());
-      auto equations =
-          otf_2bit_eqs (diff.function, diff.inputs, diff.outputs,
-                        char_base_ids, diff.mask);
+  for (int op_id = 0; op_id < 10; op_id++)
+    for (int step_i = 0; step_i < state.order; step_i++)
+      for (int bit_pos = 0; bit_pos < 32; bit_pos++) {
+        auto &marked_op =
+            state.marked_operations[(OperationId) op_id][step_i][bit_pos];
+        if (!marked_op)
+          continue;
+        vector<Differential> diffs;
+        get_differential ((OperationId) op_id, step_i, bit_pos, diffs);
+        marked_op = false;
+        if (diffs.empty ())
+          break;
+        for (auto &diff : diffs) {
+          auto char_base_ids = diff.char_base_ids.first;
+          char_base_ids.insert (char_base_ids.end (),
+                                diff.char_base_ids.second.begin (),
+                                diff.char_base_ids.second.end ());
+          assert (diff.char_base_ids.first.size () +
+                      diff.char_base_ids.second.size () ==
+                  char_base_ids.size ());
+          auto &op_id = diff.operation_id;
+          auto &step_i = diff.step_index;
+          auto &pos = diff.bit_pos;
 
-      string all_chars = diff.inputs + diff.outputs;
-      for (auto &equation : equations) {
-        two_bit.equations[0].push_back (equation);
-        if (two_bit.eq_antecedents.find (equation) ==
-            two_bit.eq_antecedents.end ())
-          two_bit.eq_antecedents[equation] = {};
-        int x = -1;
-        for (auto &base_id : char_base_ids) {
-          x++;
+          // Replace the equations for this particular spot
+          auto &op_eqs = two_bit.eqs_by_op[op_id][step_i][pos];
+          op_eqs = otf_2bit_eqs (diff.function, diff.inputs, diff.outputs,
+                                 char_base_ids, diff.mask);
+          string all_chars = diff.inputs + diff.outputs;
+          for (auto &equation : op_eqs) {
+            int x = -1;
+            // printf ("Start\n");
+            for (auto &base_id : char_base_ids) {
+              x++;
 
-          if (all_chars[x] == '?')
-            continue;
+              if (all_chars[x] == '?')
+                continue;
 
-          // TODO: Ignore the high carry when input bits count <= 3
+              // Ignore the zero vars to reduce the clause size
+              if (base_id == state.zero_var_id + 2)
+                continue;
 
-          uint8_t values = gc_values (all_chars[x]);
-          for (int k = 0; k < 4; k++) {
-            if ((values >> k & 1) == 1)
-              continue;
+              // TODO: Ignore the high carry when input bits count <= 3
 
-            uint32_t var = base_id + k;
-            assert (state.partial_assignment.get (var) == LIT_FALSE);
-            // Ignore the zero vars to reduce the clause size
-            if (var >= state.zero && var < state.zero + 6)
-              continue;
-            two_bit.eq_antecedents[equation].push_back (var);
+              uint8_t values = gc_values (all_chars[x]);
+              // printf ("%d\n", values);
+              for (int k = 0; k < 4; k++) {
+                if ((values >> k & 1) == 1)
+                  continue;
+
+                uint32_t var = base_id + k;
+                assert (state.partial_assignment.get (var) == LIT_FALSE);
+                equation.antecedent.push_back (var);
+              }
+            }
+            assert (!equation.antecedent.empty ());
+            op_eqs.push_back (equation);
           }
         }
-        assert (!two_bit.eq_antecedents[equation].empty ());
-
-        // Map the equation variables (if they don't exist)
-        for (int i = 0; i < 2; i++)
-          if (two_bit.aug_mtx_var_map.find (equation.char_ids[i]) ==
-              two_bit.aug_mtx_var_map.end ())
-            two_bit.aug_mtx_var_map[equation.char_ids[i]] =
-                two_bit.aug_mtx_var_map.size ();
       }
-    }
+
+  // Collect all the equations
+  two_bit.eqs[0].clear ();
+  set<uint32_t> eq_vars;
+  for (auto op_id = 0; op_id < 10; op_id++)
+    for (auto step_i = 0; step_i < state.order; step_i++)
+      for (auto pos = 0; pos < 32; pos++)
+        for (auto &eq : two_bit.eqs_by_op[op_id][step_i][pos]) {
+          // Check if the antecedent is still valid
+          bool skip = false;
+          for (auto &lit : eq.antecedent)
+            if (state.partial_assignment.get (lit) != LIT_FALSE)
+              skip = true;
+          if (skip)
+            continue;
+
+          two_bit.eqs[0].insert (eq);
+          eq_vars.insert (eq.char_ids[0]);
+          eq_vars.insert (eq.char_ids[1]);
+        }
+
+  if (two_bit.eqs[0].empty ()) {
+    printf ("No equations\n");
+    return false;
   }
+
+  // Form the augmented matrix
+  // Used to map the augmented matrix variable IDs
+  two_bit.aug_mtx_var_map.clear ();
+  int id = 0;
+  for (auto &var : eq_vars)
+    two_bit.aug_mtx_var_map[var] = id++;
+
+  printf ("Equations: %ld\n", two_bit.eqs[0].size ());
 
   bool has_clause = false;
   // TODO: Add support for 2 blocks
   for (int block_index = 0; block_index < 1; block_index++) {
     auto confl_equations =
-        check_consistency (two_bit.equations[block_index], false);
+        check_consistency (two_bit.eqs[block_index], false);
     bool is_consistent = confl_equations.empty ();
     if (is_consistent)
       continue;
@@ -750,8 +790,8 @@ bool Propagator::cb_has_external_clause () {
 
 #if BLOCK_INCONS
   // Check for 2-bit inconsistencies here
-  if (counter % 20 != 0)
-    return false;
+  // if (counter % 20 != 0)
+  //   return false;
 
   return custom_block ();
 #else
@@ -789,110 +829,111 @@ int Propagator::cb_add_external_clause_lit () {
   return lit;
 }
 
-void Propagator::custom_branch () {
-  if (counter % 20 != 0)
-    return;
-  if (!decision_lits.empty ())
-    return;
+// void Propagator::custom_branch () {
+//   if (counter % 20 != 0)
+//     return;
+//   if (!decision_lits.empty ())
+//     return;
 
-  // state.refresh (false);
+//   // state.refresh (false);
 
-  // Refresh the state
-  state.soft_refresh ();
+//   // Refresh the state
+//   state.soft_refresh ();
 
-  auto rand_ground_x = [] (list<int> &decision_lits, Word &word, int &j) {
-    srand (clock () + j);
-    if (rand () % 2 == 0) {
-      // u
-      decision_lits.push_back (-(word.char_ids[j] + 0));
-      decision_lits.push_back ((word.char_ids[j] + 1));
-      decision_lits.push_back (-(word.char_ids[j] + 2));
-      decision_lits.push_back (-(word.char_ids[j] + 3));
-    } else {
-      // n
-      decision_lits.push_back (-(word.char_ids[j] + 0));
-      decision_lits.push_back (-(word.char_ids[j] + 1));
-      decision_lits.push_back ((word.char_ids[j] + 2));
-      decision_lits.push_back (-(word.char_ids[j] + 3));
-    }
-  };
-  auto ground_xnor = [] (list<int> &decision_lits, Word &word, int &j) {
-    decision_lits.push_back ((word.char_ids[j] + 0));
-    decision_lits.push_back (-(word.char_ids[j] + 1));
-    decision_lits.push_back (-(word.char_ids[j] + 2));
-    decision_lits.push_back ((word.char_ids[j] + 3));
-  };
+//   auto rand_ground_x = [] (list<int> &decision_lits, Word &word, int &j)
+//   {
+//     srand (clock () + j);
+//     if (rand () % 2 == 0) {
+//       // u
+//       decision_lits.push_back (-(word.char_ids[j] + 0));
+//       decision_lits.push_back ((word.char_ids[j] + 1));
+//       decision_lits.push_back (-(word.char_ids[j] + 2));
+//       decision_lits.push_back (-(word.char_ids[j] + 3));
+//     } else {
+//       // n
+//       decision_lits.push_back (-(word.char_ids[j] + 0));
+//       decision_lits.push_back (-(word.char_ids[j] + 1));
+//       decision_lits.push_back ((word.char_ids[j] + 2));
+//       decision_lits.push_back (-(word.char_ids[j] + 3));
+//     }
+//   };
+//   auto ground_xnor = [] (list<int> &decision_lits, Word &word, int &j) {
+//     decision_lits.push_back ((word.char_ids[j] + 0));
+//     decision_lits.push_back (-(word.char_ids[j] + 1));
+//     decision_lits.push_back (-(word.char_ids[j] + 2));
+//     decision_lits.push_back ((word.char_ids[j] + 3));
+//   };
 
-  // Stage 1
-  for (int i = order - 1; i >= 0; i--) {
-    auto &w = state.steps[i].w;
-    for (int j = 0; j < 32; j++) {
-      auto &c = w.chars[j];
-      // Impose '-' for '?'
-      if (c == '?') {
-        ground_xnor (decision_lits, w, j);
-        return;
-      } else if (c == 'x') {
-        // Impose 'u' or 'n' for '?'
-        rand_ground_x (decision_lits, w, j);
-        return;
-      }
-    }
-  }
+//   // Stage 1
+//   for (int i = order - 1; i >= 0; i--) {
+//     auto &w = state.steps[i].w;
+//     for (int j = 0; j < 32; j++) {
+//       auto &c = w.chars[j];
+//       // Impose '-' for '?'
+//       if (c == '?') {
+//         ground_xnor (decision_lits, w, j);
+//         return;
+//       } else if (c == 'x') {
+//         // Impose 'u' or 'n' for '?'
+//         rand_ground_x (decision_lits, w, j);
+//         return;
+//       }
+//     }
+//   }
 
-  // printf ("Stage 2\n");
+//   // printf ("Stage 2\n");
 
-  // Stage 2
-  for (int i = -4; i < order; i++) {
-    auto &a = state.steps[ABS_STEP (i)].a;
-    auto &e = state.steps[ABS_STEP (i)].e;
-    for (int j = 0; j < 32; j++) {
-      auto &a_c = a.chars[j];
-      auto &e_c = e.chars[j];
-      if (a_c == '?') {
-        ground_xnor (decision_lits, a, j);
-        return;
-      } else if (a_c == 'x') {
-        rand_ground_x (decision_lits, a, j);
-        return;
-      } else if (e_c == '?') {
-        ground_xnor (decision_lits, e, j);
-        return;
-      } else if (e_c == 'x') {
-        rand_ground_x (decision_lits, e, j);
-        return;
-      }
-    }
-  }
+//   // Stage 2
+//   for (int i = -4; i < order; i++) {
+//     auto &a = state.steps[ABS_STEP (i)].a;
+//     auto &e = state.steps[ABS_STEP (i)].e;
+//     for (int j = 0; j < 32; j++) {
+//       auto &a_c = a.chars[j];
+//       auto &e_c = e.chars[j];
+//       if (a_c == '?') {
+//         ground_xnor (decision_lits, a, j);
+//         return;
+//       } else if (a_c == 'x') {
+//         rand_ground_x (decision_lits, a, j);
+//         return;
+//       } else if (e_c == '?') {
+//         ground_xnor (decision_lits, e, j);
+//         return;
+//       } else if (e_c == 'x') {
+//         rand_ground_x (decision_lits, e, j);
+//         return;
+//       }
+//     }
+//   }
 
-  // printf ("Stage 3\n");
+//   // printf ("Stage 3\n");
 
-  // Stage 3
-#if BLOCK_INCONS == false
-  two_bit = TwoBit{};
-  derive_two_bit_equations (two_bit, state);
-#endif
-  for (auto &entry : two_bit.bit_constraints_count) {
-    uint32_t ids[] = {get<0> (entry.first), get<1> (entry.first),
-                      get<2> (entry.first)};
-    uint32_t values[] = {state.partial_assignment.get (ids[0]),
-                         state.partial_assignment.get (ids[1]),
-                         state.partial_assignment.get (ids[2])};
-    if (values[2] == LIT_FALSE) {
-      // Impose '-'
-      srand (clock ());
-      if (rand () % 2 == 0) {
-        decision_lits.push_back (ids[0]);
-        decision_lits.push_back (ids[1]);
-      } else {
-        decision_lits.push_back (-ids[0]);
-        decision_lits.push_back (-ids[1]);
-      }
-      // printf ("Stage 3: guess\n");
-      return;
-    }
-  }
-}
+//   // Stage 3
+// #if BLOCK_INCONS == false
+//   two_bit = TwoBit{};
+//   derive_two_bit_equations (two_bit, state);
+// #endif
+//   for (auto &entry : two_bit.bit_constraints_count) {
+//     uint32_t ids[] = {get<0> (entry.first), get<1> (entry.first),
+//                       get<2> (entry.first)};
+//     uint32_t values[] = {state.partial_assignment.get (ids[0]),
+//                          state.partial_assignment.get (ids[1]),
+//                          state.partial_assignment.get (ids[2])};
+//     if (values[2] == LIT_FALSE) {
+//       // Impose '-'
+//       srand (clock ());
+//       if (rand () % 2 == 0) {
+//         decision_lits.push_back (ids[0]);
+//         decision_lits.push_back (ids[1]);
+//       } else {
+//         decision_lits.push_back (-ids[0]);
+//         decision_lits.push_back (-ids[1]);
+//       }
+//       // printf ("Stage 3: guess\n");
+//       return;
+//     }
+//   }
+// }
 
 // !Debug
 // void test_equations (vector<Equation> &equations, State &state) {

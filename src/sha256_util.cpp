@@ -78,6 +78,12 @@ void print (vector<int> &vec) {
   printf ("\n");
 }
 
+void print (vector<uint32_t> &vec) {
+  for (auto &lit : vec)
+    printf ("%d ", lit);
+  printf ("\n");
+}
+
 // Function to calculate the Cartesian product of multiple vectors of
 // characters
 vector<string> cartesian_product (vector<vector<char>> input) {

@@ -47,7 +47,6 @@ class Propagator : CaDiCaL::ExternalPropagator {
   CaDiCaL::Solver *solver;
   static int order;
   static State state;
-  vector<Equation> two_bit_eqs;
   vector<int> propagation_lits;
   vector<int> reason_clause;
   map<int, Reason> reasons;
@@ -82,7 +81,8 @@ public:
   void custom_propagate ();
   void custom_branch ();
   bool custom_block ();
-  void get_next_differentials (vector<Differential> &diffs);
+  void get_differential (OperationId op_id, int step_i, int bit_pos,
+                         vector<Differential> &diffs);
 };
 } // namespace SHA256
 

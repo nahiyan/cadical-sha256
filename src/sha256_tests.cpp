@@ -199,21 +199,21 @@ void test_otf_2bit_eqs () {
 
 void test_consis_checker () {
   TwoBit two_bit;
-  auto &equations = two_bit.equations[0];
-  equations.push_back (Equation{{1, 2}, 0});
-  equations.push_back (Equation{{2, 3}, 0});
-  equations.push_back (Equation{{3, 4}, 0});
-  equations.push_back (Equation{{4, 1}, 1});
-  equations.push_back (Equation{{100, 101}, 1});
-  equations.push_back (Equation{{101, 102}, 0});
-  equations.push_back (Equation{{102, 103}, 0});
-  equations.push_back (Equation{{103, 100}, 0});
-  auto conflict_eqs = check_consistency (two_bit.equations[0], true);
-  assert (!conflict_eqs.empty ());
-  assert (conflict_eqs[0].char_ids[0] == 4 &&
-          conflict_eqs[0].char_ids[1] == 1 && conflict_eqs[0].diff == 1);
-  assert (conflict_eqs[1].char_ids[0] == 103 &&
-          conflict_eqs[1].char_ids[1] == 100 && conflict_eqs[1].diff == 0);
+  auto &equations = two_bit.eqs[0];
+  equations.insert (Equation{{1, 2}, 0});
+  equations.insert (Equation{{2, 3}, 0});
+  equations.insert (Equation{{3, 4}, 0});
+  equations.insert (Equation{{1, 4}, 1});
+  equations.insert (Equation{{100, 101}, 1});
+  equations.insert (Equation{{101, 102}, 0});
+  equations.insert (Equation{{102, 103}, 0});
+  equations.insert (Equation{{100, 103}, 0});
+  auto conflict_eqs = check_consistency (two_bit.eqs[0], true);
+  assert (conflict_eqs.size () == 2);
+  assert (conflict_eqs[0].char_ids[0] == 1 &&
+          conflict_eqs[0].char_ids[1] == 4 && conflict_eqs[0].diff == 1);
+  assert (conflict_eqs[1].char_ids[0] == 100 &&
+          conflict_eqs[1].char_ids[1] == 101 && conflict_eqs[1].diff == 1);
 }
 
 void run_tests () {

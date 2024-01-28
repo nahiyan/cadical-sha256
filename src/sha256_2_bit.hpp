@@ -26,6 +26,7 @@ struct Equation {
   // The equations are represented by their delta IDs
   uint32_t char_ids[2];
   uint8_t diff;
+  vector<uint32_t> antecedent = {};
 
   bool operator< (const Equation &other) const {
     if (diff != other.diff)
@@ -39,20 +40,17 @@ struct Equation {
   }
 };
 struct TwoBit {
-  vector<Equation> equations[2];
-  list<Equation> equations_list;
+  // list<Equation> equations[2];
+  vector<Equation> eqs_by_op[10][64][32];
+  set<Equation> eqs[2];
   map<int, int> aug_mtx_var_map;
-  // Equations and their antecedents
-  map<Equation, vector<int>> eq_antecedents;
-  // Access equation positions by var
-  vector<int> eq_positions_by_var[MAX_VAR_ID];
   // TODO: Use a sorted set of pairs
   map<tuple<uint32_t, uint32_t, uint32_t>, int> bit_constraints_count;
 };
 
 void load_two_bit_rules (const char *filename);
-void derive_two_bit_equations (TwoBit &two_bit, State &state);
-vector<Equation> check_consistency (vector<Equation> &equations,
+// void derive_two_bit_equations (TwoBit &two_bit, State &state);
+vector<Equation> check_consistency (set<Equation> &equations,
                                     bool exhaustive);
 bool block_inconsistency (TwoBit &two_bit,
                           PartialAssignment &partial_assignment,

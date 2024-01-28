@@ -25,9 +25,9 @@ void State::set_operations () {
         soft_word.char_ids[i] = word.char_ids[shifted_pos];
         soft_word.chars[i] = &word.chars[shifted_pos];
       } else {
-        soft_word.ids_f[i] = zero;
-        soft_word.ids_g[i] = zero + 1;
-        soft_word.char_ids[i] = zero + 2;
+        soft_word.ids_f[i] = zero_var_id;
+        soft_word.ids_g[i] = zero_var_id + 1;
+        soft_word.char_ids[i] = zero_var_id + 2;
         soft_word.chars[i] = zero_char;
       }
     }
@@ -37,7 +37,7 @@ void State::set_operations () {
   auto add_var_info_sword = [this] (SoftWord *word, int step,
                                     OperationId op_id) {
     for (int pos = 0; pos < 32; pos++) {
-      if (word->ids_f[pos] == this->zero)
+      if (word->ids_f[pos] == this->zero_var_id)
         continue;
 
       this->vars_info[word->ids_f[pos]].operations.push_back (
@@ -53,7 +53,7 @@ void State::set_operations () {
   auto add_var_info_word = [this] (Word *word, int step,
                                    OperationId op_id) {
     for (int pos = 0; pos < 32; pos++) {
-      if (word->ids_f[pos] == this->zero)
+      if (word->ids_f[pos] == this->zero_var_id)
         continue;
 
       this->vars_info[word->ids_f[pos]].operations.push_back (
@@ -71,6 +71,14 @@ void State::set_operations () {
     for (int j = 0; j < 64; j++)
       for (int k = 0; k < 32; k++)
         marked_operations[i][j][k] = false;
+
+  // Zero word
+  for (int i = 0; i < 32; i++) {
+    zero_word.chars[i] = '0';
+    zero_word.ids_f[i] = zero_var_id;
+    zero_word.ids_g[i] = zero_var_id + 1;
+    zero_word.char_ids[i] = zero_var_id + 2;
+  }
 
   for (int i = 0; i < order; i++) {
     if (i >= 16) {
@@ -96,11 +104,11 @@ void State::set_operations () {
 
         for (int j = 0; j < 32; j++) {
           if (operands[2].ids_f[j] == 0)
-            operands[2].ids_f[j] = zero;
+            operands[2].ids_f[j] = zero_var_id;
           if (operands[2].ids_g[j] == 0)
-            operands[2].ids_g[j] = zero + 1;
+            operands[2].ids_g[j] = zero_var_id + 1;
           if (operands[2].char_ids[j] == 0)
-            operands[2].char_ids[j] = zero + 2;
+            operands[2].char_ids[j] = zero_var_id + 2;
         }
 
         for (int j = 0; j < 32; j++) {
@@ -140,11 +148,11 @@ void State::set_operations () {
 
         for (int j = 0; j < 32; j++) {
           if (operands[2].ids_f[j] == 0)
-            operands[2].ids_f[j] = zero;
+            operands[2].ids_f[j] = zero_var_id;
           if (operands[2].ids_g[j] == 0)
-            operands[2].ids_g[j] = zero + 1;
+            operands[2].ids_g[j] = zero_var_id + 1;
           if (operands[2].char_ids[j] == 0)
-            operands[2].char_ids[j] = zero + 2;
+            operands[2].char_ids[j] = zero_var_id + 2;
         }
 
         for (int j = 0; j < 32; j++) {
@@ -275,8 +283,8 @@ void State::set_operations () {
       for (int j = 0; j < 2; j++)
         operations[i].add_t.carries[j] = to_soft_word (steps[i].add_t_r[j]);
 
-      assert (operands[6].ids_f[31] == zero);
-      assert (operands[6].ids_f[30] == zero);
+      assert (operands[6].ids_f[31] == zero_var_id);
+      assert (operands[6].ids_f[30] == zero_var_id);
       assert (operands[6].ids_f[29] ==
               operations[i].add_t.carries[1].ids_f[31]);
       assert (operands[6].ids_f[0] ==
@@ -298,7 +306,7 @@ void State::set_operations () {
       operands[2] = to_soft_word (steps[i].add_e_r[0], 1);
       operations[i].add_e.carries[0] = to_soft_word (steps[i].add_e_r[0]);
 
-      assert (operands[2].ids_f[31] == zero);
+      assert (operands[2].ids_f[31] == zero_var_id);
       assert (operands[2].ids_f[30] ==
               operations[i].add_e.carries[0].ids_f[31]);
       assert (operands[2].ids_f[0] ==
@@ -319,11 +327,11 @@ void State::set_operations () {
       for (int j = 0; j < 2; j++)
         operations[i].add_a.carries[j] = to_soft_word (steps[i].add_a_r[j]);
 
-      assert (operands[4].ids_f[31] == zero);
-      assert (operands[4].ids_f[30] == zero);
-      assert (operands[4].ids_f[29] != zero);
-      assert (operands[3].ids_f[31] == zero);
-      assert (operands[3].ids_f[30] != zero);
+      assert (operands[4].ids_f[31] == zero_var_id);
+      assert (operands[4].ids_f[30] == zero_var_id);
+      assert (operands[4].ids_f[29] != zero_var_id);
+      assert (operands[3].ids_f[31] == zero_var_id);
+      assert (operands[3].ids_f[30] != zero_var_id);
       assert (operands[4].ids_f[29] ==
               operations[i].add_a.carries[1].ids_f[31]);
       assert (operands[4].ids_f[0] ==
