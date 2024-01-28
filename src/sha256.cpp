@@ -479,16 +479,16 @@ void Propagator::custom_propagate () {
       // Construct the antecedent with inputs
       int const_zeroes_count = 0;
       for (unsigned long x = 0; x < diff.inputs.size (); x++) {
+        if (diff.inputs[x] == '?')
+          continue;
+
         // Count the const zeroes
         bool is_const_zero = false;
         if (diff.char_base_ids.first[x] == state.zero_var_id + 2) {
           const_zeroes_count++;
           is_const_zero = true;
-        }
-
-        // Don't add zeroes or '?'
-        if (diff.inputs[x] == '?' || is_const_zero)
           continue;
+        }
 
         // Add lits
         auto &base_id = diff.char_base_ids.first[x];
@@ -506,7 +506,7 @@ void Propagator::custom_propagate () {
       // Construct the antecedent with outputs
       vector<int> prop_lits;
       for (unsigned long x = 0; x < diff.outputs.size (); x++) {
-        // // Ignore the high carry if there's only a low carry
+        // Ignore the high carry output if addends can't add up to >= 4
         if (diff.function == add_ && x == 0 &&
             (diff.inputs.size () - const_zeroes_count) < 4)
           continue;
@@ -597,22 +597,55 @@ bool Propagator::custom_block () {
                                  char_base_ids, diff.mask);
           string all_chars = diff.inputs + diff.outputs;
           for (auto &equation : op_eqs) {
-            int x = -1;
-            // printf ("Start\n");
-            for (auto &base_id : char_base_ids) {
-              x++;
-
-              if (all_chars[x] == '?')
+            // Process inputs
+            int const_zeroes_count = 0;
+            for (int input_i = 0;
+                 input_i < int (diff.char_base_ids.first.size ());
+                 input_i++) {
+              if (diff.inputs[input_i] == '?')
                 continue;
 
-              // Ignore the zero vars to reduce the clause size
+              bool is_const_zero = false;
+              auto &base_id = diff.char_base_ids.first[input_i];
+              if (base_id == state.zero_var_id + 2) {
+                const_zeroes_count++;
+                is_const_zero = true;
+                continue;
+              }
+
+              uint8_t values = gc_values (diff.inputs[input_i]);
+              for (int k = 0; k < 4; k++) {
+                if ((values >> k & 1) == 1)
+                  continue;
+
+                uint32_t var = base_id + k;
+                assert (state.partial_assignment.get (var) == LIT_FALSE);
+                equation.antecedent.push_back (var);
+              }
+            }
+
+            // Process outputs
+            for (int output_i = 0;
+                 output_i < int (diff.char_base_ids.second.size ());
+                 output_i++) {
+              if (diff.outputs[output_i] == '?')
+                continue;
+
+              // Ignore the high carry output if addends can't add up to >=
+              // 4
+              if (diff.function == add_ && output_i == 0 &&
+                  (diff.inputs.size () - const_zeroes_count) < 4)
+                continue;
+
+              if (diff.char_base_ids.second[output_i] ==
+                  state.zero_var_id + 2)
+                continue;
+
+              auto &base_id = diff.char_base_ids.second[output_i];
               if (base_id == state.zero_var_id + 2)
                 continue;
 
-              // TODO: Ignore the high carry when input bits count <= 3
-
-              uint8_t values = gc_values (all_chars[x]);
-              // printf ("%d\n", values);
+              uint8_t values = gc_values (diff.outputs[output_i]);
               for (int k = 0; k < 4; k++) {
                 if ((values >> k & 1) == 1)
                   continue;
@@ -648,10 +681,8 @@ bool Propagator::custom_block () {
           eq_vars.insert (eq.char_ids[1]);
         }
 
-  if (two_bit.eqs[0].empty ()) {
-    printf ("No equations\n");
+  if (two_bit.eqs[0].empty ())
     return false;
-  }
 
   // Form the augmented matrix
   // Used to map the augmented matrix variable IDs
@@ -659,8 +690,6 @@ bool Propagator::custom_block () {
   int id = 0;
   for (auto &var : eq_vars)
     two_bit.aug_mtx_var_map[var] = id++;
-
-  printf ("Equations: %ld\n", two_bit.eqs[0].size ());
 
   bool has_clause = false;
   // TODO: Add support for 2 blocks
