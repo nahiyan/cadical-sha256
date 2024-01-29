@@ -495,12 +495,17 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
   assert (inputs.size () + outputs.size () == char_ids.size ());
   assert (char_ids.size () == mask.size ());
 
+  FunctionId func_id = func == add_   ? add
+                       : func == xor_ ? xor3
+                       : func == maj_ ? maj
+                                      : ch;
+
   // Look in the cache
   bool is_cached = false;
   string cache_key;
   {
     stringstream ss;
-    ss << func << inputs << outputs;
+    ss << func_id << " " << inputs << " " << outputs;
     cache_key = ss.str ();
   }
   if (otf_2bit_cache.exists (cache_key)) {
