@@ -353,6 +353,82 @@ void State::set_operations () {
       add_var_info_word (&steps[i].a, i, op_add_a);
     }
   }
+
+  // {
+  //   auto var = 31134;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 31135;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 31142;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 31143;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 31144;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 36082;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 36083;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 36084;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+
+  // Isolation
+  // {
+  //   auto var = 30386;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 30387;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 30388;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 30396;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+  // {
+  //   auto var = 35067;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+
+  // {
+  //   auto var = 26368;
+  //   printf ("Var info: %d %d %d\n", vars_info[var].identity.name,
+  //           vars_info[var].identity.step, vars_info[var].identity.col);
+  // }
+
+  // exit (0);
 }
 
 void State::print_operations () {

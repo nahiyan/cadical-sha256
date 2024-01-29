@@ -56,8 +56,9 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   solver->connect_external_propagator (this);
   printf ("Connected!\n");
   state.current_trail.push_back (std::vector<int> ());
-  load_prop_rules ("prop-rules.db");
-  load_two_bit_rules ("2-bit-rules.db");
+  // load_prop_rules ("prop-rules.db");
+  // load_two_bit_rules ("2-bit-rules.db");
+
 #ifdef LOGGING
   printf ("Logging is enabled!\n");
 #endif
