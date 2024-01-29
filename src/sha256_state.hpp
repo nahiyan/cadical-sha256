@@ -227,7 +227,7 @@ public:
 
   void hard_refresh (bool will_propagate = false);
   void soft_refresh ();
-  void refresh_char (Word &word, int &i);
+  void refresh_char (Word &word, int i);
   void refresh_word (Word &word);
   void print ();
   void set_operations ();

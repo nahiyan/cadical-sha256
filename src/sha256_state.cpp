@@ -5,25 +5,23 @@
 
 using namespace SHA256;
 
-void State::refresh_char (Word &word, int &col) {
-  auto &id_f = word.ids_f[col];
-  auto &id_g = word.ids_g[col];
-  auto &diff_id = word.char_ids[col];
-  char &c = word.chars[col];
+void State::refresh_char (Word &word, int index) {
+  auto &id_f = word.ids_f[index];
+  auto &id_g = word.ids_g[index];
+  auto &base_id = word.char_ids[index];
+  char &c = word.chars[index];
   char c_before = c;
 
-  if (id_f == 0 || id_g == 0 || diff_id == 0) {
+  if (id_f == 0 || id_g == 0 || base_id == 0) {
     c = '?';
     return;
   }
   assert (word.chars.size () == 32);
 
-  // uint8_t values[] = {partial_assignment.get (id_f),
-  //                     partial_assignment.get (id_g)};
-  uint8_t diff[] = {partial_assignment.get (diff_id + 0),
-                    partial_assignment.get (diff_id + 1),
-                    partial_assignment.get (diff_id + 2),
-                    partial_assignment.get (diff_id + 3)};
+  uint8_t diff[] = {partial_assignment.get (base_id + 0),
+                    partial_assignment.get (base_id + 1),
+                    partial_assignment.get (base_id + 2),
+                    partial_assignment.get (base_id + 3)};
 
   if (diff[1] == LIT_FALSE && diff[2] == LIT_FALSE && diff[3] == LIT_FALSE)
     c = '0';
@@ -62,9 +60,10 @@ void State::refresh_char (Word &word, int &col) {
   char c_after = c;
   if (c_before == c_after)
     return;
+
   // Mark the operation if the new char has a higher score
   if (c_before == '?' || compare_gcs (c_before, c_after)) {
-    auto &operations = vars_info[diff_id].operations;
+    auto &operations = vars_info[base_id].operations;
     for (auto &operation : operations) {
       auto &op_id = get<0> (operation);
       auto &step = get<1> (operation);
@@ -237,7 +236,7 @@ void State::soft_refresh () {
     auto &info = vars_info[var];
     if (info.word == NULL)
       continue;
-    refresh_char (*info.word, info.identity.col);
+    refresh_char (*info.word, 31 - info.identity.col);
   }
 }
 

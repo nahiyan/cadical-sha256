@@ -41,12 +41,12 @@ void State::set_operations () {
         continue;
 
       this->vars_info[word->ids_f[pos]].operations.push_back (
-          {op_id, step, pos});
+          {op_id, step, 31 - pos});
       this->vars_info[word->ids_g[pos]].operations.push_back (
-          {op_id, step, pos});
+          {op_id, step, 31 - pos});
       for (int k = 0; k < 4; k++)
         this->vars_info[word->char_ids[pos] + k].operations.push_back (
-            {op_id, step, pos});
+            {op_id, step, 31 - pos});
     }
   };
 
@@ -57,12 +57,12 @@ void State::set_operations () {
         continue;
 
       this->vars_info[word->ids_f[pos]].operations.push_back (
-          {op_id, step, pos});
+          {op_id, step, 31 - pos});
       this->vars_info[word->ids_g[pos]].operations.push_back (
-          {op_id, step, pos});
+          {op_id, step, 31 - pos});
       for (int k = 0; k < 4; k++)
         this->vars_info[word->char_ids[pos] + k].operations.push_back (
-            {op_id, step, pos});
+            {op_id, step, 31 - pos});
     }
   };
 
@@ -166,6 +166,13 @@ void State::set_operations () {
         for (int j = 0; j < 3; j++)
           add_var_info_sword (&operands[j], i, op_s1);
         add_var_info_word (&steps[i].s1, i, op_s1);
+
+        if (i == 20) {
+          assert (vars_info[operands[0].char_ids[31 - 22]].identity.col ==
+                  7);
+          assert (get<2> (vars_info[operands[0].char_ids[31 - 22]]
+                              .operations[0]) == 7);
+        }
       }
       {
         // add.W

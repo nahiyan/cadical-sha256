@@ -220,13 +220,15 @@ void Propagator::parse_comment_line (string line,
         if (prefix[0] == 'D') {
           word.char_ids[i] = id2;
           for (int j = 0; j < 4; j++)
-            state.vars_info[id2 + j] = {&word, i, step, var_name};
+            state.vars_info[id2 + j] = {&word, 31 - i, step, var_name};
+          assert (id == value ? state.vars_info[id2].identity.col == 0
+                              : true);
         } else if (is_f) {
           word.ids_f[i] = id;
-          state.vars_info[id] = {&word, i, step, var_name};
+          state.vars_info[id] = {&word, 31 - i, step, var_name};
         } else {
           word.ids_g[i] = id;
-          state.vars_info[id] = {&word, i, step, var_name};
+          state.vars_info[id] = {&word, 31 - i, step, var_name};
         }
       }
 
@@ -533,6 +535,7 @@ void Propagator::custom_propagate () {
         }
         assert (diff.outputs[x] != '?' ? has_output_antecedent : true);
 
+        // TODO: Propagated char should have a higher score
         if (prop_output[x] == '?' || prop_output[x] == '#')
           continue;
 
