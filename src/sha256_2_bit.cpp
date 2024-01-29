@@ -1,4 +1,5 @@
 #include "sha256_2_bit.hpp"
+#include "lru_cache.hpp"
 #include "sha256_propagate.hpp"
 #include "sha256_state.hpp"
 #include "sha256_util.hpp"
@@ -11,6 +12,7 @@
 #include <fstream>
 #include <memory>
 #include <set>
+#include <sstream>
 
 namespace SHA256 {
 unordered_map<string, string> two_bit_rules;
@@ -482,8 +484,7 @@ bool block_inconsistency (TwoBit &two_bit,
   return true;
 }
 
-map<tuple<vector<int> (*) (vector<int>), string, string>, vector<set<int>>>
-    otf_2bit_cache;
+cache::lru_cache<string, vector<set<int>>> otf_2bit_cache (350e3);
 vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
                                string inputs, string outputs,
                                vector<uint32_t> char_ids, string mask) {
@@ -494,11 +495,17 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
   assert (inputs.size () + outputs.size () == char_ids.size ());
   assert (char_ids.size () == mask.size ());
 
+  // Look in the cache
   bool is_cached = false;
-  auto otf_2bit_cache_it = otf_2bit_cache.find ({func, inputs, outputs});
-  if (otf_2bit_cache_it != otf_2bit_cache.end ()) {
+  string cache_key;
+  {
+    stringstream ss;
+    ss << func << inputs << outputs;
+    cache_key = ss.str ();
+  }
+  if (otf_2bit_cache.exists (cache_key)) {
     is_cached = true;
-    diff_pairs = otf_2bit_cache_it->second;
+    diff_pairs = otf_2bit_cache.get (cache_key);
   }
 
   auto all_chars = inputs + outputs;
@@ -572,7 +579,7 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
     }
 
     // Add to the cache
-    otf_2bit_cache[{func, inputs, outputs}] = diff_pairs;
+    otf_2bit_cache.put (cache_key, diff_pairs);
   }
 
   int n = all_chars.size ();

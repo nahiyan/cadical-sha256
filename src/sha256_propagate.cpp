@@ -1,4 +1,5 @@
 #include "sha256_propagate.hpp"
+#include "lru_cache.hpp"
 #include "sha256.hpp"
 #include "sha256_util.hpp"
 #include <cassert>
@@ -7,6 +8,7 @@
 #include <fstream>
 #include <numeric>
 #include <set>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -510,18 +512,19 @@ void prop_with_int_diff (int equation_id, vector<string *> words) {
   }
 }
 
-map<tuple<vector<int> (*) (vector<int>), string, string>, string>
-    otf_prop_cache;
+cache::lru_cache<string, string> otf_prop_cache (5e6);
 string otf_propagate (vector<int> (*func) (vector<int> inputs),
                       string inputs, string outputs) {
   assert (func == add_ ? outputs.size () == 3 : true);
+
   // Look in the cache
+  string cache_key;
   {
-    tuple<vector<int> (*) (vector<int>), string, string> key{func, inputs,
-                                                             outputs};
-    auto cache_it = otf_prop_cache.find (key);
-    if (cache_it != otf_prop_cache.end ()) {
-      return cache_it->second;
+    stringstream ss;
+    ss << func << inputs << outputs;
+    cache_key = ss.str ();
+    if (otf_prop_cache.exists (cache_key)) {
+      return otf_prop_cache.get (cache_key);
     }
   }
 
@@ -603,7 +606,7 @@ string otf_propagate (vector<int> (*func) (vector<int> inputs),
     propagated_output += gc_from_set (p);
 
   // Cache the result
-  otf_prop_cache[{func, inputs, outputs}] = propagated_output;
+  otf_prop_cache.put (cache_key, propagated_output);
   return propagated_output;
 }
 
