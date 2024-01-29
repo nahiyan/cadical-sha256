@@ -812,6 +812,9 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     for (auto &lit : reason_clause)
       printf ("%d ", lit);
     printf ("\n");
+    // printf ("Propagation: %s -> %s\n", reason.differential.inputs.c_str
+    // (),
+    //         reason.differential.outputs.c_str ());
   }
 
   assert (reason_clause.size () > 0);
