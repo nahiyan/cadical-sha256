@@ -216,6 +216,15 @@ void test_consis_checker () {
           conflict_eqs[1].char_ids[1] == 101 && conflict_eqs[1].diff == 1);
 }
 
+void test_bit_manipulator () {
+  uint32_t x = 5, y = 100;
+  uint64_t z = to_uint64_t (x, y);
+
+  uint32_t x_, y_;
+  from_uint64_t (z, x_, y_);
+  assert (x == x_ && y == y_);
+}
+
 void run_tests () {
   printf ("Running tests\n");
   test_int_diff ();
@@ -230,6 +239,7 @@ void run_tests () {
   test_otf_propagate ();
   test_otf_2bit_eqs ();
   test_consis_checker ();
+  test_bit_manipulator ();
   printf ("All tests passed!\n");
 }
 } // namespace SHA256

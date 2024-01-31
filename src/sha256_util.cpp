@@ -218,4 +218,15 @@ bool compare_gcs (char c1, char c2) {
   return get_score (c2) > get_score (c1);
 }
 
+// Store 2 uint32_t inside one uint64_t
+uint64_t to_uint64_t (uint32_t x, uint32_t y) {
+  return ((uint64_t) x << 32) | y;
+}
+
+// Store 2 uint32_t inside one uint64_t
+void from_uint64_t (uint64_t z, uint32_t &x, uint32_t &y) {
+  x = z >> 32;
+  y = z & 0xffffffff;
+}
+
 } // namespace SHA256

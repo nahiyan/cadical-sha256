@@ -14,14 +14,15 @@
 #include <string>
 
 #define CUSTOM_BRANCHING false
-#define BLOCK_INCONS true
+#define BLOCK_INCONS false
 
 using namespace SHA256;
 
 int Propagator::order = 0;
 State Propagator::state = State ();
-uint64_t counter = 0;
+uint64_t prop_counter = 0;
 uint64_t block_counter = 0;
+uint64_t branch_counter = 0;
 Stats Propagator::stats = Stats{0, 0, 0, 0};
 
 // void print_reason (Reason &reason, State &state) {
@@ -261,7 +262,7 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
 }
 
 void Propagator::notify_backtrack (size_t new_level) {
-  // Timer timer (&stats.total_cb_time);
+  Timer timer (&stats.total_cb_time);
   while (state.current_trail.size () > new_level + 1) {
     // Unassign the variables that are removed from the trail
     auto &level = state.current_trail.back ();
@@ -300,38 +301,26 @@ void Propagator::notify_backtrack (size_t new_level) {
   }
 }
 
-void test_equations (vector<Equation> &equations);
-
 void Propagator::notify_new_decision_level () {
-  Timer timer (&stats.total_cb_time);
-
   state.current_trail.push_back (std::vector<int> ());
-  counter++;
-
-  // !Debug: 2-bit equations for 27-sfs
-  // state.hard_refresh (true);
-  // state.print ();
-  // derive_two_bit_equations (two_bit, state);
-  // test_equations (two_bit.equations[0]);
-  // exit (0);
-
-  // !Debug: Periodically print the state
-  // if (counter % 100000 == 0) {
-  //   printf ("Current state:\n");
-  //   // state.hard_refresh (false);
-  //   state.soft_refresh ();
-  //   state.print ();
-  // }
-#if CUSTOM_BRANCHING
-  custom_branch ();
-#endif
 }
 
 int Propagator::cb_decide () {
-  // Timer time (&stats.total_cb_time);
+  Timer time (&stats.total_cb_time);
+
+#if CUSTOM_BRANCHING
+  // if (++branch_counter % 100000 == 0) {
+  //   printf ("State:\n");
+  //   state.soft_refresh ();
+  //   state.print ();
+  // }
+
+  if (decision_lits.empty ())
+    custom_branch ();
+#endif
   if (decision_lits.empty ())
     return 0;
-  int lit = decision_lits.front ();
+  int &lit = decision_lits.front ();
   decision_lits.pop_front ();
   stats.decisions_count++;
   // printf ("Debug: decision %d\n", lit);
@@ -670,6 +659,7 @@ bool Propagator::custom_block () {
 
   // Collect all the equations
   two_bit.eqs[0].clear ();
+  two_bit.eq_freq.clear ();
   set<uint32_t> eq_vars;
   for (auto op_id = 0; op_id < 10; op_id++)
     for (auto step_i = 0; step_i < state.order; step_i++)
@@ -685,9 +675,15 @@ bool Propagator::custom_block () {
 
           assert (!eq.antecedent.empty ());
 
-          two_bit.eqs[0].insert (eq);
+          auto insert_result = two_bit.eqs[0].insert (eq);
           eq_vars.insert (eq.char_ids[0]);
           eq_vars.insert (eq.char_ids[1]);
+
+          // TODO: Update the frequency map
+          // if (insert_result.second)
+          //   two_bit.eq_freq[] = 0;
+          // else
+          //   two_bit.eq_freq[insert_result.first]++;
         }
 
   if (two_bit.eqs[0].empty ())
@@ -745,7 +741,7 @@ int Propagator::cb_propagate () {
   if (!propagation_lits.empty ())
     goto PROVIDE_LIT;
 
-  // if (counter % 20 == 0)
+  // if (++prop_counter % 20 == 0)
   custom_propagate ();
 
   if (propagation_lits.empty ())
@@ -872,168 +868,92 @@ int Propagator::cb_add_external_clause_lit () {
   return lit;
 }
 
-// void Propagator::custom_branch () {
-//   if (counter % 20 != 0)
-//     return;
-//   if (!decision_lits.empty ())
-//     return;
+void Propagator::custom_branch () {
+  state.soft_refresh ();
 
-//   // state.refresh (false);
+  auto rand_ground_x = [] (list<int> &decision_lits, Word &word, int &j) {
+    srand (clock () + j);
+    if (rand () % 2 == 0) {
+      // u
+      decision_lits.push_back (-(word.char_ids[j] + 0));
+      // decision_lits.push_back ((word.char_ids[j] + 1));
+      decision_lits.push_back (-(word.char_ids[j] + 2));
+      decision_lits.push_back (-(word.char_ids[j] + 3));
+    } else {
+      // n
+      decision_lits.push_back (-(word.char_ids[j] + 0));
+      decision_lits.push_back (-(word.char_ids[j] + 1));
+      // decision_lits.push_back ((word.char_ids[j] + 2));
+      decision_lits.push_back (-(word.char_ids[j] + 3));
+    }
+  };
 
-//   // Refresh the state
-//   state.soft_refresh ();
+  auto ground_xnor = [] (list<int> &decision_lits, Word &word, int &j) {
+    // decision_lits.push_back ((word.char_ids[j] + 0));
+    decision_lits.push_back (-(word.char_ids[j] + 1));
+    decision_lits.push_back (-(word.char_ids[j] + 2));
+    // decision_lits.push_back ((word.char_ids[j] + 3));
+  };
 
-//   auto rand_ground_x = [] (list<int> &decision_lits, Word &word, int &j)
-//   {
-//     srand (clock () + j);
-//     if (rand () % 2 == 0) {
-//       // u
-//       decision_lits.push_back (-(word.char_ids[j] + 0));
-//       decision_lits.push_back ((word.char_ids[j] + 1));
-//       decision_lits.push_back (-(word.char_ids[j] + 2));
-//       decision_lits.push_back (-(word.char_ids[j] + 3));
-//     } else {
-//       // n
-//       decision_lits.push_back (-(word.char_ids[j] + 0));
-//       decision_lits.push_back (-(word.char_ids[j] + 1));
-//       decision_lits.push_back ((word.char_ids[j] + 2));
-//       decision_lits.push_back (-(word.char_ids[j] + 3));
-//     }
-//   };
-//   auto ground_xnor = [] (list<int> &decision_lits, Word &word, int &j) {
-//     decision_lits.push_back ((word.char_ids[j] + 0));
-//     decision_lits.push_back (-(word.char_ids[j] + 1));
-//     decision_lits.push_back (-(word.char_ids[j] + 2));
-//     decision_lits.push_back ((word.char_ids[j] + 3));
-//   };
+  // Stage 1
+  for (int i = order - 1; i >= 0; i--) {
+    auto &w = state.steps[i].w;
+    for (int j = 0; j < 32; j++) {
+      auto &c = w.chars[j];
+      // Impose '-' for '?'
+      if (c == '?') {
+        ground_xnor (decision_lits, w, j);
+        return;
+      } else if (c == 'x') {
+        // Impose 'u' or 'n' for '?'
+        rand_ground_x (decision_lits, w, j);
+        return;
+      }
+    }
+  }
 
-//   // Stage 1
-//   for (int i = order - 1; i >= 0; i--) {
-//     auto &w = state.steps[i].w;
-//     for (int j = 0; j < 32; j++) {
-//       auto &c = w.chars[j];
-//       // Impose '-' for '?'
-//       if (c == '?') {
-//         ground_xnor (decision_lits, w, j);
-//         return;
-//       } else if (c == 'x') {
-//         // Impose 'u' or 'n' for '?'
-//         rand_ground_x (decision_lits, w, j);
-//         return;
-//       }
-//     }
-//   }
+  // Stage 2
+  for (int i = -4; i < order; i++) {
+    auto &a = state.steps[ABS_STEP (i)].a;
+    auto &e = state.steps[ABS_STEP (i)].e;
+    for (int j = 0; j < 32; j++) {
+      auto &a_c = a.chars[j];
+      auto &e_c = e.chars[j];
+      if (a_c == '?') {
+        ground_xnor (decision_lits, a, j);
+        return;
+      } else if (a_c == 'x') {
+        rand_ground_x (decision_lits, a, j);
+        return;
+      } else if (e_c == '?') {
+        ground_xnor (decision_lits, e, j);
+        return;
+      } else if (e_c == 'x') {
+        rand_ground_x (decision_lits, e, j);
+        return;
+      }
+    }
+  }
 
-//   // printf ("Stage 2\n");
+  // Stage 3
+  if (two_bit.eqs[0].empty ())
+    return;
 
-//   // Stage 2
-//   for (int i = -4; i < order; i++) {
-//     auto &a = state.steps[ABS_STEP (i)].a;
-//     auto &e = state.steps[ABS_STEP (i)].e;
-//     for (int j = 0; j < 32; j++) {
-//       auto &a_c = a.chars[j];
-//       auto &e_c = e.chars[j];
-//       if (a_c == '?') {
-//         ground_xnor (decision_lits, a, j);
-//         return;
-//       } else if (a_c == 'x') {
-//         rand_ground_x (decision_lits, a, j);
-//         return;
-//       } else if (e_c == '?') {
-//         ground_xnor (decision_lits, e, j);
-//         return;
-//       } else if (e_c == 'x') {
-//         rand_ground_x (decision_lits, e, j);
-//         return;
-//       }
-//     }
-//   }
-
-//   // printf ("Stage 3\n");
-
-//   // Stage 3
-// #if BLOCK_INCONS == false
-//   two_bit = TwoBit{};
-//   derive_two_bit_equations (two_bit, state);
-// #endif
-//   for (auto &entry : two_bit.bit_constraints_count) {
-//     uint32_t ids[] = {get<0> (entry.first), get<1> (entry.first),
-//                       get<2> (entry.first)};
-//     uint32_t values[] = {state.partial_assignment.get (ids[0]),
-//                          state.partial_assignment.get (ids[1]),
-//                          state.partial_assignment.get (ids[2])};
-//     if (values[2] == LIT_FALSE) {
-//       // Impose '-'
-//       srand (clock ());
-//       if (rand () % 2 == 0) {
-//         decision_lits.push_back (ids[0]);
-//         decision_lits.push_back (ids[1]);
-//       } else {
-//         decision_lits.push_back (-ids[0]);
-//         decision_lits.push_back (-ids[1]);
-//       }
-//       // printf ("Stage 3: guess\n");
-//       return;
-//     }
-//   }
-// }
-
-// !Debug
-// void test_equations (vector<Equation> &equations, State &state) {
-//   ifstream file ("equations.txt");
-//   string line;
-//   regex pattern ("Equation\\(x='(.*?)', y='(.*?)', diff=(.*?)\\)");
-//   vector<Equation> found_equations;
-//   vector<Equation> missing_equations;
-//   while (getline (file, line)) {
-//     smatch match;
-//     if (regex_search (line, match, pattern)) {
-//       if (match.size () == 4) {
-//         string x = match[1];
-//         string y = match[2];
-//         int diff = stoi (match[3]);
-
-//         bool found = false;
-//         for (auto &equation : equations) {
-//           VarIdentity *var_infos[2] = {
-//               state.var_info[equation[0].diff_ids[0]].identity,
-//               state.var_info[equation[1].diff_ids[0]].identity};
-//           // TODO: Fix this
-//           if (equation.diff == diff &&
-//               ((equation.names[0] == x && equation.names[1] == y) ||
-//                (equation.names[1] == x && equation.names[0] == y))) {
-//             found_equations.push_back (equation);
-//             found = true;
-//           }
-//         }
-
-//         if (!found) {
-//           Equation equation;
-//           equation.names[0] = x;
-//           equation.names[1] = y;
-//           equation.diff = diff;
-//           missing_equations.push_back (equation);
-//         }
-//       }
-//     } else {
-//       cout << "No match found." << endl;
-//     }
-//   }
-
-//   cout << "Unmatched equations: "
-//        << equations.size () - found_equations.size () << endl;
-//   cout << endl;
-
-//   cout << "Found " << found_equations.size () << " equations" << endl;
-//   for (auto &equation : found_equations)
-//     cout << equation.names[0] << " " << (equation.diff == 0 ? "=" :
-//     "=/=")
-//          << " " << equation.names[1] << endl;
-//   cout << endl;
-
-//   cout << "Missing " << missing_equations.size () << " equations" <<
-//   endl; for (auto &equation : missing_equations)
-//     cout << equation.names[0] << " " << (equation.diff == 0 ? "=" :
-//     "=/=")
-//          << " " << equation.names[1] << endl;
-// }
+  auto &pa = state.partial_assignment;
+  for (auto &eq : two_bit.eqs[0]) {
+    uint32_t base_ids[] = {eq.char_ids[0], eq.char_ids[1]};
+    for (int x = 0; x < 2; x++) {
+      srand (clock () + x);
+      if (pa.get (base_ids[x] + 0) != LIT_FALSE &&
+          pa.get (base_ids[x] + 1) == LIT_FALSE &&
+          pa.get (base_ids[x] + 2) == LIT_FALSE &&
+          pa.get (base_ids[x] + 3) != LIT_FALSE) {
+        if (rand () % 2 == 0)
+          decision_lits.push_back (-(base_ids[x] + 0));
+        else
+          decision_lits.push_back (-(base_ids[x] + 3));
+        return;
+      }
+    }
+  }
+}

@@ -40,12 +40,11 @@ struct Equation {
   }
 };
 struct TwoBit {
-  // list<Equation> equations[2];
-  vector<Equation> eqs_by_op[10][64][32];
   set<Equation> eqs[2];
+  vector<Equation> eqs_by_op[10][64][32];
   map<int, int> aug_mtx_var_map;
   // TODO: Use a sorted set of pairs
-  map<tuple<uint32_t, uint32_t, uint32_t>, int> bit_constraints_count;
+  map<uint64_t, int> eq_freq;
 };
 
 void load_two_bit_rules (const char *filename);
