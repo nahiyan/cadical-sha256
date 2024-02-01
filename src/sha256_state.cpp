@@ -195,14 +195,11 @@ void State::hard_refresh (bool will_propagate) {
 }
 
 void State::soft_refresh () {
-  while (!partial_assignment.updated_vars.empty ()) {
-    auto var = partial_assignment.updated_vars.top ();
-    partial_assignment.updated_vars.pop ();
-    auto &info = vars_info[var];
-    if (info.word == NULL)
-      continue;
+  for (auto &base_id : partial_assignment.updated_vars) {
+    auto &info = vars_info[base_id];
     refresh_char (*info.word, 31 - info.identity.col);
   }
+  partial_assignment.updated_vars.clear ();
 }
 
 void State::print () {

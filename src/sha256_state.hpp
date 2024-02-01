@@ -20,6 +20,7 @@ using namespace std;
 namespace SHA256 {
 enum VariableName {
   Unknown,
+  Zero,
   A,
   E,
   W,
@@ -150,7 +151,7 @@ class PartialAssignment {
   uint8_t *variables;
 
 public:
-  stack<uint32_t> updated_vars;
+  std::set<uint32_t> updated_vars;
   deque<vector<int>> *current_trail; // !Added for Debugging only
   VarInfo *vars_info;
 
@@ -167,7 +168,12 @@ public:
 
   void mark_updated_var (int id) {
     assert (id > 0);
-    updated_vars.push (id);
+    auto &word = vars_info[id].word;
+    if (word == NULL)
+      return;
+
+    uint32_t base_id = word->char_ids[31 - vars_info[id].identity.col];
+    updated_vars.insert (base_id);
   }
 
   void set (int lit) {

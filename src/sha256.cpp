@@ -62,9 +62,11 @@ void Propagator::parse_comment_line (string line,
     return;
   } else if (key == "zero_g") {
     state.zero_var_id = value;
-    assert (value != 0);
-    for (int i = 0; i < 6; i++)
+    assert (value >= 0);
+    for (int i = 0; i < 6; i++) {
       solver->add_observed_var (value + i);
+      state.vars_info[value + i].identity.name = Zero;
+    }
     return;
   }
 
@@ -214,8 +216,8 @@ void Propagator::parse_comment_line (string line,
       if (word.ids_f[0] != 0 && word.ids_g[0] != 0 && word.char_ids[0] != 0)
         for (int i = 0; i < 32; i++) {
           // TODO: Consider not observing the non-differential variables
-          solver->add_observed_var (word.ids_f[i]);
-          solver->add_observed_var (word.ids_g[i]);
+          // solver->add_observed_var (word.ids_f[i]);
+          // solver->add_observed_var (word.ids_g[i]);
           for (int j = 0; j < 4; j++)
             solver->add_observed_var (word.char_ids[i] + j);
         }
