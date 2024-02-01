@@ -139,18 +139,6 @@ void State::hard_refresh (bool will_propagate) {
                                          &steps[i - 16].w.chars,
                                      });
         }
-
-        // cout << "Step " << i << endl;
-        // otf_add_propagate (
-        //     two_bit,
-        //     {operations[i].add_w.inputs[0],
-        //     operations[i].add_w.inputs[1],
-        //      operations[i].add_w.inputs[2],
-        //      operations[i].add_w.inputs[3]},
-        //     {operations[i].add_w.carries[0],
-        //      operations[i].add_w.carries[1]},
-        //     {&state.steps[i].add_w_r[1], &state.steps[i].add_w_r[0],
-        //      &state.steps[i].w});
       }
 
       if (will_propagate) {
@@ -202,30 +190,7 @@ void State::hard_refresh (bool will_propagate) {
                                        &steps[i].maj.chars,
                                    });
       }
-
-      // otf_add_propagate (
-      //     two_bit,
-      //     {&state.steps[ABS_STEP (i - 4)].e, &state.steps[i].sigma1,
-      //      &state.steps[i].ch, &state.steps[i].k, &state.steps[i].w},
-      //     {operations[i].add_t.carries[0],
-      //     operations[i].add_t.carries[1]},
-      //     {&state.steps[i].add_t_r[1], &state.steps[i].add_t_r[0],
-      //      &state.steps[i].t});
-      // TODO: Fix issue
-      // otf_add_propagate (
-      //     two_bit, {&state.steps[ABS_STEP (i - 4)].a,
-      // &state.steps[i].t
     }
-    // ,
-    //     {operations[i].add_e.carries[0]},
-    //     {&state.steps[i].add_e_r[0], &state.steps[ABS_STEP (i)].e});
-    // otf_add_propagate (
-    //     two_bit,
-    //     {&state.steps[i].t, &state.steps[i].sigma0,
-    //     &state.steps[i].maj}, {operations[i].add_a.carries[0],
-    //     operations[i].add_a.carries[1]},
-    //     {&state.steps[i].add_a_r[1], &state.steps[i].add_a_r[0],
-    //      &state.steps[ABS_STEP (i)].a});
   }
 }
 

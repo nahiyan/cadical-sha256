@@ -25,30 +25,6 @@ uint64_t block_counter = 0;
 uint64_t branch_counter = 0;
 Stats Propagator::stats = Stats{0, 0, 0, 0};
 
-// void print_reason (Reason &reason, State &state) {
-//   auto &pa = state.partial_assignment;
-//   cout << "Reason: " << reason.differential.first << " -> "
-//        << reason.differential.second << endl;
-//   cout << "Input variables:" << endl;
-//   for (int i = 0; i < int (reason.input_ids.size ()); i++) {
-//     printf ("%d. ", i);
-//     for (auto &id : reason.input_ids[i])
-//       printf ("%d(%d) ", id, pa.get (id));
-//     printf ("\n");
-//   }
-//   cout << "Output variables:" << endl;
-//   for (int i = 0; i < int (reason.output_ids.size ()); i++) {
-//     printf ("%d. ", i);
-//     for (auto &id : reason.output_ids[i])
-//       printf ("%d(%d) ", id, pa.get (id));
-//     printf ("\n");
-//   }
-//   cout << "Antecedent: ";
-//   for (auto &id : reason.antecedent)
-//     printf ("%d ", id);
-//   printf ("\n");
-// }
-
 Propagator::Propagator (CaDiCaL::Solver *solver) {
 #ifndef NDEBUG
   run_tests ();
@@ -237,6 +213,7 @@ void Propagator::parse_comment_line (string line,
       // Add to observed vars
       if (word.ids_f[0] != 0 && word.ids_g[0] != 0 && word.char_ids[0] != 0)
         for (int i = 0; i < 32; i++) {
+          // TODO: Consider not observing the non-differential variables
           solver->add_observed_var (word.ids_f[i]);
           solver->add_observed_var (word.ids_g[i]);
           for (int j = 0; j < 4; j++)
