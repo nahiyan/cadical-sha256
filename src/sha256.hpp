@@ -55,8 +55,6 @@ class Propagator : CaDiCaL::ExternalPropagator {
   list<int> decision_lits;
   TwoBit two_bit;
 
-  void prop_addition_weakly ();
-
 public:
   static Stats stats;
 

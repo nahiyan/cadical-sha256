@@ -17,12 +17,11 @@
 using namespace std;
 
 namespace SHA256 {
-struct OrderedValue {
+struct ValueWithOrder {
   char value;
   uint8_t order; // Order will be 31 max and 8 bits can hold 0-255
 };
 
-unordered_map<string, string> io_prop_rules;
 // Almost same as IO prop rules but specific for addition
 map<pair<string, char>, pair<string, string>> add_prop_rules;
 
@@ -57,7 +56,7 @@ map<char, set<char>> symbols_set = {{'?', {'u', 'n', '1', '0'}},
                                     {'D', {'0', 'n', '1'}},
                                     {'E', {'u', 'n', '1'}}};
 
-int64_t _int_diff (string word) {
+int64_t _word_diff (string word) {
   size_t n = word.size ();
   int64_t value = 0;
   for (size_t i = 0; i < n; i++) {
@@ -90,9 +89,9 @@ bool is_congruent (int64_t a, int64_t b, int64_t m) {
   return (a - b) % m == 0;
 }
 
-tuple<vector<OrderedValue>, int64_t>
+tuple<vector<ValueWithOrder>, int64_t>
 process_var_cols (vector<string> var_cols) {
-  vector<OrderedValue> vars;
+  vector<ValueWithOrder> vars;
   int64_t const_value = 0;
   int cols_count = var_cols.size ();
   for (int i = 0; i < cols_count; i++) {
@@ -120,7 +119,7 @@ bool _can_overflow (vector<string> var_cols, vector<uint8_t> bits) {
   }
 
   auto var_cols_processed = process_var_cols (var_cols);
-  vector<OrderedValue> vars = get<0> (var_cols_processed);
+  vector<ValueWithOrder> vars = get<0> (var_cols_processed);
   int64_t const_value = get<1> (var_cols_processed);
 
   int64_t m = pow (2, bits_count);
@@ -180,7 +179,7 @@ vector<string> gen_vars (vector<string> words) {
 string brute_force (vector<string> var_cols, int64_t constant,
                     int64_t min_gt) {
   auto var_cols_processed = process_var_cols (var_cols);
-  vector<OrderedValue> vars = get<0> (var_cols_processed);
+  vector<ValueWithOrder> vars = get<0> (var_cols_processed);
   int64_t const_value = get<1> (var_cols_processed);
   int vars_count = vars.size ();
   vector<vector<int>> solutions;
@@ -357,11 +356,7 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
       break;
 
     // Check if it can overflow
-    // printf ("Debug: finding 'can overflow' start %d\n", vars_count);
-    // fflush (stdout);
     bool can_overflow = _can_overflow (stash.cols, stash.bits);
-    // printf ("Debug: finding 'can overflow' end\n");
-    // fflush (stdout);
 
     // If it cannot overflow, it should be cut off
     bool island_ends = can_overflow ? false : true;
@@ -430,55 +425,12 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
   return derived_words;
 }
 
-void load_prop_rules (const char *path) {
-  ifstream db (path);
-  if (!db) {
-    printf ("Rules database not found. Can you ensure that '%s' "
-            "exists in the current working directory?\n",
-            path);
-    exit (1);
-  }
-  int id, count = 0;
-  string input, output;
-  while (db >> id >> input >> output) {
-    string key = to_string (id) + input;
-    io_prop_rules.insert ({key, output});
-    count++;
-  }
-
-  printf ("Loaded %d rules into %ld buckets\n", count,
-          io_prop_rules.bucket_count ());
-}
-
-string get_prop_rule (int id, string input) {
-  string key = to_string (id) + input;
-  return io_prop_rules[key];
-}
-
-string propagate (int id, vector<string> input_words, string original) {
-  int n = input_words[0].size (), m = input_words.size ();
-  string output_word (n, '?');
-  for (int i = 0; i < n; i++) {
-    string input = "";
-    for (int j = 0; j < m; j++)
-      input += input_words[j][i];
-    string output = get_prop_rule (id, input);
-    if (output.size () == 0) {
-      output_word[i] = original[i];
-      continue;
-    }
-    output_word[i] = output[0];
-  }
-
-  return output_word;
-}
-
-void prop_with_int_diff (int equation_id, vector<string *> words) {
+void prop_with_word_diff (int equation_id, vector<string *> words) {
   vector<int> underived_indices;
   int words_count = words.size ();
   vector<int64_t> word_diffs (words_count);
   for (int i = 0; i < words_count; i++) {
-    int64_t int_diff = _int_diff ((char *) words[i]->c_str ());
+    int64_t int_diff = _word_diff ((char *) words[i]->c_str ());
     if (int_diff != -1)
       word_diffs[i] =
           ((i == 0 || (equation_id == add_a && i == 2)) ? 1 : -1) *
