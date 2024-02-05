@@ -158,24 +158,22 @@ bool Propagator::custom_block () {
         for (auto &eq : two_bit.eqs_by_op[op_id][step_i][pos]) {
           // Check if the antecedent is still valid
           bool skip = false;
-          for (auto &lit : eq.antecedent)
-            if (state.partial_assignment.get (abs ((int) lit)) !=
-                (lit > 0 ? LIT_FALSE : LIT_TRUE))
+          for (auto &lit : eq.antecedent) {
+            auto value = state.partial_assignment.get (abs ((int) lit));
+            if (value == LIT_UNDEF ||
+                value != (lit > 0 ? LIT_FALSE : LIT_TRUE)) {
               skip = true;
+              continue;
+            }
+          }
           if (skip)
             continue;
 
           assert (!eq.antecedent.empty ());
 
-          auto insert_result = two_bit.eqs[0].insert (eq);
+          two_bit.eqs[0].insert (eq);
           eq_vars.insert (eq.char_ids[0]);
           eq_vars.insert (eq.char_ids[1]);
-
-          // TODO: Update the frequency map
-          // if (insert_result.second)
-          //   two_bit.eq_freq[] = 0;
-          // else
-          //   two_bit.eq_freq[insert_result.first]++;
         }
 
   if (two_bit.eqs[0].empty ())
@@ -199,6 +197,7 @@ bool Propagator::custom_block () {
       continue;
 
     // Block inconsistencies
+    assert (external_clauses.empty ());
     block_inconsistency (two_bit, state.partial_assignment,
                          external_clauses, block_index);
     has_clause = true;
@@ -220,6 +219,9 @@ bool Propagator::custom_block () {
     assert (!clause.empty ());
     external_clauses.clear ();
     external_clauses.push_back (clause);
+    for (auto &lit : clause)
+      assert (state.partial_assignment.get (abs (lit)) ==
+              (lit > 0 ? LIT_FALSE : LIT_TRUE));
     printf ("Blocking clause: ");
     print (clause);
   }
@@ -318,6 +320,9 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 bool Propagator::cb_has_external_clause () {
   Timer time (&stats.total_cb_time);
 
+  if (!external_clauses.empty ())
+    return true;
+
 #if BLOCK_INCONS
   // if (++block_counter % 20 != 0)
   //   return false;
@@ -325,8 +330,6 @@ bool Propagator::cb_has_external_clause () {
   // Check for 2-bit inconsistencies here
   return custom_block ();
 #else
-  if (!external_clauses.empty ())
-    return true;
   return false;
 #endif
 }

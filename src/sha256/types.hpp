@@ -179,7 +179,7 @@ struct Equation {
   // The equations are represented by their delta IDs
   uint32_t char_ids[2];
   uint8_t diff;
-  vector<uint32_t> antecedent = {};
+  vector<int> antecedent = {};
 
   bool operator< (const Equation &other) const {
     if (diff != other.diff)
