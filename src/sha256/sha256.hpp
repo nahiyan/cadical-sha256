@@ -14,7 +14,7 @@
 #include <stack>
 #include <string>
 
-#define IS_4BIT false
+#define IS_4BIT true
 #define ABS_STEP(i) (i + 4)
 
 using namespace std;

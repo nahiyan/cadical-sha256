@@ -89,7 +89,7 @@ void custom_4bit_propagate (State &state, vector<int> &propagation_lits,
         if (prop_output[x] == '?' || prop_output[x] == '#')
           continue;
 
-        auto prop_table_values = gc_values (prop_output[x]);
+        auto prop_table_values = gc_values_4bit (prop_output[x]);
         for (int y = 0; y < 4; y++) {
           int id = diff.char_base_ids.second[x] + y;
 

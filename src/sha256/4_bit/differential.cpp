@@ -99,7 +99,8 @@ void get_4bit_differential (OperationId op_id, int step_i, int bit_pos,
     diff.inputs += *(input_word.chars[j]);
     diff.char_base_ids.first.push_back (input_word.char_ids[j]);
 
-    diff.table_values.first.push_back (gc_values (*input_word.chars[j]));
+    diff.table_values.first.push_back (
+        gc_values_4bit (*input_word.chars[j]));
     assert (diff.table_values.first[x] != 0);
   }
   assert (int (diff.inputs.size ()) == input_size);
@@ -111,7 +112,8 @@ void get_4bit_differential (OperationId op_id, int step_i, int bit_pos,
     diff.outputs += output_word->chars[j];
     diff.char_base_ids.second.push_back (output_word->char_ids[j]);
 
-    diff.table_values.second.push_back (gc_values (output_word->chars[j]));
+    diff.table_values.second.push_back (
+        gc_values_4bit (output_word->chars[j]));
     assert (diff.table_values.second[x] != 0);
   }
   assert (int (diff.outputs.size ()) == output_size);

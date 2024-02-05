@@ -1,4 +1,5 @@
 #include "sha256.hpp"
+#include "1_bit/2_bit.hpp"
 #include "1_bit/encoding.hpp"
 #include "1_bit/propagate.hpp"
 #include "2_bit.hpp"
@@ -9,6 +10,7 @@
 #include "propagate.hpp"
 #include "state.hpp"
 #include "tests.hpp"
+#include "types.hpp"
 #include "util.hpp"
 #include <cassert>
 #include <climits>
@@ -20,7 +22,7 @@
 #include <string>
 
 #define CUSTOM_BRANCHING false
-#define BLOCK_INCONS false
+#define BLOCK_INCONS true
 
 using namespace SHA256;
 
@@ -143,7 +145,7 @@ bool Propagator::custom_block () {
 #if IS_4BIT
   custom_4bit_block (state, two_bit);
 #else
-  // custom_1bit_block (state, two_bit);
+  custom_1bit_block (state, two_bit);
 #endif
 
   // Collect all the equations
@@ -157,7 +159,8 @@ bool Propagator::custom_block () {
           // Check if the antecedent is still valid
           bool skip = false;
           for (auto &lit : eq.antecedent)
-            if (state.partial_assignment.get (lit) != LIT_FALSE)
+            if (state.partial_assignment.get (abs ((int) lit)) !=
+                (lit > 0 ? LIT_FALSE : LIT_TRUE))
               skip = true;
           if (skip)
             continue;
@@ -177,7 +180,6 @@ bool Propagator::custom_block () {
 
   if (two_bit.eqs[0].empty ())
     return false;
-
   assert (!eq_vars.empty ());
 
   // Form the augmented matrix

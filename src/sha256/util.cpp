@@ -157,7 +157,7 @@ vector<int> xor_ (vector<int> inputs) {
   return {value};
 }
 
-uint8_t gc_values (char c) {
+uint8_t gc_values_4bit (char c) {
   uint8_t values = 0;
   if (c == '?')
     values = 15;
