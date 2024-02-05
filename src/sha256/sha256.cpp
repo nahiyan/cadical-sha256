@@ -1,7 +1,11 @@
 #include "sha256.hpp"
+#include "1_bit/encoding.hpp"
+#include "1_bit/propagate.hpp"
 #include "2_bit.hpp"
+#include "4_bit/2_bit.hpp"
 #include "4_bit/differential.hpp"
 #include "4_bit/encoding.hpp"
+#include "4_bit/propagate.hpp"
 #include "propagate.hpp"
 #include "state.hpp"
 #include "tests.hpp"
@@ -16,7 +20,7 @@
 #include <string>
 
 #define CUSTOM_BRANCHING false
-#define BLOCK_INCONS true
+#define BLOCK_INCONS false
 
 using namespace SHA256;
 
@@ -48,7 +52,7 @@ void Propagator::parse_comment_line (string line,
 #if IS_4BIT
   add_4bit_variables (line, solver);
 #else
-  // TODO: Add 1-bit version
+  add_1bit_variables (line, solver);
 #endif
 }
 
@@ -127,216 +131,20 @@ int Propagator::cb_decide () {
 
 void Propagator::custom_propagate () {
   state.soft_refresh ();
-  while (true) {
-    auto &step_i = get<1> (state.last_marked_op);
-    if (get<1> (state.last_marked_op) == -1)
-      return;
-    auto &op_id = get<0> (state.last_marked_op);
-    auto &bit_pos = get<2> (state.last_marked_op);
-    vector<Differential> diffs;
-    get_4bit_differential (op_id, step_i, bit_pos, state, diffs);
-    state.last_marked_op = {op_s0, -1, -1};
-    if (diffs.empty ())
-      return;
-    for (auto &diff_ : diffs) {
-      Reason reason;
-      reason.differential = diff_;
-      auto &diff = reason.differential;
-      assert (!diff.inputs.empty ());
-
-      string prop_output =
-          otf_propagate (diff.function, diff.inputs, diff.outputs);
-      if (diff.outputs == prop_output)
-        continue;
-
-      // Construct the antecedent with inputs
-      int const_zeroes_count = 0;
-      for (unsigned long x = 0; x < diff.inputs.size (); x++) {
-        if (diff.inputs[x] == '?')
-          continue;
-
-        // Count the const zeroes
-        bool is_const_zero = false;
-        if (diff.char_base_ids.first[x] == state.zero_var_id + 2) {
-          const_zeroes_count++;
-          is_const_zero = true;
-          continue;
-        }
-
-        // Add lits
-        auto &base_id = diff.char_base_ids.first[x];
-        for (int y = 0; y < 4; y++) {
-          if ((diff.table_values.first[x] >> y & 1) == 1)
-            continue;
-          assert (state.partial_assignment.get (base_id + y) != LIT_UNDEF);
-          reason.antecedent.push_back (base_id + y);
-        }
-      }
-
-      if (reason.antecedent.empty ())
-        continue;
-
-      // Construct the antecedent with outputs
-      vector<int> prop_lits;
-      for (unsigned long x = 0; x < diff.outputs.size (); x++) {
-        // Ignore the high carry output if addends can't add up to >= 4
-        if (diff.function == add_ && x == 0 &&
-            (diff.inputs.size () - const_zeroes_count) < 4)
-          continue;
-
-        if (diff.char_base_ids.second[x] == state.zero_var_id + 2)
-          continue;
-
-        auto &table_values = diff.table_values.second[x];
-        bool has_output_antecedent = false;
-        {
-          if (diff.outputs[x] != '?') {
-            assert (table_values != 15);
-            for (int y = 0; y < 4; y++) {
-              auto &base_id = diff.char_base_ids.second[x];
-              if ((table_values >> y & 1) == 1)
-                continue;
-              reason.antecedent.push_back (base_id + y);
-              assert (state.partial_assignment.get (base_id + y) !=
-                      LIT_UNDEF);
-              has_output_antecedent = true;
-            }
-          }
-        }
-        assert (diff.outputs[x] != '?' ? has_output_antecedent : true);
-
-        // TODO: Propagated char should have a higher score
-        if (prop_output[x] == '?' || prop_output[x] == '#')
-          continue;
-
-        auto prop_table_values = gc_values (prop_output[x]);
-        for (int y = 0; y < 4; y++) {
-          int id = diff.char_base_ids.second[x] + y;
-
-          uint8_t value = prop_table_values >> y & 1;
-          if (value == 1)
-            continue;
-
-          if (state.partial_assignment.get (id) != LIT_UNDEF)
-            continue;
-
-          int sign = value == 1 ? 1 : -1;
-          int lit = sign * id;
-
-          propagation_lits.push_back (lit);
-          prop_lits.push_back (lit);
-        }
-      }
-
-      diff.outputs = prop_output;
-
-      for (auto &lit : prop_lits)
-        reasons[lit] = reason;
-    }
-
-    if (!propagation_lits.empty ())
-      return;
-  }
+#if IS_4BIT
+  custom_4bit_propagate (state, propagation_lits, reasons);
+#else
+  custom_1bit_propagate (state, propagation_lits, reasons);
+#endif
 }
 
 bool Propagator::custom_block () {
   state.soft_refresh ();
-  for (int op_id = 0; op_id < 10; op_id++)
-    for (int step_i = 0; step_i < state.order; step_i++)
-      for (int bit_pos = 0; bit_pos < 32; bit_pos++) {
-        auto &marked_op =
-            state.marked_operations[(OperationId) op_id][step_i][bit_pos];
-        if (!marked_op)
-          continue;
-        vector<Differential> diffs;
-        get_4bit_differential ((OperationId) op_id, step_i, bit_pos, state,
-                               diffs);
-        marked_op = false;
-        if (diffs.empty ())
-          break;
-        for (auto &diff : diffs) {
-          auto char_base_ids = diff.char_base_ids.first;
-          char_base_ids.insert (char_base_ids.end (),
-                                diff.char_base_ids.second.begin (),
-                                diff.char_base_ids.second.end ());
-          assert (diff.char_base_ids.first.size () +
-                      diff.char_base_ids.second.size () ==
-                  char_base_ids.size ());
-          auto &op_id = diff.operation_id;
-          auto &step_i = diff.step_index;
-          auto &pos = diff.bit_pos;
-
-          // Replace the equations for this particular spot
-          auto &op_eqs = two_bit.eqs_by_op[op_id][step_i][pos];
-          op_eqs.clear ();
-          auto equations =
-              otf_2bit_eqs (diff.function, diff.inputs, diff.outputs,
-                            char_base_ids, diff.mask);
-          string all_chars = diff.inputs + diff.outputs;
-          for (auto &equation : equations) {
-            // Process inputs
-            int const_zeroes_count = 0;
-            for (int input_i = 0;
-                 input_i < int (diff.char_base_ids.first.size ());
-                 input_i++) {
-              if (diff.inputs[input_i] == '?')
-                continue;
-
-              bool is_const_zero = false;
-              auto &base_id = diff.char_base_ids.first[input_i];
-              if (base_id == state.zero_var_id + 2) {
-                const_zeroes_count++;
-                is_const_zero = true;
-                continue;
-              }
-
-              uint8_t values = gc_values (diff.inputs[input_i]);
-              for (int k = 0; k < 4; k++) {
-                if ((values >> k & 1) == 1)
-                  continue;
-
-                uint32_t var = base_id + k;
-                assert (state.partial_assignment.get (var) == LIT_FALSE);
-                equation.antecedent.push_back (var);
-              }
-            }
-
-            // Process outputs
-            for (int output_i = 0;
-                 output_i < int (diff.char_base_ids.second.size ());
-                 output_i++) {
-              if (diff.outputs[output_i] == '?')
-                continue;
-
-              // Ignore the high carry output if addends can't add up to >=
-              // 4
-              if (diff.function == add_ && output_i == 0 &&
-                  (diff.inputs.size () - const_zeroes_count) < 4)
-                continue;
-
-              if (diff.char_base_ids.second[output_i] ==
-                  state.zero_var_id + 2)
-                continue;
-
-              auto &base_id = diff.char_base_ids.second[output_i];
-              if (base_id == state.zero_var_id + 2)
-                continue;
-
-              uint8_t values = gc_values (diff.outputs[output_i]);
-              for (int k = 0; k < 4; k++) {
-                if ((values >> k & 1) == 1)
-                  continue;
-
-                uint32_t var = base_id + k;
-                assert (state.partial_assignment.get (var) == LIT_FALSE);
-                equation.antecedent.push_back (var);
-              }
-            }
-            assert (!equation.antecedent.empty ());
-            op_eqs.push_back (equation);
-          }
-        }
-      }
+#if IS_4BIT
+  custom_4bit_block (state, two_bit);
+#else
+  // custom_1bit_block (state, two_bit);
+#endif
 
   // Collect all the equations
   two_bit.eqs[0].clear ();
@@ -470,8 +278,8 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 
     // print_reason (reason, state);
 
-    assert (reason.differential.inputs.size () > 0);
-    assert (reason.differential.outputs.size () > 0);
+    // assert (reason.differential.inputs.size () > 0);
+    // assert (reason.differential.outputs.size () > 0);
     assert (reason.antecedent.size () > 0);
 
     // Populate the reason clause

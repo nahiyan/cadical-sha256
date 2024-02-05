@@ -159,8 +159,19 @@ struct Differential {
   string mask;
 };
 
+struct Differential_1bit {
+  string inputs;
+  string outputs;
+  pair<vector<vector<uint32_t>>, vector<vector<uint32_t>>> ids;
+  pair<vector<vector<int8_t>>, vector<vector<int8_t>>> table_values;
+  vector<int> (*function) (vector<int>) = NULL;
+  OperationId operation_id;
+  int step_index;
+  int bit_pos;
+  string mask;
+};
+
 struct Reason {
-  Differential differential;
   vector<int> antecedent;
 };
 

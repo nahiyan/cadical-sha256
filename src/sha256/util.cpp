@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cinttypes>
 #include <cstdint>
 #include <cstring>
 #include <ctime>
@@ -194,6 +195,23 @@ uint8_t gc_values (char c) {
     assert (true);
 
   return values;
+}
+
+vector<int8_t> gc_values_1bit (char c) {
+  if (c == 'x')
+    return {0, 0, 1};
+  else if (c == '-')
+    return {0, 0, -1};
+  else if (c == 'u')
+    return {1, -1, 1};
+  else if (c == 'n')
+    return {-1, 1, 1};
+  else if (c == '1')
+    return {1, 1, -1};
+  else if (c == '0')
+    return {-1, -1, -1};
+  else
+    return {0, 0, 0};
 }
 
 // Compare two characteristics by their scores

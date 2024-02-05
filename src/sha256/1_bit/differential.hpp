@@ -8,8 +8,8 @@
 using namespace std;
 
 namespace SHA256 {
-void get_4bit_differential (OperationId op_id, int step_i, int bit_pos,
-                            State &state, vector<Differential> &diffs);
+void get_1bit_differential (OperationId op_id, int step_i, int bit_pos,
+                            State &state, vector<Differential_1bit> &diffs);
 } // namespace SHA256
 
 #endif

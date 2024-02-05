@@ -30,7 +30,6 @@ void State::refresh_char (Word &word, int index) {
   uint8_t x_ = partial_assignment.get (id_g);
   uint8_t diff = partial_assignment.get (base_id);
   refresh_1bit_char (x, x_, diff, c);
-  // TODO: Implement for 1-bit
 #endif
 
   char c_after = c;

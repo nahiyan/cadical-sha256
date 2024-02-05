@@ -41,6 +41,7 @@ vector<int> ch_ (vector<int> inputs);
 vector<int> maj_ (vector<int> inputs);
 vector<int> xor_ (vector<int> inputs);
 uint8_t gc_values (char c);
+vector<int8_t> gc_values_1bit (char c);
 bool compare_gcs (char c1, char c2);
 uint64_t to_uint64_t (uint32_t x, uint32_t y);
 void from_uint64_t (uint64_t z, uint32_t &x, uint32_t &y);
