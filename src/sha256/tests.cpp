@@ -136,6 +136,17 @@ void test_derive_words () {
   }
 }
 
+void test_strong_prop () {
+  test_int_diff ();
+  test_adjust_constant ();
+  test_is_congruent ();
+  test_can_overflow ();
+  test_gen_vars ();
+  test_brute_force ();
+  test_apply_grounding ();
+  test_derive_words ();
+}
+
 void test_rotate_word () {
   assert ("u10u101u0-0u1-nn-n-u-1u---11un0u" ==
           rotate_word ("0u1-nn-n-u-1u---11un0uu10u101u0-", -10));
@@ -198,7 +209,7 @@ void test_otf_2bit_eqs () {
   }
 }
 
-void test_consis_checker () {
+void test_consistency_checker () {
   TwoBit two_bit;
   auto &equations = two_bit.eqs[0];
   equations.insert (Equation{{1, 2}, 0});
@@ -228,18 +239,11 @@ void test_bit_manipulator () {
 
 void run_tests () {
   printf ("Running tests\n");
-  test_int_diff ();
-  test_adjust_constant ();
-  test_is_congruent ();
-  test_can_overflow ();
-  test_gen_vars ();
-  test_brute_force ();
-  test_apply_grounding ();
-  test_derive_words ();
+  test_strong_prop ();
   test_rotate_word ();
   test_otf_propagate ();
   test_otf_2bit_eqs ();
-  test_consis_checker ();
+  test_consistency_checker ();
   test_bit_manipulator ();
   printf ("All tests passed!\n");
 }
