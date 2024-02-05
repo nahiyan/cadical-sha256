@@ -1,9 +1,11 @@
 #include "sha256.hpp"
-#include "sha256_2_bit.hpp"
-#include "sha256_propagate.hpp"
-#include "sha256_state.hpp"
-#include "sha256_tests.hpp"
-#include "sha256_util.hpp"
+#include "2_bit.hpp"
+#include "4_bit/differential.hpp"
+#include "4_bit/encoding.hpp"
+#include "propagate.hpp"
+#include "state.hpp"
+#include "tests.hpp"
+#include "util.hpp"
 #include <cassert>
 #include <climits>
 #include <cstdio>
@@ -14,7 +16,7 @@
 #include <string>
 
 #define CUSTOM_BRANCHING false
-#define BLOCK_INCONS false
+#define BLOCK_INCONS true
 
 using namespace SHA256;
 
@@ -43,186 +45,11 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
 
 void Propagator::parse_comment_line (string line,
                                      CaDiCaL::Solver *&solver) {
-  istringstream iss (line);
-  string key;
-  int value;
-  iss >> key >> value;
-
-  // Determine the order
-  if (key == "order") {
-    order = value;
-    state.order = order;
-    // Since this is the last comment, set the operations
-    state.set_operations ();
-
-    printf ("Initial state:\n");
-    state.hard_refresh ();
-    state.print ();
-
-    return;
-  } else if (key == "zero_g") {
-    state.zero_var_id = value;
-    assert (value >= 0);
-    for (int i = 0; i < 6; i++) {
-      solver->add_observed_var (value + i);
-      state.vars_info[value + i].identity.name = Zero;
-    }
-    return;
-  }
-
-  // Get the step
-  regex pattern ("(.+_)(\\d+)_[fg]");
-  smatch match;
-  int step;
-  string actual_prefix;
-  if (regex_search (key, match, pattern)) {
-    actual_prefix = match[1];
-    step = stoi (match[2].str ());
-  } else {
-    // printf ("Warning: Failed to load IDs from %s\n", key.c_str ());
-    return;
-  }
-
-  // Determine the block
-  bool is_f = key.back () == 'f';
-
-  // Pair the prefixes with the words
-  vector<pair<string, Word &>> prefix_pairs = {
-      {"A_", state.steps[step].a},
-      {"E_", state.steps[step].e},
-      {"W_", state.steps[step].w},
-      {"s0_", state.steps[step].s0},
-      {"s1_", state.steps[step].s1},
-      {"sigma0_", state.steps[step].sigma0},
-      {"sigma1_", state.steps[step].sigma1},
-      {"maj_", state.steps[step].maj},
-      {"if_", state.steps[step].ch},
-      {"T_", state.steps[step].t},
-      {"K_", state.steps[step].k},
-      {"add.W.r0_", state.steps[step].add_w_r[0]},
-      {"add.W.r1_", state.steps[step].add_w_r[1]},
-      {"add.T.r0_", state.steps[step].add_t_r[0]},
-      {"add.T.r1_", state.steps[step].add_t_r[1]},
-      {"add.E.r0_", state.steps[step].add_e_r[0]},
-      {"add.A.r0_", state.steps[step].add_a_r[0]},
-      {"add.A.r1_", state.steps[step].add_a_r[1]},
-  };
-
-  for (auto &pair : prefix_pairs) {
-    auto &word = pair.second;
-    string prefixes[] = {pair.first, 'D' + pair.first};
-
-    for (auto &prefix : prefixes) {
-      if (prefix != actual_prefix)
-        continue;
-
-      VariableName var_name = Unknown;
-      if (prefix == "A_")
-        var_name = A;
-      else if (prefix == "E_")
-        var_name = E;
-      else if (prefix == "W_")
-        var_name = W;
-      else if (prefix == "s0_")
-        var_name = sigma0;
-      else if (prefix == "s1_")
-        var_name = sigma1;
-      else if (prefix == "sigma0_")
-        var_name = Sigma0;
-      else if (prefix == "sigma1_")
-        var_name = Sigma1;
-      else if (prefix == "maj_") {
-        var_name = Maj;
-      } else if (prefix == "if_")
-        var_name = Ch;
-      else if (prefix == "T_")
-        var_name = T;
-      else if (prefix == "K_")
-        var_name = K;
-      else if (prefix == "add.W.r0_")
-        var_name = add_W_lc;
-      else if (prefix == "add.W.r1_")
-        var_name = add_W_hc;
-      else if (prefix == "add.T.r0_")
-        var_name = add_T_lc;
-      else if (prefix == "add.T.r1_")
-        var_name = add_T_hc;
-      else if (prefix == "add.E.r0_")
-        var_name = add_E_lc;
-      else if (prefix == "add.A.r0_")
-        var_name = add_A_lc;
-      else if (prefix == "add.A.r1_")
-        var_name = add_A_hc;
-      if (prefix == "DA_")
-        var_name = DA;
-      else if (prefix == "DE_")
-        var_name = DE;
-      else if (prefix == "DW_")
-        var_name = DW;
-      else if (prefix == "Ds0_")
-        var_name = Dsigma0;
-      else if (prefix == "Ds1_")
-        var_name = Dsigma1;
-      else if (prefix == "Dsigma0_")
-        var_name = DSigma0;
-      else if (prefix == "Dsigma1_")
-        var_name = DSigma1;
-      else if (prefix == "Dmaj_") {
-        var_name = DMaj;
-      } else if (prefix == "Dif_")
-        var_name = DCh;
-      else if (prefix == "DT_")
-        var_name = DT;
-      else if (prefix == "DK_")
-        var_name = DK;
-      else if (prefix == "Dadd.W.r0_")
-        var_name = Dadd_W_lc;
-      else if (prefix == "Dadd.W.r1_")
-        var_name = Dadd_W_hc;
-      else if (prefix == "Dadd.T.r0_")
-        var_name = Dadd_T_lc;
-      else if (prefix == "Dadd.T.r1_")
-        var_name = Dadd_T_hc;
-      else if (prefix == "Dadd.E.r0_")
-        var_name = Dadd_E_lc;
-      else if (prefix == "Dadd.A.r0_")
-        var_name = Dadd_A_lc;
-      else if (prefix == "Dadd.A.r1_")
-        var_name = Dadd_A_hc;
-      assert (var_name >= Unknown && var_name <= Dadd_A_hc);
-
-      if (prefix[0] == 'D')
-        word.chars = string (32, '?');
-
-      // Add the IDs
-      for (int i = 31, id = value, id2 = value; i >= 0;
-           i--, id++, id2 += 4) {
-        if (prefix[0] == 'D') {
-          word.char_ids[i] = id2;
-          for (int j = 0; j < 4; j++)
-            state.vars_info[id2 + j] = {&word, 31 - i, step, var_name};
-          assert (id == value ? state.vars_info[id2].identity.col == 0
-                              : true);
-        } else if (is_f) {
-          word.ids_f[i] = id;
-          state.vars_info[id] = {&word, 31 - i, step, var_name};
-        } else {
-          word.ids_g[i] = id;
-          state.vars_info[id] = {&word, 31 - i, step, var_name};
-        }
-      }
-
-      // Add to observed vars
-      if (word.ids_f[0] != 0 && word.ids_g[0] != 0 && word.char_ids[0] != 0)
-        for (int i = 0; i < 32; i++) {
-          // TODO: Consider not observing the non-differential variables
-          // solver->add_observed_var (word.ids_f[i]);
-          // solver->add_observed_var (word.ids_g[i]);
-          for (int j = 0; j < 4; j++)
-            solver->add_observed_var (word.char_ids[i] + j);
-        }
-    }
-  }
+#if IS_4BIT
+  add_4bit_variables (line, solver);
+#else
+  // TODO: Add 1-bit version
+#endif
 }
 
 void Propagator::notify_assignment (int lit, bool is_fixed) {
@@ -254,28 +81,19 @@ void Propagator::notify_backtrack (size_t new_level) {
   }
   assert (!state.current_trail.empty ());
 
-  // Remove literals that no longer need to be propagated
+  // Remove reasons that no longer hold
   for (auto &p_lit : propagation_lits) {
     auto reason_it = reasons.find (p_lit);
-    bool needs_propagation = true;
-
     if (reason_it == reasons.end ())
-      needs_propagation = false;
-    else
-      for (auto &lit : reason_it->second.antecedent) {
-        auto value = state.partial_assignment.get (abs (lit));
-        bool unsatisfied = (value == LIT_TRUE && lit > 0) ||
-                           (value == LIT_FALSE && lit < 0);
-        if (value == LIT_UNDEF || unsatisfied) {
-          needs_propagation = false;
-          break;
-        }
-      }
+      continue;
 
-    if (!needs_propagation) {
-      if (reason_it != reasons.end ())
+    // Remove reason if it doesn't hold anymore
+    for (auto &lit : reason_it->second.antecedent) {
+      auto value = state.partial_assignment.get (abs (lit));
+      if (value == LIT_UNDEF) {
         reasons.erase (reason_it);
-      // printf ("Erased reason for %d\n", p_lit);
+        break;
+      }
     }
   }
 }
@@ -307,123 +125,6 @@ int Propagator::cb_decide () {
   return lit;
 }
 
-void Propagator::get_differential (OperationId op_id, int step_i,
-                                   int bit_pos,
-                                   vector<Differential> &diffs) {
-  struct Operation {
-    FunctionId function_id;
-    SoftWord *operands;
-    vector<Word *> outputs;
-    int input_size, output_size;
-    string mask;
-  };
-
-  auto get_operation = [this] (OperationId id, int step_i) {
-    auto &ops = state.operations[step_i];
-    auto &step = state.steps[step_i];
-    switch (id) {
-    case op_s0:
-      assert (step_i >= 16);
-      return Operation{xor3, ops.s0.inputs, {&step.s0}, 3, 1, "+++."};
-    case op_s1:
-      assert (step_i >= 16);
-      return Operation{xor3, ops.s1.inputs, {&step.s1}, 3, 1, "+++."};
-    case op_sigma0:
-      return Operation{xor3,  ops.sigma0.inputs, {&step.sigma0}, 3, 1,
-                       "+++."};
-    case op_sigma1:
-      return Operation{xor3,  ops.sigma1.inputs, {&step.sigma1}, 3, 1,
-                       "+++."};
-    case op_maj:
-      return Operation{maj, ops.maj.inputs, {&step.maj}, 3, 1, "+++."};
-    case op_ch:
-      return Operation{ch, ops.ch.inputs, {&step.ch}, 3, 1, "+++."};
-    case op_add_w:
-      assert (step_i >= 16);
-      return Operation{add,
-                       ops.add_w.inputs,
-                       {&step.add_w_r[1], &step.add_w_r[0], &step.w},
-                       6,
-                       3,
-                       ".+.+....+"};
-    case op_add_a:
-      return Operation{add,
-                       ops.add_a.inputs,
-                       {&step.add_a_r[1], &step.add_a_r[0],
-                        &state.steps[ABS_STEP (step_i)].a},
-                       5,
-                       3,
-                       "+......+"};
-    case op_add_e:
-      return Operation{add,
-                       ops.add_e.inputs,
-                       {&state.zero_word, &step.add_e_r[0],
-                        &state.steps[ABS_STEP (step_i)].e},
-                       3,
-                       3,
-                       "++...+"};
-    case op_add_t:
-      return Operation{add,
-                       ops.add_t.inputs,
-                       {&step.add_t_r[1], &step.add_t_r[0], &step.t},
-                       7,
-                       3,
-                       "+...+....+"};
-    default:
-      // This condition shouldn't be met
-      assert (false);
-      return Operation{};
-    }
-  };
-
-  auto operation = get_operation (op_id, step_i);
-  FunctionId &function_id = operation.function_id;
-  SoftWord *input_words = operation.operands;
-  vector<Word *> output_words = operation.outputs;
-  int input_size = operation.input_size,
-      output_size = operation.output_size;
-  auto function = function_id == maj    ? maj_
-                  : function_id == ch   ? ch_
-                  : function_id == xor3 ? xor_
-                                        : add_;
-  auto &i = step_i;
-  auto &j = bit_pos;
-
-  Differential diff;
-  diff.function = function;
-  diff.operation_id = op_id;
-  diff.step_index = i;
-  diff.bit_pos = j;
-  diff.mask = operation.mask;
-
-  for (int x = 0; x < input_size; x++) {
-    auto &input_word = input_words[x];
-    assert (input_word.chars[j] != NULL);
-    diff.inputs += *(input_word.chars[j]);
-    diff.char_base_ids.first.push_back (input_word.char_ids[j]);
-
-    diff.table_values.first.push_back (gc_values (*input_word.chars[j]));
-    assert (diff.table_values.first[x] != 0);
-  }
-  assert (int (diff.inputs.size ()) == input_size);
-  assert (int (diff.char_base_ids.first.size ()) == input_size);
-  assert (int (diff.table_values.first.size ()) == input_size);
-
-  for (int x = 0; x < output_size; x++) {
-    auto &output_word = output_words[x];
-    diff.outputs += output_word->chars[j];
-    diff.char_base_ids.second.push_back (output_word->char_ids[j]);
-
-    diff.table_values.second.push_back (gc_values (output_word->chars[j]));
-    assert (diff.table_values.second[x] != 0);
-  }
-  assert (int (diff.outputs.size ()) == output_size);
-  assert (int (diff.char_base_ids.second.size ()) == output_size);
-  assert (int (diff.table_values.second.size ()) == output_size);
-
-  diffs.push_back (diff);
-}
-
 void Propagator::custom_propagate () {
   state.soft_refresh ();
   while (true) {
@@ -433,7 +134,7 @@ void Propagator::custom_propagate () {
     auto &op_id = get<0> (state.last_marked_op);
     auto &bit_pos = get<2> (state.last_marked_op);
     vector<Differential> diffs;
-    get_differential (op_id, step_i, bit_pos, diffs);
+    get_4bit_differential (op_id, step_i, bit_pos, state, diffs);
     state.last_marked_op = {op_s0, -1, -1};
     if (diffs.empty ())
       return;
@@ -548,7 +249,8 @@ bool Propagator::custom_block () {
         if (!marked_op)
           continue;
         vector<Differential> diffs;
-        get_differential ((OperationId) op_id, step_i, bit_pos, diffs);
+        get_4bit_differential ((OperationId) op_id, step_i, bit_pos, state,
+                               diffs);
         marked_op = false;
         if (diffs.empty ())
           break;

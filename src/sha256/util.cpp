@@ -1,4 +1,4 @@
-#include "sha256_util.hpp"
+#include "util.hpp"
 
 #include <algorithm>
 #include <cassert>

@@ -1,6 +1,7 @@
 #ifndef _sha256_state_hpp_INCLUDED
 #define _sha256_state_hpp_INCLUDED
 
+#include "types.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -10,142 +11,12 @@
 #include <string>
 #include <vector>
 
-#define LIT_TRUE 2
-#define LIT_FALSE 1
-#define LIT_UNDEF 0
+// TODO: Make it dynamic
 #define MAX_VAR_ID 200000
 
 using namespace std;
 
 namespace SHA256 {
-enum VariableName {
-  Unknown,
-  Zero,
-  A,
-  E,
-  W,
-  sigma0,
-  sigma1,
-  Sigma0,
-  Sigma1,
-  Maj,
-  Ch,
-  T,
-  K,
-  add_W_lc,
-  add_W_hc,
-  add_T_lc,
-  add_T_hc,
-  add_E_lc,
-  add_A_lc,
-  add_A_hc,
-  DA,
-  DE,
-  DW,
-  Dsigma0,
-  Dsigma1,
-  DSigma0,
-  DSigma1,
-  DMaj,
-  DCh,
-  DT,
-  DK,
-  Dadd_W_lc,
-  Dadd_W_hc,
-  Dadd_T_lc,
-  Dadd_T_hc,
-  Dadd_E_lc,
-  Dadd_A_lc,
-  Dadd_A_hc,
-};
-
-enum OperationId {
-  op_s0,
-  op_s1,
-  op_sigma0,
-  op_sigma1,
-  op_maj,
-  op_ch,
-  op_add_w,
-  op_add_a,
-  op_add_e,
-  op_add_t,
-};
-
-struct Word {
-  // f and g refer to the 2 blocks of SHA-256
-  uint32_t ids_f[32], ids_g[32], char_ids[32];
-  // Differential characteristics
-  string chars;
-};
-// A soft word has its characteristics defined in another word
-struct SoftWord {
-  // f and g refer to the 2 blocks of SHA-256
-  uint32_t ids_f[32], ids_g[32], char_ids[32];
-  // Differential characteristics
-  char *chars[32];
-};
-
-struct VarIdentity {
-  VariableName name;
-  int step;
-  int col;
-};
-
-struct VarInfo {
-  Word *word = NULL;
-  VarIdentity identity;
-  bool is_fixed = false;
-
-  // Operation ID, step, and bit position
-  vector<tuple<OperationId, int, int>> operations;
-
-  VarInfo () {}
-  VarInfo (Word *word, int col, int step, VariableName name) {
-    this->word = word;
-    this->identity.col = col;
-    this->identity.step = step;
-    this->identity.name = name;
-  }
-};
-
-struct Operations {
-  struct S0 {
-    SoftWord inputs[3];
-  } s0;
-  struct S1 {
-    SoftWord inputs[3];
-  } s1;
-  struct Sigma0 {
-    SoftWord inputs[3];
-  } sigma0;
-  struct Sigma1 {
-    SoftWord inputs[3];
-  } sigma1;
-  // All the variable IDs stored in the following soft words are redundant
-  struct Maj {
-    SoftWord inputs[3];
-  } maj;
-  struct Ch {
-    SoftWord inputs[3];
-  } ch;
-  struct AddW {
-    SoftWord inputs[6];
-    SoftWord carries[2];
-  } add_w;
-  struct AddT {
-    SoftWord inputs[7];
-    SoftWord carries[2];
-  } add_t;
-  struct AddE {
-    SoftWord inputs[3];
-    SoftWord carries[1];
-  } add_e;
-  struct AddA {
-    SoftWord inputs[5];
-    SoftWord carries[2];
-  } add_a;
-};
 
 class PartialAssignment {
   uint8_t *variables;
@@ -212,10 +83,6 @@ public:
   }
 };
 
-struct Step {
-  Word a, e, w, s0, s1, sigma0, sigma1, ch, maj, k, t, add_w_r[2],
-      add_t_r[2], add_e_r[1], add_a_r[2];
-};
 class State {
 public:
   deque<vector<int>> current_trail;
@@ -229,6 +96,7 @@ public:
       PartialAssignment (MAX_VAR_ID, &current_trail, vars_info);
   // Operation ID, step index, bit position
   bool marked_operations[10][64][32];
+  // TODO: Do propagation for every single marked operation
   tuple<OperationId, int, int> last_marked_op = {op_s0, -1, -1};
 
   void hard_refresh (bool will_propagate = false);

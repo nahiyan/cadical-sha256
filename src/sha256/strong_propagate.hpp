@@ -1,5 +1,5 @@
-#ifndef _sha256_propagate_hpp_INCLUDED
-#define _sha256_propagate_hpp_INCLUDED
+#ifndef _sha256_strong_propagate_hpp_INCLUDED
+#define _sha256_strong_propagate_hpp_INCLUDED
 
 #include <cstdint>
 #include <string>
@@ -8,10 +8,6 @@
 using namespace std;
 
 namespace SHA256 {
-enum FunctionId { ch, maj, xor3, add };
-// TODO: Integrate this
-enum AdditionId { add_a, add_e, add_w, add_t };
-
 int64_t _word_diff (string word);
 int64_t adjust_constant (string word, int64_t constant,
                          vector<char> adjustable_gcs = {});
@@ -24,10 +20,7 @@ vector<string> apply_grounding (vector<string> words,
                                 vector<string> var_cols,
                                 vector<char> values);
 vector<string> derive_words (vector<string> words, int64_t constant);
-void load_prop_rules (const char *path);
 void prop_with_word_diff (int equation_id, vector<string *> words);
-string otf_propagate (vector<int> (*func) (vector<int> inputs),
-                      string inputs, string outputs);
 } // namespace SHA256
 
 #endif

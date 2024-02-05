@@ -1,7 +1,8 @@
 #ifndef _sha256_2_bit_hpp_INCLUDED
 #define _sha256_2_bit_hpp_INCLUDED
 
-#include "sha256_state.hpp"
+#include "state.hpp"
+#include "types.hpp"
 #include <list>
 #include <map>
 #include <unordered_map>
@@ -22,33 +23,6 @@ using namespace std;
 
 namespace SHA256 {
 
-struct Equation {
-  // The equations are represented by their delta IDs
-  uint32_t char_ids[2];
-  uint8_t diff;
-  vector<uint32_t> antecedent = {};
-
-  bool operator< (const Equation &other) const {
-    if (diff != other.diff)
-      return diff < other.diff;
-
-    for (int i = 0; i < 2; i++)
-      if (char_ids[i] != other.char_ids[i])
-        return char_ids[i] < other.char_ids[i];
-
-    return false; // Equal
-  }
-};
-struct TwoBit {
-  set<Equation> eqs[2];
-  vector<Equation> eqs_by_op[10][64][32];
-  map<int, int> aug_mtx_var_map;
-  // TODO: Use a sorted set of pairs
-  map<uint64_t, int> eq_freq;
-};
-
-void load_two_bit_rules (const char *filename);
-// void derive_two_bit_equations (TwoBit &two_bit, State &state);
 vector<Equation> check_consistency (set<Equation> &equations,
                                     bool exhaustive);
 bool block_inconsistency (TwoBit &two_bit,

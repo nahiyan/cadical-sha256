@@ -1,7 +1,7 @@
 // vim: set tw=300: set VIM text width to 300 characters for this file.
 
 #include "internal.hpp"
-#include "sha256.hpp"
+#include "sha256/sha256.hpp"
 
 namespace CaDiCaL {
 

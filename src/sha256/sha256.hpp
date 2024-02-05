@@ -1,9 +1,9 @@
 #ifndef _sha256_hpp_INCLUDED
 #define _sha256_hpp_INCLUDED
 
-#include "cadical.hpp"
-#include "sha256_2_bit.hpp"
-#include "sha256_state.hpp"
+#include "../cadical.hpp"
+#include "state.hpp"
+#include "types.hpp"
 #include <algorithm>
 #include <cassert>
 #include <deque>
@@ -14,6 +14,7 @@
 #include <stack>
 #include <string>
 
+#define IS_4BIT true
 #define ABS_STEP(i) (i + 4)
 
 using namespace std;
@@ -26,27 +27,8 @@ struct Stats {
   uint reasons_count;
 };
 
-struct Differential {
-  string inputs;
-  string outputs;
-  pair<vector<uint32_t>, vector<uint32_t>> char_base_ids;
-  pair<vector<uint8_t>, vector<uint8_t>> table_values;
-  vector<int> (*function) (vector<int>) = NULL;
-  OperationId operation_id;
-  int step_index;
-  int bit_pos;
-  string mask;
-};
-
-struct Reason {
-  Differential differential;
-  vector<int> antecedent;
-};
-
 class Propagator : CaDiCaL::ExternalPropagator {
   CaDiCaL::Solver *solver;
-  static int order;
-  static State state;
   vector<int> propagation_lits;
   vector<int> reason_clause;
   map<int, Reason> reasons;
@@ -56,6 +38,8 @@ class Propagator : CaDiCaL::ExternalPropagator {
   TwoBit two_bit;
 
 public:
+  static int order;
+  static State state;
   static Stats stats;
 
   Propagator (CaDiCaL::Solver *solver);
@@ -79,8 +63,6 @@ public:
   void custom_propagate ();
   void custom_branch ();
   bool custom_block ();
-  void get_differential (OperationId op_id, int step_i, int bit_pos,
-                         vector<Differential> &diffs);
 };
 } // namespace SHA256
 

@@ -3,7 +3,7 @@
 // Do include 'internal.hpp' but try to minimize internal dependencies.
 
 #include "internal.hpp"
-#include "sha256.hpp"
+#include "sha256/sha256.hpp"
 #include "signal.hpp" // Separate, only need for apps.
 
 /*------------------------------------------------------------------------*/

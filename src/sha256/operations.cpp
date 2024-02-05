@@ -1,6 +1,6 @@
 #include "sha256.hpp"
-#include "sha256_state.hpp"
-#include "sha256_util.hpp"
+#include "state.hpp"
+#include "util.hpp"
 
 namespace SHA256 {
 void State::set_operations () {

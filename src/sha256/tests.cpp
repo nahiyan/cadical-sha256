@@ -1,9 +1,10 @@
-#include "sha256_tests.hpp"
+#include "tests.hpp"
+#include "2_bit.hpp"
+#include "propagate.hpp"
 #include "sha256.hpp"
-#include "sha256_2_bit.hpp"
-#include "sha256_propagate.hpp"
-#include "sha256_state.hpp"
-#include "sha256_util.hpp"
+#include "state.hpp"
+#include "strong_propagate.hpp"
+#include "util.hpp"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
@@ -11,11 +12,11 @@
 
 namespace SHA256 {
 void test_int_diff () {
-  assert (_int_diff ("0n0n001001u-1u1n01un010n01n00110") == 2955087584);
-  assert (_int_diff ("nnnnn-nnnn--------nuu-----------") == 71301120);
-  assert (_int_diff ("nnnnn-nnnA--------nuu-----------") == -1);
-  assert (_int_diff ("--------------------------------") == 0);
-  assert (_int_diff ("0n0n001001u") == 1409);
+  assert (_word_diff ("0n0n001001u-1u1n01un010n01n00110") == 2955087584);
+  assert (_word_diff ("nnnnn-nnnn--------nuu-----------") == 71301120);
+  assert (_word_diff ("nnnnn-nnnA--------nuu-----------") == -1);
+  assert (_word_diff ("--------------------------------") == 0);
+  assert (_word_diff ("0n0n001001u") == 1409);
 }
 
 void test_adjust_constant () {

@@ -1,8 +1,7 @@
-#include "sha256_2_bit.hpp"
 #include "lru_cache.hpp"
-#include "sha256_propagate.hpp"
-#include "sha256_state.hpp"
-#include "sha256_util.hpp"
+#include "propagate.hpp"
+#include "state.hpp"
+#include "util.hpp"
 
 #include "NTL/GF2.h"
 #include "NTL/mat_GF2.h"
@@ -16,28 +15,6 @@
 
 namespace SHA256 {
 unordered_map<string, string> two_bit_rules;
-
-void load_two_bit_rules (const char *path) {
-  std::ifstream db (path);
-  if (!db) {
-    printf ("Rules database not found. Can you ensure that '%s' "
-            "exists in the current working directory?\n",
-            path);
-    exit (1);
-  }
-  int count = 0;
-  std::string key, value;
-  int id;
-  while (db >> id >> key >> value) {
-    key = to_string (id) + key;
-
-    two_bit_rules.insert ({key, value});
-    count++;
-  }
-
-  printf ("Loaded %d rules into %ld buckets\n", count,
-          two_bit_rules.bucket_count ());
-}
 
 // Checks GF(2) equations and returns conflicting equations (equations that
 // conflicts with previously added ones)
@@ -134,8 +111,7 @@ vector<Equation> check_consistency (set<Equation> &equations,
       }
     } else {
       // Adding novel variables
-      auto new_set =
-          std::make_shared<std::set<int>> (std::set<int>{lit1, lit2});
+      auto new_set = make_shared<set<int>> (set<int>{lit1, lit2});
       rels[var1] = new_set;
       rels[var2] = new_set;
     }
@@ -242,33 +218,27 @@ bool block_inconsistency (TwoBit &two_bit,
 
   // Blocking inconsistencies
   auto &inconsistency_deref = *inconsistency;
-  // printf ("Debug: found inconsistencies (%d): %d equations\n",
-  //         inconsistent_eq_n, sum_dec_from_bin (inconsistency_deref));
 
-  std::set<int> confl_clause_lits;
+  // Store lits in a set to avoid duplicates
+  set<int> clause_lits;
   int eq_index = 0;
   for (auto &equation : two_bit.eqs[block_index]) {
     if (inconsistency_deref[eq_index++] == 0)
       continue;
 
-    // printf ("Blocking equation: %d %s %d\n", equation.char_ids[0],
-    //         equation.diff == 1 ? "=/=" : "=", equation.char_ids[1]);
-
-    // Instances refer to the function instances
     auto &antecedent = equation.antecedent;
     assert (!antecedent.empty ());
-    for (auto &var : antecedent) {
-      auto value = partial_assignment.get (var);
-      assert (partial_assignment.get (var) == LIT_FALSE);
-      auto polarity = value == LIT_TRUE ? -1 : 1;
-      confl_clause_lits.insert (polarity * var);
+    for (auto &lit : antecedent) {
+      auto value = partial_assignment.get (abs ((int) lit));
+      assert (value == (lit > 0 ? LIT_FALSE : LIT_TRUE));
+      clause_lits.insert (lit);
     }
   }
-  assert (!confl_clause_lits.empty ());
+  assert (!clause_lits.empty ());
 
   // Push the blocking/conflict clause
   vector<int> clause;
-  for (auto &lit : confl_clause_lits)
+  for (auto &lit : clause_lits)
     clause.push_back (lit);
   assert (!clause.empty ());
   external_clauses.push_back (clause);
