@@ -391,7 +391,7 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
   return derived_words;
 }
 
-void prop_with_word_diff (int equation_id, vector<string *> words) {
+void prop_with_word_diff (AdditionId equation_id, vector<string *> words) {
   vector<int> underived_indices;
   int words_count = words.size ();
   vector<int64_t> word_diffs (words_count);

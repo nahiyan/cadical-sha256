@@ -22,8 +22,6 @@ void custom_1bit_block (State &state, TwoBit &two_bit) {
         get_1bit_differential ((OperationId) op_id, step_i, bit_pos, state,
                                diffs);
         marked_op = false;
-        if (diffs.empty ())
-          break;
         for (auto &diff : diffs) {
           auto &op_id = diff.operation_id;
           auto &step_i = diff.step_index;
@@ -78,8 +76,7 @@ void custom_1bit_block (State &state, TwoBit &two_bit) {
               if (diff.outputs[output_i] == '?')
                 continue;
 
-              // Ignore the high carry output if addends can't add up to >=
-              // 4
+              // Ignore the high carry output if addends count < 4
               if (diff.function == add_ && output_i == 0 &&
                   (diff.inputs.size () - const_zeroes_count) < 4)
                 continue;

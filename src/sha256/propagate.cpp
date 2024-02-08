@@ -58,7 +58,7 @@ inline vector<char> get_symbols (char key) {
 }
 
 // Get the differential characteristic from a list of possibilities
-char get_symbol (const set<char> &symbols) {
+inline char get_symbol (const set<char> &symbols) {
   if (symbols == set<char>{'u', 'n', '1', '0'})
     return '?';
   else if (symbols == set<char>{'1', '0'})

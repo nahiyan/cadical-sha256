@@ -2,11 +2,12 @@
 #include "1_bit/state.hpp"
 #include "4_bit/state.hpp"
 #include "sha256.hpp"
+#include "types.hpp"
 #include "util.hpp"
 
 using namespace SHA256;
 
-void State::refresh_char (Word &word, int index) {
+inline void State::refresh_char (Word &word, int index) {
   auto &id_f = word.ids_f[index];
   auto &id_g = word.ids_g[index];
   auto &base_id = word.char_ids[index];

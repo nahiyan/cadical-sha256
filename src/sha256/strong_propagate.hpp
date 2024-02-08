@@ -1,6 +1,7 @@
 #ifndef _sha256_strong_propagate_hpp_INCLUDED
 #define _sha256_strong_propagate_hpp_INCLUDED
 
+#include "types.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -20,7 +21,7 @@ vector<string> apply_grounding (vector<string> words,
                                 vector<string> var_cols,
                                 vector<char> values);
 vector<string> derive_words (vector<string> words, int64_t constant);
-void prop_with_word_diff (int equation_id, vector<string *> words);
+void prop_with_word_diff (AdditionId equation_id, vector<string *> words);
 } // namespace SHA256
 
 #endif
