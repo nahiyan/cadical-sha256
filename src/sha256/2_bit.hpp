@@ -32,6 +32,7 @@ bool block_inconsistency (TwoBit &two_bit,
 vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
                                string inputs, string outputs,
                                vector<uint32_t> char_ids, string mask);
+void load_two_bit_rules ();
 } // namespace SHA256
 
 #endif

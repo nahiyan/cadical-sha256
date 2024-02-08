@@ -177,6 +177,10 @@ void test_otf_propagate () {
     auto result = otf_propagate (add_, "-??", "0?-");
     assert (result == "0?-");
   }
+  {
+    auto result = otf_propagate (ch_, "---", "x");
+    assert (result == "#");
+  }
 }
 
 void test_otf_2bit_eqs () {

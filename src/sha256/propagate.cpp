@@ -1,4 +1,5 @@
 #include "propagate.hpp"
+#include "1_bit/propagate.hpp"
 #include "lru_cache.hpp"
 #include "sha256.hpp"
 #include "util.hpp"
@@ -18,36 +19,79 @@ using namespace std;
 
 namespace SHA256 {
 
-map<char, vector<char>> symbols = {{'?', {'u', 'n', '1', '0'}},
-                                   {'-', {'1', '0'}},
-                                   {'x', {'u', 'n'}},
-                                   {'0', {'0'}},
-                                   {'u', {'u'}},
-                                   {'n', {'n'}},
-                                   {'1', {'1'}},
-                                   {'3', {'0', 'u'}},
-                                   {'5', {'0', 'n'}},
-                                   {'7', {'0', 'u', 'n'}},
-                                   {'A', {'u', '1'}},
-                                   {'B', {'1', 'u', '0'}},
-                                   {'C', {'n', '1'}},
-                                   {'D', {'0', 'n', '1'}},
-                                   {'E', {'u', 'n', '1'}}};
-map<char, set<char>> symbols_set = {{'?', {'u', 'n', '1', '0'}},
-                                    {'-', {'1', '0'}},
-                                    {'x', {'u', 'n'}},
-                                    {'0', {'0'}},
-                                    {'u', {'u'}},
-                                    {'n', {'n'}},
-                                    {'1', {'1'}},
-                                    {'3', {'0', 'u'}},
-                                    {'5', {'0', 'n'}},
-                                    {'7', {'0', 'u', 'n'}},
-                                    {'A', {'u', '1'}},
-                                    {'B', {'1', 'u', '0'}},
-                                    {'C', {'n', '1'}},
-                                    {'D', {'0', 'n', '1'}},
-                                    {'E', {'u', 'n', '1'}}};
+// Break down a differential characteristic into a list of possibilities
+inline vector<char> get_symbols (char key) {
+  switch (key) {
+  case '?':
+    return {'u', 'n', '1', '0'};
+  case '-':
+    return {'1', '0'};
+  case 'x':
+    return {'u', 'n'};
+  case '0':
+    return {'0'};
+  case 'u':
+    return {'u'};
+  case 'n':
+    return {'n'};
+  case '1':
+    return {'1'};
+  case '3':
+    return {'0', 'u'};
+  case '5':
+    return {'0', 'n'};
+  case '7':
+    return {'0', 'u', 'n'};
+  case 'A':
+    return {'u', '1'};
+  case 'B':
+    return {'1', 'u', '0'};
+  case 'C':
+    return {'n', '1'};
+  case 'D':
+    return {'0', 'n', '1'};
+  case 'E':
+    return {'u', 'n', '1'};
+  default:
+    return {}; // Return an empty vector for unknown keys
+  }
+}
+
+// Get the differential characteristic from a list of possibilities
+char get_symbol (const set<char> &symbols) {
+  if (symbols == set<char>{'u', 'n', '1', '0'})
+    return '?';
+  else if (symbols == set<char>{'1', '0'})
+    return '-';
+  else if (symbols == set<char>{'u', 'n'})
+    return 'x';
+  else if (symbols == set<char>{'0'})
+    return '0';
+  else if (symbols == set<char>{'u'})
+    return 'u';
+  else if (symbols == set<char>{'n'})
+    return 'n';
+  else if (symbols == set<char>{'1'})
+    return '1';
+  else if (symbols == set<char>{'0', 'u'})
+    return '3';
+  else if (symbols == set<char>{'0', 'n'})
+    return '5';
+  else if (symbols == set<char>{'0', 'u', 'n'})
+    return '7';
+  else if (symbols == set<char>{'u', '1'})
+    return 'A';
+  else if (symbols == set<char>{'1', 'u', '0'})
+    return 'B';
+  else if (symbols == set<char>{'n', '1'})
+    return 'C';
+  else if (symbols == set<char>{'0', 'n', '1'})
+    return 'D';
+  else if (symbols == set<char>{'u', 'n', '1'})
+    return 'E';
+
+  return '#';
+}
 
 cache::lru_cache<string, string> otf_prop_cache (5e6);
 string otf_propagate (vector<int> (*func) (vector<int> inputs),
@@ -65,14 +109,13 @@ string otf_propagate (vector<int> (*func) (vector<int> inputs),
     stringstream ss;
     ss << func_id << " " << inputs << " " << outputs;
     cache_key = ss.str ();
-    if (otf_prop_cache.exists (cache_key)) {
+    if (otf_prop_cache.exists (cache_key))
       return otf_prop_cache.get (cache_key);
-    }
   }
 
   int outputs_size = outputs.size ();
   auto conforms_to = [] (char c1, char c2) {
-    auto c1_chars = symbols[c1], c2_chars = symbols[c2];
+    vector<char> c1_chars = get_symbols (c1), c2_chars = get_symbols (c2);
     for (auto &c : c1_chars)
       if (find (c2_chars.begin (), c2_chars.end (), c) == c2_chars.end ())
         return false;
@@ -81,9 +124,9 @@ string otf_propagate (vector<int> (*func) (vector<int> inputs),
 
   vector<vector<char>> iterables_list;
   for (auto &input : inputs) {
-    auto it = symbols.find (input);
-    if (it != symbols.end ())
-      iterables_list.push_back (it->second);
+    vector<char> symbols = get_symbols (input);
+    if (!symbols.empty ())
+      iterables_list.push_back (symbols);
   }
 
   set<char> possibilities[outputs_size];
@@ -136,20 +179,31 @@ string otf_propagate (vector<int> (*func) (vector<int> inputs),
       possibilities[i].insert ((outputs_[i]));
   }
 
-  auto gc_from_set = [] (set<char> &set) {
-    for (auto &entry : symbols_set)
-      if (set == entry.second)
-        return entry.first;
-    return '#';
-  };
-
   string propagated_output = "";
   for (auto &p : possibilities)
-    propagated_output += gc_from_set (p);
+    propagated_output += get_symbol (p);
 
   // Cache the result
   otf_prop_cache.put (cache_key, propagated_output);
   return propagated_output;
+}
+
+void load_prop_rules () {
+  ifstream db ("prop_rules.db");
+  if (!db) {
+    printf ("Rules database not found. Can you ensure that 'prop_rules.db' "
+            "exists in the current working directory?\n");
+    exit (1);
+  }
+
+  int rules_count = 0;
+#if IS_4BIT
+  rules_count = load_4bit_prop_rules (db, otf_prop_cache);
+#else
+  rules_count = load_1bit_prop_rules (db, otf_prop_cache);
+#endif
+
+  printf ("Loaded %d rules\n", rules_count);
 }
 
 } // namespace SHA256

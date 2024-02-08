@@ -10,6 +10,7 @@ using namespace std;
 namespace SHA256 {
 string otf_propagate (vector<int> (*func) (vector<int> inputs),
                       string inputs, string outputs);
+void load_prop_rules ();
 } // namespace SHA256
 
 #endif

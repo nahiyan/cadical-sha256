@@ -1,11 +1,11 @@
+#include "1_bit/2_bit.hpp"
+#include "NTL/GF2.h"
+#include "NTL/mat_GF2.h"
+#include "NTL/vec_GF2.h"
 #include "lru_cache.hpp"
 #include "propagate.hpp"
 #include "state.hpp"
 #include "util.hpp"
-
-#include "NTL/GF2.h"
-#include "NTL/mat_GF2.h"
-#include "NTL/vec_GF2.h"
 #include <cassert>
 #include <climits>
 #include <fstream>
@@ -204,15 +204,15 @@ bool block_inconsistency (TwoBit &two_bit,
   // Find the basis of the coefficient matrix's left kernel
   NTL::mat_GF2 left_kernel_basis;
   NTL::kernel (left_kernel_basis, coeff_matrix);
-  auto equations_n = left_kernel_basis.NumCols ();
+  // auto equations_n = left_kernel_basis.NumCols ();
 
   // TODO: Add combinations of the basis vectors
 
   // Check for inconsistencies
   NTL::vec_GF2 *inconsistency = NULL;
-  auto inconsistent_eq_n = find_inconsistency_from_nullspace_vectors (
-      two_bit, coeff_matrix, rhs, left_kernel_basis, inconsistency,
-      block_index);
+  find_inconsistency_from_nullspace_vectors (two_bit, coeff_matrix, rhs,
+                                             left_kernel_basis,
+                                             inconsistency, block_index);
   if (inconsistency == NULL)
     return false;
 
@@ -246,12 +246,12 @@ bool block_inconsistency (TwoBit &two_bit,
   return true;
 }
 
-cache::lru_cache<string, vector<set<int>>> otf_2bit_cache (350e3);
+cache::lru_cache<string, string> otf_2bit_cache (5e6);
 vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
                                string inputs, string outputs,
                                vector<uint32_t> char_ids, string mask) {
   vector<Equation> equations;
-  vector<set<int>> diff_pairs;
+  string diff_pairs;
   // printf ("%ld %ld %ld\n", inputs.size (), outputs.size (),
   //         char_ids.size ());
   assert (inputs.size () + outputs.size () == char_ids.size ());
@@ -275,7 +275,7 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
     diff_pairs = otf_2bit_cache.get (cache_key);
   }
 
-  auto all_chars = inputs + outputs;
+  string all_chars = inputs + outputs;
   assert (all_chars.size () == inputs.size () + outputs.size ());
 
   if (!is_cached) {
@@ -293,10 +293,11 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
       int values[n];
       for (int j = 0; j < n; j++)
         values[j] = i >> j & 1;
-      auto candidate = all_chars;
+      string candidate = all_chars;
       for (int j = 0; j < n; j++) {
         auto value = values[j];
         auto c = candidate[positions[j]];
+        // TODO: Add 2-block support
         candidate[positions[j]] =
             c == 'x' ? (value == 1 ? 'u' : 'n') : (value == 1 ? '1' : '0');
       }
@@ -323,24 +324,40 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
     {
       int n = all_chars.size ();
       for (int i = 0; i < n; i++) {
-        for (int j = i + 1; j < n; j++)
+        for (int j = i + 1; j < n; j++) {
           pairs_count += 1;
+          diff_pairs += "?";
+        }
       }
     }
+    assert (int (diff_pairs.size ()) == pairs_count);
 
-    for (int i = 0; i < pairs_count; i++)
-      diff_pairs.push_back ({});
-    auto break_gc = [] (char gc) { return gc == 'u' || gc == '1' ? 1 : 0; };
+    // TODO: Add 2-block support
+    auto break_gc = [] (char gc) {
+      assert (gc == 'u' || gc == '1' || gc == 'n' || gc == '0');
+      return gc == 'u' || gc == '1' ? 1 : 0;
+    };
     for (auto &selection : selections) {
       auto combined = selection.first + selection.second;
-      int x = 0;
+      int x = -1;
       int n = combined.size ();
       for (int i = 0; i < n; i++) {
         for (int j = i + 1; j < n; j++) {
-          int c1 = break_gc (combined[i]);
-          int c2 = break_gc (combined[j]);
-          diff_pairs[x].insert (c1 ^ c2);
+          assert (i != j);
           x++;
+
+          if (!is_in (i, positions) || !is_in (j, positions)) {
+            diff_pairs[x] = '?';
+            continue;
+          }
+
+          uint8_t c1 = break_gc (combined[i]);
+          uint8_t c2 = break_gc (combined[j]);
+          char diff = (c1 ^ c2) == 0 ? '0' : '1';
+
+          diff_pairs[x] = diff_pairs[x] == '?'    ? diff
+                          : diff == diff_pairs[x] ? diff
+                                                  : 'v';
         }
       }
     }
@@ -354,6 +371,10 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
   for (int i = 0; i < n; i++) {
     for (int j = i + 1; j < n; j++) {
       x += 1;
+
+      if (diff_pairs[x] == '?' || diff_pairs[x] == 'v')
+        continue;
+
       if (mask[i] != '+' || mask[j] != '+')
         continue;
 
@@ -361,11 +382,9 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
           !is_in (all_chars[j], {'-', 'x'}))
         continue;
 
-      if (diff_pairs[x].size () != 1)
-        continue;
-
       Equation eq;
-      eq.diff = *diff_pairs[x].begin ();
+      assert (diff_pairs[x] == '0' || diff_pairs[x] == '1');
+      eq.diff = diff_pairs[x] == '0' ? 0 : 1;
       // Sort the IDs for non-ambiguous comparison
       uint32_t x, y;
       if (char_ids[i] < char_ids[j]) {
@@ -382,6 +401,25 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
   }
 
   return equations;
+}
+
+void load_two_bit_rules () {
+  ifstream db ("two_bit_rules.db");
+  if (!db) {
+    printf (
+        "Rules database not found. Can you ensure that 'two_bit_rules.db' "
+        "exists in the current working directory?\n");
+    exit (1);
+  }
+
+  int rules_count = 0;
+#if IS_4BIT
+  rules_count = load_4bit_two_bit_rules (db, otf_prop_cache);
+#else
+  rules_count = load_1bit_two_bit_rules (db, otf_2bit_cache);
+#endif
+
+  printf ("Loaded %d rules\n", rules_count);
 }
 
 } // namespace SHA256

@@ -41,8 +41,8 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   solver->connect_external_propagator (this);
   printf ("Connected!\n");
   state.current_trail.push_back (std::vector<int> ());
-  // load_prop_rules ("prop-rules.db");
-  // load_two_bit_rules ("2-bit-rules.db");
+  load_prop_rules ();
+  load_two_bit_rules ();
 
 #ifdef LOGGING
   printf ("Logging is enabled!\n");
@@ -234,8 +234,10 @@ int Propagator::cb_propagate () {
   if (!propagation_lits.empty ())
     goto PROVIDE_LIT;
 
+#if CUSTOM_PROP
   // if (++prop_counter % 20 == 0)
   custom_propagate ();
+#endif
 
   if (propagation_lits.empty ())
     return 0;
@@ -323,7 +325,7 @@ bool Propagator::cb_has_external_clause () {
   if (!external_clauses.empty ())
     return true;
 
-#if BLOCK_INCONS
+#if CUSTOM_BLOCKING
   // if (++block_counter % 20 != 0)
   //   return false;
 

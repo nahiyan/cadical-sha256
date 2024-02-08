@@ -1,10 +1,13 @@
 #include "../propagate.hpp"
+#include "../lru_cache.hpp"
 #include "../state.hpp"
 #include "../types.hpp"
 #include "../util.hpp"
 #include "differential.hpp"
 #include "propagate.hpp"
 #include <cassert>
+#include <fstream>
+#include <sstream>
 
 namespace SHA256 {
 void custom_1bit_propagate (State &state, vector<int> &propagation_lits,
@@ -117,5 +120,27 @@ void custom_1bit_propagate (State &state, vector<int> &propagation_lits,
 
   if (!propagation_lits.empty ())
     return;
+}
+
+int load_1bit_prop_rules (ifstream &db,
+                          cache::lru_cache<string, string> &cache) {
+  int count = 0;
+  int id;
+  string diff_inputs, diff_outputs;
+  while (db >> id >> diff_inputs >> diff_outputs) {
+    stringstream key_ss;
+    string outputs;
+    for (long x = 0; x < diff_outputs.size (); x++)
+      outputs += '?';
+    assert (outputs.size () == diff_outputs.size ());
+    key_ss << id << " " << diff_inputs << " " << outputs;
+
+    // TODO: Filter rules and add 1-bit based rules only
+
+    cache.put (key_ss.str (), diff_outputs);
+    count++;
+  }
+
+  return count;
 }
 } // namespace SHA256
