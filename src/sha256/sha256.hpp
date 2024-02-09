@@ -38,7 +38,6 @@ class Propagator : CaDiCaL::ExternalPropagator {
   TwoBit two_bit;
 
 public:
-  static int order;
   static State state;
   static Stats stats;
 

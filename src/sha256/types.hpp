@@ -112,39 +112,48 @@ struct VarInfo {
 struct Operations {
   struct S0 {
     SoftWord inputs[3];
+    Word *outputs[1];
   } s0;
   struct S1 {
     SoftWord inputs[3];
+    Word *outputs[1];
   } s1;
   struct Sigma0 {
     SoftWord inputs[3];
+    Word *outputs[1];
   } sigma0;
   struct Sigma1 {
     SoftWord inputs[3];
+    Word *outputs[1];
   } sigma1;
   // All the variable IDs stored in the following soft words are redundant
   struct Maj {
     SoftWord inputs[3];
+    Word *outputs[1];
   } maj;
   struct Ch {
     SoftWord inputs[3];
+    Word *outputs[1];
   } ch;
   struct AddW {
     SoftWord inputs[6];
-    SoftWord carries[2];
+    Word *outputs[3];
   } add_w;
   struct AddT {
     SoftWord inputs[7];
-    SoftWord carries[2];
+    Word *outputs[3];
   } add_t;
   struct AddE {
     SoftWord inputs[3];
-    SoftWord carries[1];
+    Word *outputs[3];
   } add_e;
   struct AddA {
     SoftWord inputs[5];
-    SoftWord carries[2];
+    Word *outputs[3];
   } add_a;
+
+  SoftWord *inputs_by_op_id[10];
+  Word **outputs_by_op_id[10];
 };
 
 struct Differential {

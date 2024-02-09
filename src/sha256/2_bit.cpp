@@ -252,7 +252,7 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
                                vector<uint32_t> char_ids, string mask) {
   vector<Equation> equations;
   string diff_pairs;
-  // printf ("%ld %ld %ld\n", inputs.size (), outputs.size (),
+  // printf ("Debug: %ld %ld %ld\n", inputs.size (), outputs.size (),
   //         char_ids.size ());
   assert (inputs.size () + outputs.size () == char_ids.size ());
   assert (char_ids.size () == mask.size ());

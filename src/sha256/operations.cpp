@@ -1,5 +1,6 @@
 #include "sha256.hpp"
 #include "state.hpp"
+#include "types.hpp"
 #include "util.hpp"
 
 namespace SHA256 {
@@ -125,6 +126,12 @@ void State::set_operations () {
         for (int j = 0; j < 3; j++)
           add_var_info_sword (&operands[j], i, op_s0);
         add_var_info_word (&steps[i].s0, i, op_s0);
+
+        // Set the outputs
+        operations[i].s0.outputs[0] = &steps[i].s0;
+
+        operations[i].inputs_by_op_id[op_s0] = operations[i].s0.inputs;
+        operations[i].outputs_by_op_id[op_s0] = operations[i].s0.outputs;
       }
       {
         // s1
@@ -173,6 +180,12 @@ void State::set_operations () {
           assert (get<2> (vars_info[operands[0].char_ids[31 - 22]]
                               .operations[0]) == 7);
         }
+
+        // Set the outputs
+        operations[i].s1.outputs[0] = &steps[i].s1;
+
+        operations[i].inputs_by_op_id[op_s1] = operations[i].s1.inputs;
+        operations[i].outputs_by_op_id[op_s1] = operations[i].s1.outputs;
       }
       {
         // add.W
@@ -184,13 +197,19 @@ void State::set_operations () {
         operands[4] = to_soft_word (steps[i].add_w_r[0], 1);
         operands[5] = to_soft_word (steps[i].add_w_r[1], 2);
 
-        for (int j = 0; j < 2; j++)
-          operations[i].add_w.carries[j] =
-              to_soft_word (steps[i].add_w_r[j]);
-
         for (int j = 0; j < 6; j++)
           add_var_info_sword (&operands[j], i, op_add_w);
         add_var_info_word (&steps[i].w, i, op_add_w);
+
+        // Set the outputs
+        operations[i].add_w.outputs[0] = &steps[i].add_w_r[1];
+        operations[i].add_w.outputs[1] = &steps[i].add_w_r[0];
+        operations[i].add_w.outputs[2] = &steps[i].w;
+
+        operations[i].inputs_by_op_id[op_add_w] =
+            operations[i].add_w.inputs;
+        operations[i].outputs_by_op_id[op_add_w] =
+            operations[i].add_w.outputs;
       }
     }
 
@@ -222,6 +241,14 @@ void State::set_operations () {
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_sigma0);
       add_var_info_word (&steps[i].sigma0, i, op_sigma0);
+
+      // Set the outputs
+      operations[i].sigma0.outputs[0] = &steps[i].sigma0;
+
+      operations[i].inputs_by_op_id[op_sigma0] =
+          operations[i].sigma0.inputs;
+      operations[i].outputs_by_op_id[op_sigma0] =
+          operations[i].sigma0.outputs;
     }
     {
       // sigma1
@@ -251,6 +278,14 @@ void State::set_operations () {
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_sigma1);
       add_var_info_word (&steps[i].sigma1, i, op_sigma1);
+
+      // Set the outputs
+      operations[i].sigma1.outputs[0] = &steps[i].sigma1;
+
+      operations[i].inputs_by_op_id[op_sigma1] =
+          operations[i].sigma1.inputs;
+      operations[i].outputs_by_op_id[op_sigma1] =
+          operations[i].sigma1.outputs;
     }
     {
       // maj
@@ -261,6 +296,12 @@ void State::set_operations () {
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_maj);
       add_var_info_word (&steps[i].maj, i, op_maj);
+
+      // Set the outputs
+      operations[i].maj.outputs[0] = &steps[i].maj;
+
+      operations[i].inputs_by_op_id[op_maj] = operations[i].maj.inputs;
+      operations[i].outputs_by_op_id[op_maj] = operations[i].maj.outputs;
     }
     {
       // ch
@@ -271,6 +312,12 @@ void State::set_operations () {
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_ch);
       add_var_info_word (&steps[i].ch, i, op_ch);
+
+      // Set the outputs
+      operations[i].ch.outputs[0] = &steps[i].ch;
+
+      operations[i].inputs_by_op_id[op_ch] = operations[i].ch.inputs;
+      operations[i].outputs_by_op_id[op_ch] = operations[i].ch.outputs;
     }
     {
       // add.T
@@ -286,20 +333,24 @@ void State::set_operations () {
         operands[j] = to_soft_word (*words[j]);
       operands[5] = to_soft_word (steps[i].add_t_r[0], 1);
       operands[6] = to_soft_word (steps[i].add_t_r[1], 2);
-      // TODO: Redundant?
-      for (int j = 0; j < 2; j++)
-        operations[i].add_t.carries[j] = to_soft_word (steps[i].add_t_r[j]);
 
       assert (operands[6].ids_f[31] == zero_var_id);
       assert (operands[6].ids_f[30] == zero_var_id);
-      assert (operands[6].ids_f[29] ==
-              operations[i].add_t.carries[1].ids_f[31]);
-      assert (operands[6].ids_f[0] ==
-              operations[i].add_t.carries[1].ids_f[2]);
+      assert (operands[6].ids_f[29] == steps[i].add_t_r[1].ids_f[31]);
+      assert (operands[6].ids_f[0] == steps[i].add_t_r[1].ids_f[2]);
 
       for (int j = 0; j < 7; j++)
         add_var_info_sword (&operands[j], i, op_add_t);
       add_var_info_word (&steps[i].t, i, op_add_t);
+
+      // Set the outputs
+      operations[i].add_t.outputs[0] = &steps[i].add_t_r[1];
+      operations[i].add_t.outputs[1] = &steps[i].add_t_r[0];
+      operations[i].add_t.outputs[2] = &steps[i].t;
+
+      operations[i].inputs_by_op_id[op_add_t] = operations[i].add_t.inputs;
+      operations[i].outputs_by_op_id[op_add_t] =
+          operations[i].add_t.outputs;
     }
     {
       // add.E
@@ -311,17 +362,23 @@ void State::set_operations () {
       for (int j = 0; j < 2; j++)
         operands[j] = to_soft_word (*words[j]);
       operands[2] = to_soft_word (steps[i].add_e_r[0], 1);
-      operations[i].add_e.carries[0] = to_soft_word (steps[i].add_e_r[0]);
 
       assert (operands[2].ids_f[31] == zero_var_id);
-      assert (operands[2].ids_f[30] ==
-              operations[i].add_e.carries[0].ids_f[31]);
-      assert (operands[2].ids_f[0] ==
-              operations[i].add_e.carries[0].ids_f[1]);
+      assert (operands[2].ids_f[30] == steps[i].add_e_r[0].ids_f[31]);
+      assert (operands[2].ids_f[0] == steps[i].add_e_r[0].ids_f[1]);
 
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_add_e);
       add_var_info_word (&steps[i].e, i, op_add_e);
+
+      // Set the outputs
+      operations[i].add_e.outputs[0] = &zero_word;
+      operations[i].add_e.outputs[1] = &steps[i].add_e_r[0];
+      operations[i].add_e.outputs[2] = &steps[ABS_STEP (i)].e;
+
+      operations[i].inputs_by_op_id[op_add_e] = operations[i].add_e.inputs;
+      operations[i].outputs_by_op_id[op_add_e] =
+          operations[i].add_e.outputs;
     }
     {
       // add.A
@@ -331,26 +388,29 @@ void State::set_operations () {
         operands[j] = to_soft_word (*words[j]);
       operands[3] = to_soft_word (steps[i].add_a_r[0], 1);
       operands[4] = to_soft_word (steps[i].add_a_r[1], 2);
-      for (int j = 0; j < 2; j++)
-        operations[i].add_a.carries[j] = to_soft_word (steps[i].add_a_r[j]);
 
       assert (operands[4].ids_f[31] == zero_var_id);
       assert (operands[4].ids_f[30] == zero_var_id);
       assert (operands[4].ids_f[29] != zero_var_id);
       assert (operands[3].ids_f[31] == zero_var_id);
       assert (operands[3].ids_f[30] != zero_var_id);
-      assert (operands[4].ids_f[29] ==
-              operations[i].add_a.carries[1].ids_f[31]);
-      assert (operands[4].ids_f[0] ==
-              operations[i].add_a.carries[1].ids_f[2]);
-      assert (operands[3].ids_f[29] ==
-              operations[i].add_a.carries[0].ids_f[30]);
-      assert (operands[3].ids_f[0] ==
-              operations[i].add_a.carries[0].ids_f[1]);
+      assert (operands[4].ids_f[29] == steps[i].add_a_r[1].ids_f[31]);
+      assert (operands[4].ids_f[0] == steps[i].add_a_r[1].ids_f[2]);
+      assert (operands[3].ids_f[29] == steps[i].add_a_r[0].ids_f[30]);
+      assert (operands[3].ids_f[0] == steps[i].add_a_r[0].ids_f[1]);
 
       for (int j = 0; j < 5; j++)
         add_var_info_sword (&operands[j], i, op_add_a);
       add_var_info_word (&steps[i].a, i, op_add_a);
+
+      // Set the outputs
+      operations[i].add_a.outputs[0] = &steps[i].add_a_r[1];
+      operations[i].add_a.outputs[1] = &steps[i].add_a_r[0];
+      operations[i].add_a.outputs[2] = &steps[ABS_STEP (i)].a;
+
+      operations[i].inputs_by_op_id[op_add_a] = operations[i].add_a.inputs;
+      operations[i].outputs_by_op_id[op_add_a] =
+          operations[i].add_a.outputs;
     }
   }
 }

@@ -22,11 +22,11 @@
 #include <string>
 
 #define CUSTOM_BRANCHING false
-#define BLOCK_INCONS true
+#define CUSTOM_BLOCKING false
+#define CUSTOM_PROP false
 
 using namespace SHA256;
 
-int Propagator::order = 0;
 State Propagator::state = State ();
 uint64_t prop_counter = 0;
 uint64_t block_counter = 0;
@@ -392,7 +392,7 @@ void Propagator::custom_branch () {
   };
 
   // Stage 1
-  for (int i = order - 1; i >= 0; i--) {
+  for (int i = state.order - 1; i >= 0; i--) {
     auto &w = state.steps[i].w;
     for (int j = 0; j < 32; j++) {
       auto &c = w.chars[j];
@@ -409,7 +409,7 @@ void Propagator::custom_branch () {
   }
 
   // Stage 2
-  for (int i = -4; i < order; i++) {
+  for (int i = -4; i < state.order; i++) {
     auto &a = state.steps[ABS_STEP (i)].a;
     auto &e = state.steps[ABS_STEP (i)].e;
     for (int j = 0; j < 32; j++) {

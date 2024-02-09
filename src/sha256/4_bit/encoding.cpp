@@ -15,7 +15,6 @@ void add_4bit_variables (string line, CaDiCaL::Solver *&solver) {
 
   // Determine the order
   if (key == "order") {
-    Propagator::order = value;
     state.order = value;
     // Since this is the last comment, set the operations
     state.set_operations ();
