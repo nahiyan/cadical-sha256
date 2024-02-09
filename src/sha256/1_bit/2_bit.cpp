@@ -14,10 +14,12 @@ string masks_by_op_id[10] = {"+++.",      "+++.",     "+++.",
                              "+++.",      "+++.",     "+++.",
                              ".+.+....+", "+......+", "+...+....+"};
 // Differential sizes
-pair<int, int> diff_sizes[10] = {{3, 1}, {3, 1}, {3, 1}, {3, 1}, {3, 1},
-                                 {3, 1}, {6, 3}, {5, 3}, {3, 3}, {7, 3}};
-vector<int> (*functions[10]) (vector<int>) = {xor_, xor_, xor_, xor_, maj_,
-                                              ch_,  add_, add_, add_, add_};
+pair<int, int> two_bit_diff_sizes[10] = {{3, 1}, {3, 1}, {3, 1}, {3, 1},
+                                         {3, 1}, {3, 1}, {6, 3}, {5, 3},
+                                         {3, 3}, {7, 3}};
+// Functions by operation IDs
+vector<int> (*two_bit_functions[10]) (vector<int>) = {
+    xor_, xor_, xor_, xor_, maj_, ch_, add_, add_, add_, add_};
 void custom_1bit_block (State &state, TwoBit &two_bit) {
   for (int op_id = 0; op_id < 6; op_id++)
     for (int step_i = 0; step_i < state.order; step_i++)
@@ -28,12 +30,12 @@ void custom_1bit_block (State &state, TwoBit &two_bit) {
           continue;
         marked_op = false;
 
-        auto &function = functions[op_id];
+        auto &function = two_bit_functions[op_id];
         assert (op_id < op_add_w);
 
         // Construct the differential
-        int input_size = diff_sizes[op_id].first,
-            output_size = diff_sizes[op_id].second;
+        int input_size = two_bit_diff_sizes[op_id].first,
+            output_size = two_bit_diff_sizes[op_id].second;
         auto &input_words = state.operations[step_i].inputs_by_op_id[op_id];
         auto &output_words =
             state.operations[step_i].outputs_by_op_id[op_id];
