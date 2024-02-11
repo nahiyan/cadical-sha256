@@ -10,9 +10,9 @@
 
 namespace SHA256 {
 // Masks used for constructing 2-bit equations
-string masks_by_op_id[10] = {"+++.",      "+++.",     "+++.",
-                             "+++.",      "+++.",     "+++.",
-                             ".+.+....+", "+......+", "+...+....+"};
+string masks_by_op_id[10] = {"+++.",   "+++.",      "+++.",      "+++.",
+                             "+++.",   "+++.",      ".+.+....+", "+......+",
+                             "++...+", "+...+....+"};
 // Differential sizes
 pair<int, int> two_bit_diff_sizes[10] = {{3, 1}, {3, 1}, {3, 1}, {3, 1},
                                          {3, 1}, {3, 1}, {6, 3}, {5, 3},

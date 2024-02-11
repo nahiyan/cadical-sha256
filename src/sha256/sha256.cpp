@@ -114,7 +114,8 @@ string add_masks[4] = {".+.++", "+..+", "+++", "+...++"};
 int add_input_sizes[4] = {4, 3, 2, 5};
 // Strong propagate (through branching) words by taking information inside
 // the addition equation
-cache::lru_cache<string, pair<string, string>> strong_propagate_cache (1e6);
+cache::lru_cache<string, pair<string, string>>
+    strong_propagate_cache (100e3);
 void strong_propagate_and_branch_1bit (State &state,
                                        list<int> &decision_lits) {
   state.soft_refresh ();
