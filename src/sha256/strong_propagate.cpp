@@ -22,11 +22,13 @@ struct ValueWithOrder {
   uint8_t order; // Order will be 31 max and 8 bits can hold 0-255
 };
 
-int64_t _word_diff (string word) {
-  size_t n = word.size ();
+// Represent the words (in both block) as integers through their
+// differential characteristics and return their difference
+int64_t _word_diff (string chars) {
+  size_t n = chars.size ();
   int64_t value = 0;
   for (size_t i = 0; i < n; i++) {
-    char gc = word[n - 1 - i];
+    char gc = chars[n - 1 - i];
     if (!is_in (gc, {'u', 'n', '-', '1', '0'}))
       return -1;
 
@@ -38,9 +40,9 @@ int64_t _word_diff (string word) {
 
 int64_t adjust_constant (string word, int64_t constant,
                          vector<char> adjustable_gcs) {
-  if (adjustable_gcs.size () == 0) {
+  if (adjustable_gcs.size () == 0)
     adjustable_gcs = {'x', 'n', '5', 'C', 'D', '?'};
-  }
+
   size_t n = word.size ();
   for (size_t i = 0; i < n; i++) {
     char gc = word[n - 1 - i];
@@ -191,10 +193,10 @@ vector<string> apply_grounding (vector<string> words,
   int i = 0;
   for (auto &col : var_cols) {
     string new_col;
-    for (auto &var : col) {
+    for (auto &var : col)
       if (var == 'v')
         new_col += 'v';
-    }
+
     var_cols[i++] = new_col;
   }
 
@@ -267,7 +269,7 @@ vector<string> apply_grounding (vector<string> words,
   return derived_words;
 }
 
-vector<string> derive_words (vector<string> words, int64_t constant) {
+vector<string> strong_propagate (vector<string> words, int64_t constant) {
   auto count_vars = [] (vector<string> cols) {
     int vars_count = 0;
     for (auto &col : cols) {
@@ -387,7 +389,8 @@ vector<string> derive_words (vector<string> words, int64_t constant) {
     var_values.push_back (-1);
   assert (int (var_values.size ()) == vars_count);
 
-  auto derived_words = apply_grounding (words, var_cols, var_values);
+  vector<string> derived_words =
+      apply_grounding (words, var_cols, var_values);
   return derived_words;
 }
 
@@ -421,7 +424,7 @@ void prop_with_word_diff (AdditionId equation_id, vector<string *> words) {
   vector<string> underived_words;
   for (int i = 0; i < underived_count; i++)
     underived_words.push_back (*words[underived_indices[i]]);
-  auto derived_words = derive_words (underived_words, constant);
+  auto derived_words = strong_propagate (underived_words, constant);
 
   for (int i = 0; i < underived_count; i++) {
     auto index = underived_indices[i];
