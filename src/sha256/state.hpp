@@ -1,6 +1,7 @@
 #ifndef _sha256_state_hpp_INCLUDED
 #define _sha256_state_hpp_INCLUDED
 
+#include "partial_assignment.hpp"
 #include "types.hpp"
 #include <algorithm>
 #include <cassert>
@@ -17,72 +18,6 @@
 using namespace std;
 
 namespace SHA256 {
-
-class PartialAssignment {
-  uint8_t *variables;
-
-public:
-  std::set<uint32_t> updated_vars;
-  deque<vector<int>> *current_trail; // !Added for Debugging only
-  VarInfo *vars_info;
-
-  PartialAssignment (int max_var_id, deque<vector<int>> *current_trail,
-                     VarInfo *var_info) {
-    variables = new uint8_t[max_var_id];
-    for (int i = 0; i < max_var_id; i++)
-      variables[i] = LIT_UNDEF;
-    this->current_trail = current_trail;
-    this->vars_info = var_info;
-  }
-
-  ~PartialAssignment () { delete[] variables; }
-
-  void mark_updated_var (int id) {
-    assert (id > 0);
-    auto &word = vars_info[id].word;
-    if (word == NULL)
-      return;
-
-    uint32_t base_id = word->char_ids[31 - vars_info[id].identity.col];
-    updated_vars.insert (base_id);
-  }
-
-  void set (int lit) {
-    int id = abs (lit);
-    variables[id] = lit > 0 ? LIT_TRUE : LIT_FALSE;
-    mark_updated_var (id);
-  }
-
-  uint8_t get (int id) {
-    assert (id > 0);
-    return variables[id];
-  }
-
-  // Search the entire trail for a variable (for debugging)
-  uint8_t get_ (int id) {
-    for (auto level_lits : *current_trail) {
-      if (std::find (level_lits.begin (), level_lits.end (), id) !=
-          level_lits.end ()) {
-        return LIT_TRUE;
-      }
-      if (std::find (level_lits.begin (), level_lits.end (), -id) !=
-          level_lits.end ()) {
-        return LIT_FALSE;
-      }
-    };
-
-    return LIT_UNDEF;
-  }
-
-  void unset (int lit) {
-    int id = abs (lit);
-    if (vars_info[id].is_fixed)
-      return;
-    variables[id] = LIT_UNDEF;
-    mark_updated_var (id);
-  }
-};
-
 class State {
 public:
   clock_t temp_time = 0;
