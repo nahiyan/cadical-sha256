@@ -23,10 +23,6 @@
 #include <regex>
 #include <string>
 
-#define CUSTOM_PROP false
-#define CUSTOM_BLOCKING false
-#define CUSTOM_BRANCHING true
-
 using namespace SHA256;
 
 State Propagator::state = State ();

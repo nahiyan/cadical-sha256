@@ -14,7 +14,10 @@
 #include <stack>
 #include <string>
 
-#define IS_4BIT true
+#define CUSTOM_PROP false
+#define CUSTOM_BLOCKING false
+#define CUSTOM_BRANCHING false
+#define IS_4BIT false
 #define ABS_STEP(i) (i + 4)
 
 using namespace std;
