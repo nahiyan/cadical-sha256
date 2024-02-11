@@ -555,11 +555,15 @@ void Internal::print_resource_usage () {
        m / (double) (1l << 20));
   double total_cb_time =
       SHA256::Propagator::stats.total_cb_time / (double) CLOCKS_PER_SEC;
+  //   double total_test_time =
+  //       SHA256::Propagator::state.temp_time / (double) CLOCKS_PER_SEC;
 
   MSG ("total callback time:                     %12.2f    seconds",
        total_cb_time);
   MSG ("discounted time:                         %12.2f    seconds",
        internal->process_time () - total_cb_time);
+//   MSG ("temp time:                         %12.2f    seconds",
+//        total_test_time);
 #endif
 }
 
