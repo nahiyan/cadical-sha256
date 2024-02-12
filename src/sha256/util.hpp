@@ -147,13 +147,13 @@ inline vector<int8_t> gc_values_1bit (char c) {
   else if (c == '-')
     return {0, 0, -1};
   else if (c == 'u')
-    return {1, -1, 1};
+    return {1, -1, 0};
   else if (c == 'n')
-    return {-1, 1, 1};
+    return {-1, 1, 0};
   else if (c == '1')
-    return {1, 1, -1};
+    return {1, 1, 0};
   else if (c == '0')
-    return {-1, -1, -1};
+    return {-1, -1, 0};
   else
     return {0, 0, 0};
 }
