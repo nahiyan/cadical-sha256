@@ -186,36 +186,60 @@ void test_otf_propagate () {
 void test_otf_2bit_eqs () {
   {
     auto equations = otf_2bit_eqs (
-        add_, "-0n10n", "5x-", {1, 0, 0, 0, 0, 0, 0, 0, 2}, "+.......+");
-    assert (equations.size () == 1);
+        add_, "-0n10n", "5x-",
+        {{1, 0, 0, 0, 0, 0, 0, 0, 2}, {3, 0, 0, 0, 0, 0, 0, 0, 4}},
+        "+.......+");
+    assert (equations.size () == 2);
     assert (equations[0].char_ids[0] == 1 && equations[0].char_ids[1] == 2);
     assert (equations[0].diff == 1);
+    assert (equations[1].char_ids[0] == 3 && equations[1].char_ids[1] == 4);
+    assert (equations[1].diff == 1);
   }
   {
-    auto equations =
-        otf_2bit_eqs (add_, "-1101-11", "110",
-                      {1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0}, "+....+.....");
-    assert (equations.size () == 1);
+    auto equations = otf_2bit_eqs (add_, "-1101-11", "110",
+                                   {{1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0},
+                                    {3, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0}},
+                                   "+....+.....");
+    assert (equations.size () == 2);
     assert (equations[0].char_ids[0] == 1 && equations[0].char_ids[1] == 2);
     assert (equations[0].diff == 1);
+    assert (equations[1].char_ids[0] == 3 && equations[1].char_ids[1] == 4);
+    assert (equations[1].diff == 1);
   }
   {
-    auto equations =
-        otf_2bit_eqs (add_, "u0u01-10", "un-",
-                      {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2}, ".....+....+");
-    assert (equations.size () == 1);
+    auto equations = otf_2bit_eqs (add_, "u0u01-10", "un-",
+                                   {{0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2},
+                                    {0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4}},
+                                   ".....+....+");
+    assert (equations.size () == 2);
     assert (equations[0].char_ids[0] == 1 && equations[0].char_ids[1] == 2);
     assert (equations[0].diff == 0);
+    assert (equations[1].char_ids[0] == 3 && equations[1].char_ids[1] == 4);
+    assert (equations[1].diff == 0);
   }
   {
-    auto equations = otf_2bit_eqs (xor_, "-0-", "0", {1, 0, 1, 0}, "+.+.");
-    assert (equations.size () == 1);
+    auto equations = otf_2bit_eqs (xor_, "-0-", "0",
+                                   {{1, 0, 2, 0}, {3, 0, 4, 0}}, "+.+.");
+    assert (equations.size () == 2);
+  }
+  {
+    auto equations = otf_2bit_eqs (
+        add_, "xu110n-", "??u",
+        {{1, 0, 0, 0, 0, 0, 2, 0, 0, 0}, {3, 0, 0, 0, 0, 0, 4, 0, 0, 0}},
+        "+.....+...");
+    assert (equations.size () == 2);
+    assert (equations[0].char_ids[0] == 1);
+    assert (equations[0].char_ids[1] == 2);
+    assert (equations[0].diff == 0);
+    assert (equations[1].char_ids[0] == 3);
+    assert (equations[1].char_ids[1] == 4);
+    assert (equations[1].diff == 1);
   }
 }
 
 void test_consistency_checker () {
   TwoBit two_bit;
-  auto &equations = two_bit.eqs[0];
+  auto &equations = two_bit.equations;
   equations.insert (Equation{{1, 2}, 0});
   equations.insert (Equation{{2, 3}, 0});
   equations.insert (Equation{{3, 4}, 0});
@@ -224,7 +248,7 @@ void test_consistency_checker () {
   equations.insert (Equation{{101, 102}, 0});
   equations.insert (Equation{{102, 103}, 0});
   equations.insert (Equation{{100, 103}, 0});
-  auto conflict_eqs = check_consistency (two_bit.eqs[0], true);
+  auto conflict_eqs = check_consistency (two_bit.equations, true);
   assert (conflict_eqs.size () == 2);
   assert (conflict_eqs[0].char_ids[0] == 1 &&
           conflict_eqs[0].char_ids[1] == 4 && conflict_eqs[0].diff == 1);

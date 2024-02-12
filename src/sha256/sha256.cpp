@@ -8,7 +8,6 @@
 #include "4_bit/encoding.hpp"
 #include "4_bit/propagate.hpp"
 #include "lru_cache.hpp"
-#include "propagate.hpp"
 #include "state.hpp"
 #include "strong_propagate.hpp"
 #include "tests.hpp"
@@ -112,8 +111,8 @@ int add_input_sizes[4] = {4, 3, 2, 5};
 // the addition equation
 cache::lru_cache<string, pair<string, string>>
     strong_propagate_cache (100e3);
-void strong_propagate_and_branch_1bit (State &state,
-                                       list<int> &decision_lits) {
+inline void strong_propagate_and_branch_1bit (State &state,
+                                              list<int> &decision_lits) {
   state.soft_refresh ();
   auto _word_chars = [] (Word &word) {
     string chars;
@@ -232,8 +231,8 @@ void strong_propagate_and_branch_1bit (State &state,
         for (int j = 0; j < 32; j++)
           if (original_chars[j] != propagated_chars[j]) {
             assert (compare_gcs (original_chars[j], propagated_chars[j]));
-            printf ("Strong prop. %d: %c %c\n", op_id, original_chars[j],
-                    propagated_chars[j]);
+            // printf ("Strong prop. %d: %c %c\n", op_id, original_chars[j],
+            //         propagated_chars[j]);
             uint32_t ids[3];
             if (index == input_size) {
               // Output word
@@ -283,7 +282,7 @@ int Propagator::cb_decide () {
   return lit;
 }
 
-void Propagator::custom_propagate () {
+inline void Propagator::custom_propagate () {
   state.soft_refresh ();
 #if IS_4BIT
   custom_4bit_propagate (state, propagation_lits, reasons);
@@ -292,7 +291,7 @@ void Propagator::custom_propagate () {
 #endif
 }
 
-bool Propagator::custom_block () {
+inline bool Propagator::custom_block () {
   state.soft_refresh ();
 #if IS_4BIT
   custom_4bit_block (state, two_bit);
@@ -301,7 +300,7 @@ bool Propagator::custom_block () {
 #endif
 
   // Collect all the equations
-  two_bit.eqs[0].clear ();
+  two_bit.equations.clear ();
   two_bit.eq_freq.clear ();
   set<uint32_t> eq_vars;
   for (auto op_id = 0; op_id < 10; op_id++)
@@ -323,12 +322,12 @@ bool Propagator::custom_block () {
 
           assert (!eq.antecedent.empty ());
 
-          two_bit.eqs[0].insert (eq);
+          two_bit.equations.insert (eq);
           eq_vars.insert (eq.char_ids[0]);
           eq_vars.insert (eq.char_ids[1]);
         }
 
-  if (two_bit.eqs[0].empty ())
+  if (two_bit.equations.empty ())
     return false;
   assert (!eq_vars.empty ());
 
@@ -339,46 +338,43 @@ bool Propagator::custom_block () {
   for (auto &var : eq_vars)
     two_bit.aug_mtx_var_map[var] = id++;
 
-  bool has_clause = false;
-  // TODO: Add support for 2 blocks
-  for (int block_index = 0; block_index < 1; block_index++) {
-    auto confl_equations =
-        check_consistency (two_bit.eqs[block_index], false);
-    bool is_consistent = confl_equations.empty ();
-    if (is_consistent)
+  auto confl_equations = check_consistency (two_bit.equations, false);
+  bool is_consistent = confl_equations.empty ();
+  if (is_consistent)
+    return false;
+
+  // Block inconsistencies
+  assert (external_clauses.empty ());
+  block_inconsistency (two_bit, state.partial_assignment, external_clauses);
+  // Keep only the shortest clause
+  assert (!external_clauses.empty ());
+  // printf ("Blocking clauses count: %ld\n", external_clauses.size ());
+  int shortest_index = -1, shortest_length = INT_MAX;
+  for (int i = 0; i < int (external_clauses.size ()); i++) {
+    int size = external_clauses[i].size ();
+    if (size >= shortest_length)
       continue;
 
-    // Block inconsistencies
-    assert (external_clauses.empty ());
-    block_inconsistency (two_bit, state.partial_assignment,
-                         external_clauses, block_index);
-    has_clause = true;
-    break;
+    shortest_length = size;
+    shortest_index = i;
   }
-  // Keep only the shortest clause
-  if (has_clause) {
-    assert (!external_clauses.empty ());
-    int shortest_index = -1, shortest_length = INT_MAX;
-    for (int i = 0; i < int (external_clauses.size ()); i++) {
-      int size = external_clauses[i].size ();
-      if (size >= shortest_length)
-        continue;
+  auto shortest_clause = external_clauses[shortest_index];
+  // printf ("Shortest clause length: %ld\n", shortest_clause.size ());
+  // if (shortest_clause.size () > 20) {
+  //   external_clauses.clear ();
+  //   return false;
+  // }
 
-      shortest_length = size;
-      shortest_index = i;
-    }
-    auto clause = external_clauses[shortest_index];
-    assert (!clause.empty ());
-    external_clauses.clear ();
-    external_clauses.push_back (clause);
-    for (auto &lit : clause)
-      assert (state.partial_assignment.get (abs (lit)) ==
-              (lit > 0 ? LIT_FALSE : LIT_TRUE));
-    printf ("Blocking clause: ");
-    print (clause);
-  }
+  assert (!shortest_clause.empty ());
+  external_clauses.clear ();
+  external_clauses.push_back (shortest_clause);
+  for (auto &lit : shortest_clause)
+    assert (state.partial_assignment.get (abs (lit)) ==
+            (lit > 0 ? LIT_FALSE : LIT_TRUE));
+  printf ("Blocking clause: ");
+  print (shortest_clause);
 
-  return has_clause;
+  return true;
 }
 
 int Propagator::cb_propagate () {
@@ -526,7 +522,7 @@ int Propagator::cb_add_external_clause_lit () {
   return lit;
 }
 
-void Propagator::custom_branch () {
+inline void Propagator::custom_branch () {
   state.soft_refresh ();
 
   auto rand_ground_x = [] (list<int> &decision_lits, Word &word, int &j) {
@@ -594,11 +590,11 @@ void Propagator::custom_branch () {
   }
 
   // Stage 3
-  if (two_bit.eqs[0].empty ())
+  if (two_bit.equations.empty ())
     return;
 
   auto &pa = state.partial_assignment;
-  for (auto &eq : two_bit.eqs[0]) {
+  for (auto &eq : two_bit.equations) {
     uint32_t base_ids[] = {eq.char_ids[0], eq.char_ids[1]};
     for (int x = 0; x < 2; x++) {
       srand (clock () + x);

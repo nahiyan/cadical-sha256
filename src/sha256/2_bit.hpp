@@ -27,11 +27,11 @@ vector<Equation> check_consistency (set<Equation> &equations,
                                     bool exhaustive);
 bool block_inconsistency (TwoBit &two_bit,
                           PartialAssignment &partial_assignment,
-                          vector<vector<int>> &external_clauses,
-                          int block_index = 0);
+                          vector<vector<int>> &external_clauses);
 vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
                                string inputs, string outputs,
-                               vector<uint32_t> char_ids, string mask);
+                               pair<vector<uint32_t>, vector<uint32_t>> ids,
+                               string mask);
 void load_two_bit_rules ();
 } // namespace SHA256
 

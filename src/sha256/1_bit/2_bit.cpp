@@ -40,24 +40,27 @@ void custom_1bit_block (State &state, TwoBit &two_bit) {
         auto &output_words =
             state.operations[step_i].outputs_by_op_id[op_id];
         string input_chars, output_chars;
-        vector<uint32_t> all_char_ids;
+        pair<vector<uint32_t>, vector<uint32_t>> ids;
         for (int i = 0; i < input_size; i++) {
           input_chars += *input_words[i].chars[bit_pos];
-          all_char_ids.push_back (input_words[i].char_ids[bit_pos]);
+          ids.first.push_back (input_words[i].ids_f[bit_pos]);
+          ids.second.push_back (input_words[i].ids_g[bit_pos]);
         }
         for (int i = 0; i < output_size; i++) {
           output_chars += output_words[i]->chars[bit_pos];
-          all_char_ids.push_back (output_words[i]->char_ids[bit_pos]);
+          ids.first.push_back (output_words[i]->ids_f[bit_pos]);
+          ids.second.push_back (output_words[i]->ids_g[bit_pos]);
         }
         string all_chars = input_chars + output_chars;
-        assert (input_size + output_size == all_char_ids.size ());
+        assert (input_size + output_size == ids.first.size ());
+        assert (input_size + output_size == ids.second.size ());
 
         // Replace the equations for this particular spot
         auto &op_eqs = two_bit.eqs_by_op[op_id][step_i][bit_pos];
         op_eqs.clear ();
         auto &mask = masks_by_op_id[op_id];
-        auto equations = otf_2bit_eqs (function, input_chars, output_chars,
-                                       all_char_ids, mask);
+        auto equations =
+            otf_2bit_eqs (function, input_chars, output_chars, ids, mask);
         for (auto &equation : equations) {
           // Process inputs
           int const_zeroes_count = 0;

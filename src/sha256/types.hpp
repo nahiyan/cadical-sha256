@@ -203,7 +203,7 @@ struct Equation {
 };
 
 struct TwoBit {
-  set<Equation> eqs[2];
+  set<Equation> equations;
   vector<Equation> eqs_by_op[10][64][32];
   map<int, int> aug_mtx_var_map;
   // TODO: Use a sorted set of pairs
