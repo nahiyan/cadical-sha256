@@ -23,9 +23,10 @@ using namespace std;
 
 namespace SHA256 {
 
-vector<Equation> check_consistency (set<Equation> &equations,
+vector<Equation> check_consistency (list<Equation *> &equations,
                                     bool exhaustive);
-bool block_inconsistency (TwoBit &two_bit,
+bool block_inconsistency (list<Equation *> equations,
+                          map<int, int> &aug_matrix,
                           PartialAssignment &partial_assignment,
                           vector<vector<int>> &external_clauses);
 vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),

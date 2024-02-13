@@ -2,6 +2,7 @@
 #define _sha256_types_hpp_INCLUDED
 
 #include <cinttypes>
+#include <list>
 #include <map>
 #include <set>
 #include <string>
@@ -186,7 +187,7 @@ struct Reason {
 
 struct Equation {
   // The equations are represented by their delta IDs
-  uint32_t char_ids[2];
+  uint32_t ids[2];
   uint8_t diff;
   vector<int> antecedent = {};
 
@@ -195,16 +196,17 @@ struct Equation {
       return diff < other.diff;
 
     for (int i = 0; i < 2; i++)
-      if (char_ids[i] != other.char_ids[i])
-        return char_ids[i] < other.char_ids[i];
+      if (ids[i] != other.ids[i])
+        return ids[i] < other.ids[i];
 
     return false; // Equal
   }
 };
 
 struct TwoBit {
-  set<Equation> equations;
-  vector<Equation> eqs_by_op[10][64][32];
+  list<list<Equation>> equations_trail;
+  // set<Equation> equations;
+  // vector<Equation> eqs_by_op[10][64][32];
   map<int, int> aug_mtx_var_map;
   // TODO: Use a sorted set of pairs
   map<uint64_t, int> eq_freq;

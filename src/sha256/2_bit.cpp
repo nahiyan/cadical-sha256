@@ -18,14 +18,14 @@ unordered_map<string, string> two_bit_rules;
 
 // Checks GF(2) equations and returns conflicting equations (equations that
 // conflicts with previously added ones)
-vector<Equation> check_consistency (set<Equation> &equations,
+vector<Equation> check_consistency (list<Equation *> &equations,
                                     bool exhaustive) {
   vector<Equation> conflicting_equations;
   map<uint32_t, shared_ptr<set<int32_t>>> rels;
 
   for (auto &equation : equations) {
-    int lit1 = equation.char_ids[0];
-    int lit2 = (equation.diff == 1 ? -1 : 1) * (equation.char_ids[1]);
+    int lit1 = equation->ids[0];
+    int lit2 = (equation->diff == 1 ? -1 : 1) * (equation->ids[1]);
     auto var1 = abs (int (lit1));
     auto var2 = abs (int (lit2));
     auto var1_exists = rels.find (var1) == rels.end () ? false : true;
@@ -66,8 +66,8 @@ vector<Equation> check_consistency (set<Equation> &equations,
         if ((var1_inv_exists && var1_exists) ||
             (var2_inv_exists && var2_exists)) {
           Equation confl_eq;
-          confl_eq.char_ids[0] = var1;
-          confl_eq.char_ids[1] = var2;
+          confl_eq.ids[0] = var1;
+          confl_eq.ids[1] = var2;
           confl_eq.diff = lit2 < 0 ? 1 : 0;
           conflicting_equations.push_back (confl_eq);
           if (!exhaustive)
@@ -121,37 +121,38 @@ vector<Equation> check_consistency (set<Equation> &equations,
 }
 
 // Create the augmented matrix from equations
-void make_aug_matrix (TwoBit &two_bit, NTL::mat_GF2 &coeff_matrix,
-                      NTL::vec_GF2 &rhs) {
-  int variables_n = two_bit.aug_mtx_var_map.size ();
-  int equations_n = two_bit.equations.size ();
+void make_aug_matrix (map<int, int> &aug_matrix_var_map,
+                      list<Equation *> &equations,
+                      NTL::mat_GF2 &coeff_matrix, NTL::vec_GF2 &rhs) {
+  int variables_n = aug_matrix_var_map.size ();
+  int equations_n = equations.size ();
   coeff_matrix.SetDims (equations_n, variables_n);
   rhs.SetLength (equations_n);
 
   // Construct the coefficient matrix
-  auto &equations = two_bit.equations;
   int eq_index = 0;
   for (auto &equation : equations) {
-    int &x = two_bit.aug_mtx_var_map[equation.char_ids[0]];
-    int &y = two_bit.aug_mtx_var_map[equation.char_ids[1]];
+    int &x = aug_matrix_var_map[equation->ids[0]];
+    int &y = aug_matrix_var_map[equation->ids[1]];
     for (int col_index = 0; col_index < variables_n; col_index++)
       coeff_matrix[eq_index][col_index] =
           NTL::to_GF2 (col_index == x || col_index == y ? 1 : 0);
 
-    rhs.put (eq_index, equation.diff);
+    rhs.put (eq_index, equation->diff);
     eq_index++;
   }
 }
 
 // Detect inconsistencies from nullspace vectors
 int find_inconsistency_from_nullspace_vectors (
-    TwoBit &two_bit, NTL::mat_GF2 &coeff_matrix, NTL::vec_GF2 &rhs,
-    NTL::mat_GF2 &nullspace_vectors, NTL::vec_GF2 *&inconsistency) {
+    list<Equation *> equations, NTL::mat_GF2 &coeff_matrix,
+    NTL::vec_GF2 &rhs, NTL::mat_GF2 &nullspace_vectors,
+    NTL::vec_GF2 *&inconsistency) {
   int coeff_n = coeff_matrix.NumCols ();
   int inconsistent_eq_n = 0;
   int least_hamming_weight = INT_MAX;
   int nullspace_vectors_n = nullspace_vectors.NumRows ();
-  int equations_n = two_bit.equations.size ();
+  int equations_n = equations.size ();
   for (int index = 0; index < nullspace_vectors_n; index++) {
     auto &nullspace_vector = nullspace_vectors[index];
 
@@ -191,13 +192,14 @@ int find_inconsistency_from_nullspace_vectors (
 }
 
 // Use NTL to find cycles of inconsistent equations
-bool block_inconsistency (TwoBit &two_bit,
+bool block_inconsistency (list<Equation *> equations,
+                          map<int, int> &aug_matrix_var_map,
                           PartialAssignment &partial_assignment,
                           vector<vector<int>> &external_clauses) {
   // Make the augmented matrix
   NTL::mat_GF2 coeff_matrix;
   NTL::vec_GF2 rhs;
-  make_aug_matrix (two_bit, coeff_matrix, rhs);
+  make_aug_matrix (aug_matrix_var_map, equations, coeff_matrix, rhs);
 
   // Find the basis of the coefficient matrix's left kernel
   NTL::mat_GF2 left_kernel_basis;
@@ -209,7 +211,7 @@ bool block_inconsistency (TwoBit &two_bit,
   // Check for inconsistencies
   NTL::vec_GF2 *inconsistency = NULL;
   find_inconsistency_from_nullspace_vectors (
-      two_bit, coeff_matrix, rhs, left_kernel_basis, inconsistency);
+      equations, coeff_matrix, rhs, left_kernel_basis, inconsistency);
   if (inconsistency == NULL)
     return false;
 
@@ -219,11 +221,11 @@ bool block_inconsistency (TwoBit &two_bit,
   // Store lits in a set to avoid duplicates
   set<int> clause_lits;
   int eq_index = 0;
-  for (auto &equation : two_bit.equations) {
+  for (auto &equation : equations) {
     if (inconsistency_deref[eq_index++] == 0)
       continue;
 
-    auto &antecedent = equation.antecedent;
+    auto &antecedent = equation->antecedent;
     assert (!antecedent.empty ());
     for (auto &lit : antecedent) {
       auto value = partial_assignment.get (abs ((int) lit));
@@ -416,8 +418,8 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
           x = char_ids_[j];
           y = char_ids_[i];
         }
-        eq.char_ids[0] = x;
-        eq.char_ids[1] = y;
+        eq.ids[0] = x;
+        eq.ids[1] = y;
         equations.push_back (eq);
       }
     }

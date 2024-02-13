@@ -56,11 +56,11 @@ void custom_1bit_block (State &state, TwoBit &two_bit) {
         assert (input_size + output_size == ids.second.size ());
 
         // Replace the equations for this particular spot
-        auto &op_eqs = two_bit.eqs_by_op[op_id][step_i][bit_pos];
-        op_eqs.clear ();
+        auto &equations_trail_head = two_bit.equations_trail.back ();
         auto &mask = masks_by_op_id[op_id];
         auto equations =
             otf_2bit_eqs (function, input_chars, output_chars, ids, mask);
+        // Add the antecedent for the equations
         for (auto &equation : equations) {
           // Process inputs
           int const_zeroes_count = 0;
@@ -118,7 +118,7 @@ void custom_1bit_block (State &state, TwoBit &two_bit) {
             }
           }
           assert (!equation.antecedent.empty ());
-          op_eqs.push_back (equation);
+          equations_trail_head.push_back (equation);
         }
       }
 }

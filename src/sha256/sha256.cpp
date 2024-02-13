@@ -81,6 +81,7 @@ void Propagator::notify_backtrack (size_t new_level) {
       // 1);
     }
     state.current_trail.pop_back ();
+    two_bit.equations_trail.pop_back ();
   }
   assert (!state.current_trail.empty ());
 
@@ -102,7 +103,8 @@ void Propagator::notify_backtrack (size_t new_level) {
 }
 
 void Propagator::notify_new_decision_level () {
-  state.current_trail.push_back (std::vector<int> ());
+  state.current_trail.push_back ({});
+  two_bit.equations_trail.push_back ({});
 }
 
 string add_masks[4] = {".+.++", "+..+", "+++", "+...++"};
@@ -302,34 +304,44 @@ inline bool Propagator::custom_block () {
 #endif
 
   // Collect all the equations
-  two_bit.equations.clear ();
-  two_bit.eq_freq.clear ();
+  // two_bit.equations.clear ();
+  // two_bit.eq_freq.clear ();
+  // set<uint32_t> eq_vars;
+  // for (auto op_id = 0; op_id < 10; op_id++)
+  //   for (auto step_i = 0; step_i < state.order; step_i++)
+  //     for (auto pos = 0; pos < 32; pos++)
+  //       for (auto &eq : two_bit.eqs_by_op[op_id][step_i][pos]) {
+  //         // Check if the antecedent is still valid
+  //         bool skip = false;
+  //         for (auto &lit : eq.antecedent) {
+  //           auto value = state.partial_assignment.get (abs ((int) lit));
+  //           if (value == LIT_UNDEF ||
+  //               value != (lit > 0 ? LIT_FALSE : LIT_TRUE)) {
+  //             skip = true;
+  //             continue;
+  //           }
+  //         }
+  //         if (skip)
+  //           continue;
+
+  //         assert (!eq.antecedent.empty ());
+
+  //         two_bit.equations.insert (eq);
+  //         eq_vars.insert (eq.char_ids[0]);
+  //         eq_vars.insert (eq.char_ids[1]);
+  //       }
+
+  // Construct the equation vars map
   set<uint32_t> eq_vars;
-  for (auto op_id = 0; op_id < 10; op_id++)
-    for (auto step_i = 0; step_i < state.order; step_i++)
-      for (auto pos = 0; pos < 32; pos++)
-        for (auto &eq : two_bit.eqs_by_op[op_id][step_i][pos]) {
-          // Check if the antecedent is still valid
-          bool skip = false;
-          for (auto &lit : eq.antecedent) {
-            auto value = state.partial_assignment.get (abs ((int) lit));
-            if (value == LIT_UNDEF ||
-                value != (lit > 0 ? LIT_FALSE : LIT_TRUE)) {
-              skip = true;
-              continue;
-            }
-          }
-          if (skip)
-            continue;
+  list<Equation *> equations;
+  for (auto &level : two_bit.equations_trail)
+    for (auto &equation : level) {
+      equations.push_back (&equation);
+      eq_vars.insert (equation.ids[0]);
+      eq_vars.insert (equation.ids[1]);
+    }
 
-          assert (!eq.antecedent.empty ());
-
-          two_bit.equations.insert (eq);
-          eq_vars.insert (eq.char_ids[0]);
-          eq_vars.insert (eq.char_ids[1]);
-        }
-
-  if (two_bit.equations.empty ())
+  if (equations.empty ())
     return false;
   assert (!eq_vars.empty ());
 
@@ -340,14 +352,15 @@ inline bool Propagator::custom_block () {
   for (auto &var : eq_vars)
     two_bit.aug_mtx_var_map[var] = id++;
 
-  auto confl_equations = check_consistency (two_bit.equations, false);
+  auto confl_equations = check_consistency (equations, false);
   bool is_consistent = confl_equations.empty ();
   if (is_consistent)
     return false;
 
   // Block inconsistencies
   assert (external_clauses.empty ());
-  block_inconsistency (two_bit, state.partial_assignment, external_clauses);
+  block_inconsistency (equations, two_bit.aug_mtx_var_map,
+                       state.partial_assignment, external_clauses);
   // Keep only the shortest clause
   assert (!external_clauses.empty ());
   // printf ("Blocking clauses count: %ld\n", external_clauses.size ());
