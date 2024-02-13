@@ -107,6 +107,7 @@ void Propagator::notify_new_decision_level () {
 
 string add_masks[4] = {".+.++", "+..+", "+++", "+...++"};
 int add_input_sizes[4] = {4, 3, 2, 5};
+
 // Strong propagate (through branching) words by taking information inside
 // the addition equation
 cache::lru_cache<string, pair<string, string>>
@@ -248,17 +249,17 @@ inline void strong_propagate_and_branch_1bit (State &state,
 
             // Branch on this differential character
             auto values = gc_values_1bit (propagated_chars[j]);
-            for (int k = 0; k < 3; k++) {
+            for (int k = 2; k >= 0; k--) {
               if (values[k] == 0)
                 continue;
-              if (state.partial_assignment.get (ids[k]) == LIT_UNDEF)
+              if (state.partial_assignment.get (ids[k]) != LIT_UNDEF)
                 continue;
               int lit = values[k] * ids[k];
               decision_lits.push_back (lit);
-            }
-
-            if (!decision_lits.empty ())
+              assert (state.partial_assignment.get (abs (lit)) ==
+                      LIT_UNDEF);
               return;
+            }
           }
       }
 
@@ -275,6 +276,7 @@ int Propagator::cb_decide () {
   if (decision_lits.empty ())
     return 0;
   int &lit = decision_lits.front ();
+  assert (state.partial_assignment.get (abs (lit)) == LIT_UNDEF);
   decision_lits.pop_front ();
   stats.decisions_count++;
   // printf ("Debug: decision %d\n", lit);
@@ -470,14 +472,13 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 bool Propagator::cb_has_external_clause () {
   Timer time (&stats.total_cb_time);
 
-#if CUSTOM_BRANCHING
+#if STRONG_PROPAGATE
   if (decision_lits.empty ())
 #if IS_4BIT
     strong_propagate_and_branch_4bit (state, decision_lits);
 #else
     strong_propagate_and_branch_1bit (state, decision_lits);
 #endif
-    // custom_branch ();
 #endif
 
   if (!external_clauses.empty ())
