@@ -21,7 +21,12 @@ pair<int, int> two_bit_diff_sizes[10] = {{3, 1}, {3, 1}, {3, 1}, {3, 1},
 vector<int> (*two_bit_functions[10]) (vector<int>) = {
     xor_, xor_, xor_, xor_, maj_, ch_, add_, add_, add_, add_};
 void custom_1bit_block (State &state, TwoBit &two_bit) {
-  for (int op_id = 0; op_id < 6; op_id++)
+#if TWO_BIT_ADD_DIFFS
+  int op_id_end = 10;
+#else
+  int op_id_end = 6;
+#endif
+  for (int op_id = 0; op_id < op_id_end; op_id++)
     for (int step_i = 0; step_i < state.order; step_i++)
       for (int bit_pos = 0; bit_pos < 32; bit_pos++) {
         auto &marked_op =
@@ -31,7 +36,9 @@ void custom_1bit_block (State &state, TwoBit &two_bit) {
         marked_op = false;
 
         auto &function = two_bit_functions[op_id];
+#if !TWO_BIT_ADD_DIFFS
         assert (op_id < op_add_w);
+#endif
 
         // Construct the differential
         int input_size = two_bit_diff_sizes[op_id].first,

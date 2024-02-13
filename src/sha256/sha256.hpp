@@ -14,10 +14,11 @@
 #include <stack>
 #include <string>
 
-#define CUSTOM_PROP true
+#define CUSTOM_PROP false
 #define CUSTOM_BLOCKING false
 #define CUSTOM_BRANCHING false
-#define STRONG_PROPAGATE true
+#define STRONG_PROPAGATE false
+#define TWO_BIT_ADD_DIFFS false
 #define IS_4BIT false
 #define ABS_STEP(i) (i + 4)
 

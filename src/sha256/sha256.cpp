@@ -41,6 +41,19 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   // load_prop_rules ();
   // load_two_bit_rules ();
 
+#if CUSTOM_PROP
+  printf ("Custom propagation turned on.\n");
+#endif
+#if CUSTOM_BLOCKING
+  printf ("Custom blocking turned on.\n");
+#endif
+#if STRONG_PROPAGATE
+  printf ("Strong propagation (branch-based) turned on.\n");
+#endif
+#if TWO_BIT_ADD_DIFFS
+  printf ("2-bit addition differentials turned on.\n");
+#endif
+
 #ifdef LOGGING
   printf ("Logging is enabled!\n");
 #endif
