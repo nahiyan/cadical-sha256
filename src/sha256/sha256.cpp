@@ -27,7 +27,7 @@ using namespace SHA256;
 State Propagator::state = State ();
 uint64_t prop_counter = 0;
 uint64_t block_counter = 0;
-uint64_t branch_counter = 0;
+uint64_t mendel_branch_counter = 0;
 Stats Propagator::stats = Stats{};
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
@@ -393,7 +393,7 @@ int Propagator::cb_decide () {
   Timer time (&stats.total_cb_time);
 
 #if MENDEL_BRANCHING
-  if (stats.decisions_count % 20 == 0) {
+  if (++mendel_branch_counter % 20 == 0) {
     if (decision_lits.empty ())
 #if IS_4BIT
       custom_branch_4bit (state, decision_lits, two_bit.equations_trail);
