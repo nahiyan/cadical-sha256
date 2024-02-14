@@ -16,9 +16,9 @@
 
 #define CUSTOM_PROP false
 #define CUSTOM_BLOCKING false
-#define CUSTOM_BRANCHING false
-#define STRONG_PROPAGATE false
 #define TWO_BIT_ADD_DIFFS false
+#define STRONG_PROPAGATE false
+#define MENDEL_BRANCHING false
 #define IS_4BIT false
 #define ABS_STEP(i) (i + 4)
 
@@ -26,10 +26,10 @@ using namespace std;
 
 namespace SHA256 {
 struct Stats {
-  clock_t total_cb_time;
-  uint clauses_count;
-  uint decisions_count;
-  uint reasons_count;
+  clock_t total_cb_time = 0;
+  uint64_t clauses_count = 0;
+  uint64_t reasons_count = 0;
+  uint64_t decisions_count = 0;
 };
 
 class Propagator : CaDiCaL::ExternalPropagator {
@@ -65,7 +65,6 @@ public:
   int cb_add_reason_clause_lit (int propagated_lit);
   static void parse_comment_line (string line, CaDiCaL::Solver *&solver);
   void custom_propagate ();
-  void custom_branch ();
   bool custom_block ();
 };
 } // namespace SHA256

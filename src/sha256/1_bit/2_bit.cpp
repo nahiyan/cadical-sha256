@@ -20,7 +20,7 @@ pair<int, int> two_bit_diff_sizes[10] = {{3, 1}, {3, 1}, {3, 1}, {3, 1},
 // Functions by operation IDs
 vector<int> (*two_bit_functions[10]) (vector<int>) = {
     xor_, xor_, xor_, xor_, maj_, ch_, add_, add_, add_, add_};
-void custom_1bit_block (State &state, TwoBit &two_bit) {
+void derive_2bit_equations_1bit (State &state, list<Equation> &equations) {
 #if TWO_BIT_ADD_DIFFS
   int op_id_end = 10;
 #else
@@ -63,12 +63,11 @@ void custom_1bit_block (State &state, TwoBit &two_bit) {
         assert (input_size + output_size == ids.second.size ());
 
         // Replace the equations for this particular spot
-        auto &equations_trail_head = two_bit.equations_trail.back ();
         auto &mask = masks_by_op_id[op_id];
-        auto equations =
+        auto new_equations =
             otf_2bit_eqs (function, input_chars, output_chars, ids, mask);
         // Add the antecedent for the equations
-        for (auto &equation : equations) {
+        for (auto &equation : new_equations) {
           // Process inputs
           int const_zeroes_count = 0;
           for (int input_i = 0; input_i < input_size; input_i++) {
@@ -125,7 +124,7 @@ void custom_1bit_block (State &state, TwoBit &two_bit) {
             }
           }
           assert (!equation.antecedent.empty ());
-          equations_trail_head.push_back (equation);
+          equations.push_back (equation);
         }
       }
 }

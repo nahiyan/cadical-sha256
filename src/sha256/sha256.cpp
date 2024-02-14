@@ -28,7 +28,7 @@ State Propagator::state = State ();
 uint64_t prop_counter = 0;
 uint64_t block_counter = 0;
 uint64_t branch_counter = 0;
-Stats Propagator::stats = Stats{0, 0, 0, 0};
+Stats Propagator::stats = Stats{};
 
 Propagator::Propagator (CaDiCaL::Solver *solver) {
 #ifndef NDEBUG
@@ -52,6 +52,9 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
 #endif
 #if TWO_BIT_ADD_DIFFS
   printf ("2-bit addition differentials turned on.\n");
+#endif
+#if MENDEL_BRANCHING
+  printf ("Mendel's branching turned on.\n");
 #endif
 
 #ifdef LOGGING
@@ -285,8 +288,120 @@ inline void strong_propagate_and_branch_1bit (State &state,
     }
 }
 
+inline void custom_branch_1bit (State &state, list<int> &decision_lits,
+                                list<list<Equation>> &equations_trail) {
+  state.soft_refresh ();
+
+  auto rand_ground_x = [&state] (list<int> &decision_lits, Word &word,
+                                 int &j) {
+    srand (clock () + j);
+    if (rand () % 2 == 0) {
+      // u
+      decision_lits.push_back (word.ids_f[j]);
+    } else {
+      // n
+      decision_lits.push_back (-word.ids_f[j]);
+    }
+    assert (state.partial_assignment.get (abs (decision_lits.back ())) ==
+            LIT_UNDEF);
+  };
+
+  auto ground_xnor = [&state] (list<int> &decision_lits, Word &word,
+                               int &j) {
+    decision_lits.push_back (-word.char_ids[j]);
+    assert (state.partial_assignment.get (abs (decision_lits.back ())) ==
+            LIT_UNDEF);
+  };
+
+  // Stage 1
+  for (int i = state.order - 1; i >= 0; i--) {
+    auto &w = state.steps[i].w;
+    for (int j = 0; j < 32; j++) {
+      auto &c = w.chars[j];
+      // Impose '-' for '?'
+      if (c == '?') {
+        ground_xnor (decision_lits, w, j);
+        // printf ("Stage 1: Decision\n");
+        return;
+      } else if (c == 'x') {
+        // Impose 'u' or 'n' for 'x'
+        rand_ground_x (decision_lits, w, j);
+        // printf ("Stage 1: Decision\n");
+        return;
+      }
+    }
+  }
+
+  // Stage 2
+  for (int i = -4; i < state.order; i++) {
+    auto &a = state.steps[ABS_STEP (i)].a;
+    auto &e = state.steps[ABS_STEP (i)].e;
+    for (int j = 0; j < 32; j++) {
+      auto &a_c = a.chars[j];
+      auto &e_c = e.chars[j];
+      if (a_c == '?') {
+        ground_xnor (decision_lits, a, j);
+        // printf ("Stage 2: Decision\n");
+        return;
+      } else if (a_c == 'x') {
+        rand_ground_x (decision_lits, a, j);
+        // printf ("Stage 2: Decision\n");
+        return;
+      } else if (e_c == '?') {
+        ground_xnor (decision_lits, e, j);
+        // printf ("Stage 2: Decision\n");
+        return;
+      } else if (e_c == 'x') {
+        rand_ground_x (decision_lits, e, j);
+        // printf ("Stage 2: Decision\n");
+        return;
+      }
+    }
+  }
+
+  // Stage 3
+#if IS_4BIT
+  derive_2bit_equations_4bit (state, equations_trail.back ());
+#else
+  derive_2bit_equations_1bit (state, equations_trail.back ());
+#endif
+  for (auto &level : equations_trail) {
+    for (auto &equation : level) {
+      uint32_t ids[] = {equation.ids[0], equation.ids[1]};
+      for (int x = 0; x < 2; x++) {
+        auto &var_info = state.vars_info[ids[x]];
+        auto &col = var_info.identity.col;
+        auto &word = var_info.word;
+        if (word->char_ids[31 - col] != '-')
+          continue;
+        assert (31 - col >= 0 && 31 - col <= 31);
+        assert (word->ids_f[31 - col] == ids[x] ||
+                word->ids_g[31 - col] == ids[x]);
+        srand (clock () + x);
+        if (rand () % 2 == 0)
+          decision_lits.push_back (ids[x]);
+        else
+          decision_lits.push_back (-ids[x]);
+        // printf ("Stage 3: Decision\n");
+        return;
+      }
+    }
+  }
+}
+
 int Propagator::cb_decide () {
   Timer time (&stats.total_cb_time);
+
+#if MENDEL_BRANCHING
+  if (stats.decisions_count % 20 == 0) {
+    if (decision_lits.empty ())
+#if IS_4BIT
+      custom_branch_4bit (state, decision_lits, two_bit.equations_trail);
+#else
+      custom_branch_1bit (state, decision_lits, two_bit.equations_trail);
+#endif
+  }
+#endif
 
   if (decision_lits.empty ())
     return 0;
@@ -311,58 +426,30 @@ inline void Propagator::custom_propagate () {
 inline bool Propagator::custom_block () {
   state.soft_refresh ();
 #if IS_4BIT
-  custom_4bit_block (state, two_bit);
+  derive_2bit_equations_4bit (state, two_bit.equations_trail.back ());
 #else
-  custom_1bit_block (state, two_bit);
+  derive_2bit_equations_1bit (state, two_bit.equations_trail.back ());
 #endif
 
-  // Collect all the equations
-  // two_bit.equations.clear ();
-  // two_bit.eq_freq.clear ();
-  // set<uint32_t> eq_vars;
-  // for (auto op_id = 0; op_id < 10; op_id++)
-  //   for (auto step_i = 0; step_i < state.order; step_i++)
-  //     for (auto pos = 0; pos < 32; pos++)
-  //       for (auto &eq : two_bit.eqs_by_op[op_id][step_i][pos]) {
-  //         // Check if the antecedent is still valid
-  //         bool skip = false;
-  //         for (auto &lit : eq.antecedent) {
-  //           auto value = state.partial_assignment.get (abs ((int) lit));
-  //           if (value == LIT_UNDEF ||
-  //               value != (lit > 0 ? LIT_FALSE : LIT_TRUE)) {
-  //             skip = true;
-  //             continue;
-  //           }
-  //         }
-  //         if (skip)
-  //           continue;
-
-  //         assert (!eq.antecedent.empty ());
-
-  //         two_bit.equations.insert (eq);
-  //         eq_vars.insert (eq.char_ids[0]);
-  //         eq_vars.insert (eq.char_ids[1]);
-  //       }
-
-  // Construct the equation vars map
-  set<uint32_t> eq_vars;
+  // Collect the equations and the set of vars
+  set<uint32_t> equations_vars;
   list<Equation *> equations;
   for (auto &level : two_bit.equations_trail)
     for (auto &equation : level) {
       equations.push_back (&equation);
-      eq_vars.insert (equation.ids[0]);
-      eq_vars.insert (equation.ids[1]);
+      equations_vars.insert (equation.ids[0]);
+      equations_vars.insert (equation.ids[1]);
     }
 
   if (equations.empty ())
     return false;
-  assert (!eq_vars.empty ());
+  assert (!equations_vars.empty ());
 
   // Form the augmented matrix
   // Used to map the augmented matrix variable IDs
   two_bit.aug_mtx_var_map.clear ();
   int id = 0;
-  for (auto &var : eq_vars)
+  for (auto &var : equations_vars)
     two_bit.aug_mtx_var_map[var] = id++;
 
   auto confl_equations = check_consistency (equations, false);
@@ -387,12 +474,6 @@ inline bool Propagator::custom_block () {
     shortest_index = i;
   }
   auto shortest_clause = external_clauses[shortest_index];
-  // printf ("Shortest clause length: %ld\n", shortest_clause.size ());
-  // if (shortest_clause.size () > 20) {
-  //   external_clauses.clear ();
-  //   return false;
-  // }
-
   assert (!shortest_clause.empty ());
   external_clauses.clear ();
   external_clauses.push_back (shortest_clause);
@@ -454,14 +535,6 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     Reason reason = reasons_it->second;
     reasons.erase (reasons_it); // Consume the reason
     stats.reasons_count++;
-
-    // printf ("Asked for reason of %d (var %d)\n", propagated_lit,
-    //         state.var_info[abs (propagated_lit)].name);
-
-    // print_reason (reason, state);
-
-    // assert (reason.differential.inputs.size () > 0);
-    // assert (reason.differential.outputs.size () > 0);
     assert (reason.antecedent.size () > 0);
 
     // Populate the reason clause
@@ -475,7 +548,6 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     }
     reason_clause.push_back (propagated_lit);
 
-    // print_reason (reason, state);
     printf ("Reason clause: ");
     for (auto &lit : reason_clause)
       printf ("%d ", lit);
@@ -488,9 +560,10 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
   assert (reason_clause.size () > 0);
   int lit = reason_clause.back ();
   reason_clause.pop_back ();
-  // printf ("Debug: providing reason clause %d: %d (%d); remaining %ld\n",
-  //         propagated_lit, lit, state.partial_assignment.get (abs (lit)),
-  //         reason_clause.size ());
+  // printf ("Debug: providing reason clause %d: %d (%d); remaining
+  // %ld\n",
+  //         propagated_lit, lit, state.partial_assignment.get (abs
+  //         (lit)), reason_clause.size ());
 
   return lit;
 }
@@ -547,94 +620,4 @@ int Propagator::cb_add_external_clause_lit () {
                     : value != LIT_UNDEF);
 
   return lit;
-}
-
-inline void Propagator::custom_branch () {
-  state.soft_refresh ();
-
-  auto rand_ground_x = [] (list<int> &decision_lits, Word &word, int &j) {
-    srand (clock () + j);
-    if (rand () % 2 == 0) {
-      // u
-      decision_lits.push_back (-(word.char_ids[j] + 0));
-      // decision_lits.push_back ((word.char_ids[j] + 1));
-      decision_lits.push_back (-(word.char_ids[j] + 2));
-      decision_lits.push_back (-(word.char_ids[j] + 3));
-    } else {
-      // n
-      decision_lits.push_back (-(word.char_ids[j] + 0));
-      decision_lits.push_back (-(word.char_ids[j] + 1));
-      // decision_lits.push_back ((word.char_ids[j] + 2));
-      decision_lits.push_back (-(word.char_ids[j] + 3));
-    }
-  };
-
-  auto ground_xnor = [] (list<int> &decision_lits, Word &word, int &j) {
-    // decision_lits.push_back ((word.char_ids[j] + 0));
-    decision_lits.push_back (-(word.char_ids[j] + 1));
-    decision_lits.push_back (-(word.char_ids[j] + 2));
-    // decision_lits.push_back ((word.char_ids[j] + 3));
-  };
-
-  // Stage 1
-  for (int i = state.order - 1; i >= 0; i--) {
-    auto &w = state.steps[i].w;
-    for (int j = 0; j < 32; j++) {
-      auto &c = w.chars[j];
-      // Impose '-' for '?'
-      if (c == '?') {
-        ground_xnor (decision_lits, w, j);
-        return;
-      } else if (c == 'x') {
-        // Impose 'u' or 'n' for '?'
-        rand_ground_x (decision_lits, w, j);
-        return;
-      }
-    }
-  }
-
-  // Stage 2
-  for (int i = -4; i < state.order; i++) {
-    auto &a = state.steps[ABS_STEP (i)].a;
-    auto &e = state.steps[ABS_STEP (i)].e;
-    for (int j = 0; j < 32; j++) {
-      auto &a_c = a.chars[j];
-      auto &e_c = e.chars[j];
-      if (a_c == '?') {
-        ground_xnor (decision_lits, a, j);
-        return;
-      } else if (a_c == 'x') {
-        rand_ground_x (decision_lits, a, j);
-        return;
-      } else if (e_c == '?') {
-        ground_xnor (decision_lits, e, j);
-        return;
-      } else if (e_c == 'x') {
-        rand_ground_x (decision_lits, e, j);
-        return;
-      }
-    }
-  }
-
-  // Stage 3
-  if (two_bit.equations.empty ())
-    return;
-
-  auto &pa = state.partial_assignment;
-  for (auto &eq : two_bit.equations) {
-    uint32_t base_ids[] = {eq.char_ids[0], eq.char_ids[1]};
-    for (int x = 0; x < 2; x++) {
-      srand (clock () + x);
-      if (pa.get (base_ids[x] + 0) != LIT_FALSE &&
-          pa.get (base_ids[x] + 1) == LIT_FALSE &&
-          pa.get (base_ids[x] + 2) == LIT_FALSE &&
-          pa.get (base_ids[x] + 3) != LIT_FALSE) {
-        if (rand () % 2 == 0)
-          decision_lits.push_back (-(base_ids[x] + 0));
-        else
-          decision_lits.push_back (-(base_ids[x] + 3));
-        return;
-      }
-    }
-  }
 }

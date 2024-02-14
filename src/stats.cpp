@@ -528,12 +528,12 @@ void Stats::print (Internal *internal) {
          stats.extended, relative (stats.extended, stats.weakened));
   }
 
-  uint &programmatic_claues = SHA256::Propagator::stats.clauses_count;
-  uint &decisions_count = SHA256::Propagator::stats.decisions_count;
-  uint &reasons_count = SHA256::Propagator::stats.reasons_count;
-  PRT ("ext. clauses:    %15d", programmatic_claues);
-  PRT ("ext. decisions:  %15d", decisions_count);
-  PRT ("ext. reasons:    %15d", reasons_count);
+  auto &programmatic_claues = SHA256::Propagator::stats.clauses_count;
+  auto &decisions_count = SHA256::Propagator::stats.decisions_count;
+  auto &reasons_count = SHA256::Propagator::stats.reasons_count;
+  PRT ("ext. clauses:    %15ld", programmatic_claues);
+  PRT ("ext. decisions:  %15ld", decisions_count);
+  PRT ("ext. reasons:    %15ld", reasons_count);
 
   LINE ();
   MSG ("%sseconds are measured in %s time for solving%s",
