@@ -15,7 +15,7 @@ namespace SHA256 {
 extern pair<int, int> prop_diff_sizes[10];
 extern vector<int> (*prop_functions[10]) (vector<int>);
 inline void custom_1bit_propagate (State &state,
-                                   vector<int> &propagation_lits,
+                                   list<int> &propagation_lits,
                                    map<int, Reason> &reasons) {
   for (auto &level : state.prop_markings_trail) {
     for (auto marking_it = level.begin (); marking_it != level.end ();
@@ -123,7 +123,7 @@ inline void custom_1bit_propagate (State &state,
           continue;
 
         auto prop_table_values = gc_values_1bit (prop_output[x]);
-        for (int y = 0; y < 3; y++) {
+        for (int y = 2; y >= 0; y--) {
           auto &id = ids[y];
           if (prop_table_values[y] == 0)
             continue;
@@ -134,7 +134,8 @@ inline void custom_1bit_propagate (State &state,
           if (state.partial_assignment.get (id) != LIT_UNDEF)
             continue;
 
-          propagation_lits.push_back (lit);
+          // We're pushing to the front because we move down the trail
+          propagation_lits.push_front (lit);
           prop_lits.push_back (lit);
         }
       }
@@ -143,20 +144,10 @@ inline void custom_1bit_propagate (State &state,
       for (auto &lit : prop_lits)
         reasons[lit] = reason;
 
-      // if (!propagation_lits.empty ())
-      //   return;
+      if (!propagation_lits.empty ())
+        return;
     }
   }
-  // for (int op_id = 9; op_id >= 0; op_id--)
-  //   for (int step_i = state.order - 1; step_i >= 0; step_i--)
-  //     for (int bit_pos = 31; bit_pos >= 0; bit_pos--) {
-  //       auto &marking = state.marked_operations_prop[(OperationId) op_id]
-  //                                                   [step_i][bit_pos];
-  //       if (!marking)
-  //         continue;
-  //       marking = false;
-
-  //     }
 }
 int load_1bit_prop_rules (ifstream &db,
                           cache::lru_cache<string, string> &cache);

@@ -28,7 +28,7 @@ namespace SHA256 {
 
 class Propagator : CaDiCaL::ExternalPropagator {
   CaDiCaL::Solver *solver;
-  vector<int> propagation_lits;
+  list<int> propagation_lits;
   vector<int> reason_clause;
   map<int, Reason> reasons;
   // Assume that the external clauses are blocking clauses

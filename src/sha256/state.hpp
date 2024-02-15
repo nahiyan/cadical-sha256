@@ -32,10 +32,9 @@ public:
       PartialAssignment (MAX_VAR_ID, &current_trail, vars_info);
 
   // Operation ID, step index, bit position
-  bool marked_operations_prop[10][64][32];
-  bool marked_operations_2_bit[10][64][32];
   bool marked_operations_strong_prop[10][64];
   list<list<Marking>> prop_markings_trail;
+  list<list<Marking>> two_bit_markings_trail;
 
   void hard_refresh (bool will_propagate = false);
   void soft_refresh ();

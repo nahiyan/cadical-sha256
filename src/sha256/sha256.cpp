@@ -41,6 +41,7 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   state.current_trail.push_back ({});
   two_bit.equations_trail.push_back ({});
   state.prop_markings_trail.push_back ({});
+  state.two_bit_markings_trail.push_back ({});
   // load_prop_rules ();
   // load_two_bit_rules ();
 
@@ -102,6 +103,7 @@ void Propagator::notify_backtrack (size_t new_level) {
     state.current_trail.pop_back ();
     two_bit.equations_trail.pop_back ();
     state.prop_markings_trail.pop_back ();
+    state.two_bit_markings_trail.pop_back ();
   }
   assert (!state.current_trail.empty ());
 
@@ -126,6 +128,7 @@ void Propagator::notify_new_decision_level () {
   state.current_trail.push_back ({});
   two_bit.equations_trail.push_back ({});
   state.prop_markings_trail.push_back ({});
+  state.two_bit_markings_trail.push_back ({});
 }
 
 int Propagator::cb_decide () {
@@ -240,19 +243,19 @@ int Propagator::cb_propagate () {
   if (propagation_lits.empty ())
     return 0;
 
-  int &lit = propagation_lits.back ();
+  int &lit = propagation_lits.front ();
   assert (lit != 0);
 
   // If reason doesn't exist, skip propagation
   auto reason_it = reasons.find (lit);
   if (reason_it == reasons.end ()) {
-    propagation_lits.pop_back ();
+    propagation_lits.pop_front ();
     return 0;
   }
 
   // printf ("Debug: propagate %d (var %d)\n", lit,
   //         state.var_info[abs (lit)].name);
-  propagation_lits.pop_back ();
+  propagation_lits.pop_front ();
   assert (reason_it->second.antecedent.size () > 0);
 
   if (state.partial_assignment.get (abs (lit)) != LIT_UNDEF)

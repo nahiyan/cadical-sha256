@@ -44,9 +44,8 @@ inline void State::refresh_char (Word &word, int index) {
       auto &op_id = get<0> (operation);
       auto &step = get<1> (operation);
       auto &pos = get<2> (operation);
-      // marked_operations_prop[op_id][step][pos] = true;
       prop_markings_trail.back ().push_back ({op_id, step, pos});
-      marked_operations_2_bit[op_id][step][pos] = true;
+      two_bit_markings_trail.back ().push_back ({op_id, step, pos});
 #if STRONG_PROPAGATE
       if (op_id >= op_add_w)
         marked_operations_strong_prop[op_id][step] = true;
