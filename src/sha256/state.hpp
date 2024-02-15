@@ -32,11 +32,10 @@ public:
       PartialAssignment (MAX_VAR_ID, &current_trail, vars_info);
 
   // Operation ID, step index, bit position
-  bool marked_operations[10][64][32];
+  bool marked_operations_prop[10][64][32];
+  bool marked_operations_2_bit[10][64][32];
   bool marked_operations_strong_prop[10][64];
-
-  // TODO: Try doing propagation for every single marked operation
-  tuple<OperationId, int, int> last_marked_op = {op_s0, -1, -1};
+  list<list<Marking>> prop_markings_trail;
 
   void hard_refresh (bool will_propagate = false);
   void soft_refresh ();

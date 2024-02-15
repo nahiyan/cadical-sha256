@@ -25,12 +25,6 @@
 using namespace std;
 
 namespace SHA256 {
-struct Stats {
-  clock_t total_cb_time = 0;
-  uint64_t clauses_count = 0;
-  uint64_t reasons_count = 0;
-  uint64_t decisions_count = 0;
-};
 
 class Propagator : CaDiCaL::ExternalPropagator {
   CaDiCaL::Solver *solver;

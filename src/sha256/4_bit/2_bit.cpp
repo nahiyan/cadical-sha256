@@ -3,7 +3,6 @@
 #include "../state.hpp"
 #include "../types.hpp"
 #include "../util.hpp"
-#include "differential.hpp"
 #include <cassert>
 
 namespace SHA256 {

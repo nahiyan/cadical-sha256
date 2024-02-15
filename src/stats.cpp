@@ -531,9 +531,17 @@ void Stats::print (Internal *internal) {
   auto &programmatic_claues = SHA256::Propagator::stats.clauses_count;
   auto &decisions_count = SHA256::Propagator::stats.decisions_count;
   auto &reasons_count = SHA256::Propagator::stats.reasons_count;
+  auto &mendel_branching_decisions_count =
+      SHA256::Propagator::stats.mendel_branching_decisions_count;
+  auto &strong_prop_decisions_count =
+      SHA256::Propagator::stats.strong_prop_decisions_count;
+  assert (decisions_count ==
+          mendel_branching_decisions_count + strong_prop_decisions_count);
+  PRT ("ext. reasons:    %15ld", reasons_count);
   PRT ("ext. clauses:    %15ld", programmatic_claues);
   PRT ("ext. decisions:  %15ld", decisions_count);
-  PRT ("ext. reasons:    %15ld", reasons_count);
+  PRT ("ext. m. branch:  %15ld", mendel_branching_decisions_count);
+  PRT ("ext. strng prop.:%15ld", strong_prop_decisions_count);
 
   LINE ();
   MSG ("%sseconds are measured in %s time for solving%s",
@@ -555,14 +563,14 @@ void Internal::print_resource_usage () {
        m / (double) (1l << 20));
   double total_cb_time =
       SHA256::Propagator::stats.total_cb_time / (double) CLOCKS_PER_SEC;
-  //   double total_test_time =
-  //       SHA256::Propagator::state.temp_time / (double) CLOCKS_PER_SEC;
 
   MSG ("total callback time:                     %12.2f    seconds",
        total_cb_time);
   MSG ("discounted time:                         %12.2f    seconds",
        internal->process_time () - total_cb_time);
-//   MSG ("temp time:                         %12.2f    seconds",
+  //   double total_test_time =
+  //       SHA256::Propagator::state.temp_time / (double) CLOCKS_PER_SEC;
+//   MSG ("temp time:                               %12.2f    seconds",
 //        total_test_time);
 #endif
 }

@@ -110,6 +110,16 @@ struct VarInfo {
   }
 };
 
+struct Stats {
+  clock_t total_cb_time = 0;
+  uint64_t clauses_count = 0;
+  uint64_t reasons_count = 0;
+  uint64_t decisions_count = 0;
+  uint64_t strong_prop_decisions_count = 0;
+  // Decisions made with mendel's branching technique
+  uint64_t mendel_branching_decisions_count = 0;
+};
+
 struct Operations {
   struct S0 {
     SoftWord inputs[3];
@@ -157,30 +167,6 @@ struct Operations {
   Word **outputs_by_op_id[10];
 };
 
-struct Differential {
-  string inputs;
-  string outputs;
-  pair<vector<uint32_t>, vector<uint32_t>> char_base_ids;
-  pair<vector<uint8_t>, vector<uint8_t>> table_values;
-  vector<int> (*function) (vector<int>) = NULL;
-  OperationId operation_id;
-  int step_index;
-  int bit_pos;
-  string mask;
-};
-
-struct Differential_1bit {
-  string inputs;
-  string outputs;
-  pair<vector<vector<uint32_t>>, vector<vector<uint32_t>>> ids;
-  pair<vector<vector<int8_t>>, vector<vector<int8_t>>> table_values;
-  vector<int> (*function) (vector<int>) = NULL;
-  OperationId operation_id;
-  int step_index;
-  int bit_pos;
-  string mask;
-};
-
 struct Reason {
   vector<int> antecedent;
 };
@@ -215,6 +201,12 @@ struct TwoBit {
 struct Step {
   Word a, e, w, s0, s1, sigma0, sigma1, ch, maj, k, t, add_w_r[2],
       add_t_r[2], add_e_r[1], add_a_r[2];
+};
+
+struct Marking {
+  OperationId op_id;
+  int step_i;
+  int bit_pos;
 };
 
 } // namespace SHA256

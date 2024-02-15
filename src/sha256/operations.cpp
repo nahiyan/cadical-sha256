@@ -69,9 +69,13 @@ void State::set_operations () {
 
   // Set updated operations array
   for (int i = 0; i < 10; i++)
-    for (int j = 0; j < 64; j++)
-      for (int k = 0; k < 32; k++)
-        marked_operations[i][j][k] = false;
+    for (int j = 0; j < 64; j++) {
+      marked_operations_strong_prop[i][j] = false;
+      for (int k = 0; k < 32; k++) {
+        marked_operations_2_bit[i][j][k] = false;
+        marked_operations_prop[i][j][k] = false;
+      }
+    }
 
   // Zero word
   for (int i = 0; i < 32; i++) {
