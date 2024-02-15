@@ -32,17 +32,10 @@ inline void custom_1bit_propagate (State &state,
       auto &input_words = state.operations[step_i].inputs_by_op_id[op_id];
       auto &output_words = state.operations[step_i].outputs_by_op_id[op_id];
       string input_chars, output_chars;
-      vector<uint32_t> all_char_ids;
-      for (int i = 0; i < input_size; i++) {
+      for (int i = 0; i < input_size; i++)
         input_chars += *input_words[i].chars[bit_pos];
-        all_char_ids.push_back (input_words[i].char_ids[bit_pos]);
-      }
-      for (int i = 0; i < output_size; i++) {
+      for (int i = 0; i < output_size; i++)
         output_chars += output_words[i]->chars[bit_pos];
-        all_char_ids.push_back (output_words[i]->char_ids[bit_pos]);
-      }
-      string all_chars = input_chars + output_chars;
-      assert (input_size + output_size == int (all_char_ids.size ()));
 
       // Propagate
       auto &function = prop_functions[op_id];
