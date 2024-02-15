@@ -142,20 +142,30 @@ inline uint8_t gc_values_4bit (char c) {
 }
 
 inline vector<int8_t> gc_values_1bit (char c) {
-  if (c == 'x')
+  switch (c) {
+  case 'x':
     return {0, 0, 1};
-  else if (c == '-')
+  case '-':
     return {0, 0, -1};
-  else if (c == 'u')
+  case 'u':
     return {1, -1, 0};
-  else if (c == 'n')
+  case 'n':
     return {-1, 1, 0};
-  else if (c == '1')
+  case '1':
     return {1, 1, 0};
-  else if (c == '0')
+  case '0':
     return {-1, -1, 0};
-  else
+  case '3':
+    return {0, -1, 0};
+  case '5':
+    return {-1, 0, 0};
+  case 'A':
+    return {1, 0, 0};
+  case 'C':
+    return {0, 1, 0};
+  default:
     return {0, 0, 0};
+  }
 }
 
 // Compare two characteristics by their scores
