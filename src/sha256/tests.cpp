@@ -159,27 +159,38 @@ void test_rotate_word () {
 void test_otf_propagate () {
   {
     auto result = otf_propagate (add_, "-0n10n", "???");
-    assert (result == "5x-");
+    assert (result.second == "5x-");
   }
   {
     auto result = otf_propagate (add_, "-1n51-75", "??1");
-    assert (result == "D?1");
+    assert (result.second == "D?1");
   }
   {
     auto result = otf_propagate (add_, "-0nu0uDD", "??1");
-    assert (result == "011");
+    assert (result.second == "011");
   }
   {
     auto result = otf_propagate (add_, "110?100", "1??");
-    assert (result == "100");
+    assert (result.first == "1101100");
+    assert (result.second == "100");
   }
   {
     auto result = otf_propagate (add_, "-??", "0?-");
-    assert (result == "0?-");
+    assert (result.second == "0?-");
   }
   {
     auto result = otf_propagate (ch_, "---", "x");
-    assert (result == "#");
+    assert (result.first == "###");
+    assert (result.second == "#");
+  }
+  {
+    auto result = otf_propagate (add_, "111?", "1??");
+    assert (result.first == "1111");
+    assert (result.second == "100");
+  }
+  {
+    auto result = otf_propagate (xor_, "-x?", "-");
+    assert (result.first == "-xx");
   }
 }
 

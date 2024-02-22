@@ -88,9 +88,10 @@ inline char get_symbol (const set<char> &symbols) {
   return '#';
 }
 
-extern cache::lru_cache<string, string> otf_prop_cache;
-inline string otf_propagate (vector<int> (*func) (vector<int> inputs),
-                             string inputs, string outputs) {
+extern cache::lru_cache<string, pair<string, string>> otf_prop_cache;
+inline pair<string, string>
+otf_propagate (vector<int> (*func) (vector<int> inputs), string inputs,
+               string outputs) {
   assert (func == add_ ? outputs.size () == 3 : true);
 
   FunctionId func_id = func == add_   ? add
@@ -108,7 +109,7 @@ inline string otf_propagate (vector<int> (*func) (vector<int> inputs),
       return otf_prop_cache.get (cache_key);
   }
 
-  int outputs_size = outputs.size ();
+  int inputs_size = inputs.size (), outputs_size = outputs.size ();
   auto conforms_to = [] (char c1, char c2) {
     vector<char> c1_chars = get_symbols (c1), c2_chars = get_symbols (c2);
     for (auto &c : c1_chars)
@@ -124,11 +125,13 @@ inline string otf_propagate (vector<int> (*func) (vector<int> inputs),
       iterables_list.push_back (symbols);
   }
 
-  set<char> possibilities[outputs_size];
+  set<char> input_possibilities[inputs_size];
+  set<char> output_possibilities[outputs_size];
   auto combos = cartesian_product (iterables_list);
   for (auto &combo : combos) {
     vector<int> inputs_f, inputs_g;
     for (auto &c : combo) {
+      assert (c == 'u' || c == 'n' || c == '1' || c == '0');
       switch (c) {
       case 'u':
         inputs_f.push_back (1);
@@ -153,7 +156,7 @@ inline string otf_propagate (vector<int> (*func) (vector<int> inputs),
     outputs_f = func (inputs_f);
     outputs_g = func (inputs_g);
 
-    vector<char> outputs_;
+    vector<char> inputs_, outputs_;
     bool skip = false;
     for (int i = 0; i < outputs_size; i++) {
       int x = outputs_f[i], x_ = outputs_g[i];
@@ -166,21 +169,41 @@ inline string otf_propagate (vector<int> (*func) (vector<int> inputs),
         break;
       }
     }
+    if (skip)
+      continue;
+
+    for (int i = 0; i < inputs_size; i++) {
+      int x = inputs_f[i], x_ = inputs_g[i];
+      inputs_.push_back (x == 1 && x_ == 1   ? '1'
+                         : x == 1 && x_ == 0 ? 'u'
+                         : x == 0 && x_ == 1 ? 'n'
+                                             : '0');
+      if (!conforms_to (inputs_[i], inputs[i])) {
+        skip = true;
+        break;
+      }
+    }
 
     if (skip)
       continue;
 
     for (int i = 0; i < outputs_size; i++)
-      possibilities[i].insert ((outputs_[i]));
+      output_possibilities[i].insert ((outputs_[i]));
+    for (int i = 0; i < inputs_size; i++)
+      input_possibilities[i].insert ((inputs_[i]));
   }
 
   string propagated_output = "";
-  for (auto &p : possibilities)
+  for (auto &p : output_possibilities)
     propagated_output += get_symbol (p);
 
+  string propagated_input = "";
+  for (auto &p : input_possibilities)
+    propagated_input += get_symbol (p);
+
   // Cache the result
-  otf_prop_cache.put (cache_key, propagated_output);
-  return propagated_output;
+  otf_prop_cache.put (cache_key, {propagated_input, propagated_output});
+  return {propagated_input, propagated_output};
 }
 
 void load_prop_rules ();

@@ -181,9 +181,9 @@ int find_inconsistency_from_nullspace_vectors (
       for (int x = 0; x < equations_n; x++)
         hamming_weight += NTL::conv<int> (nullspace_vector[x]);
 
-      if (hamming_weight < least_hamming_weight) {
+      if (hamming_weight < least_hamming_weight)
         inconsistency = &nullspace_vector;
-      }
+
       inconsistent_eq_n++;
     }
   }
@@ -317,8 +317,9 @@ vector<Equation> otf_2bit_eqs (vector<int> (*func) (vector<int> inputs),
             candidate.substr (inputs.size (), outputs.size ());
         auto propagation =
             otf_propagate (func, candidate_inputs, candidate_outputs);
+        string &prop_output = propagation.second;
         bool skip = false;
-        for (auto &c : propagation) {
+        for (auto &c : prop_output) {
           if (c == '#') {
             skip = true;
             break;

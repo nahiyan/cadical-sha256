@@ -39,15 +39,15 @@ inline void custom_1bit_propagate (State &state,
 
       // Propagate
       auto &function = prop_functions[op_id];
-      // auto timer = new Timer (&state.temp_time);
-      string prop_output =
-          otf_propagate (function, input_chars, output_chars);
-      // delete timer;
+      auto output = otf_propagate (function, input_chars, output_chars);
+      string &prop_input = output.first;
+      string &prop_output = output.second;
       // printf ("Prop: %s %s -> %s\n", input_chars.c_str (),
       //         output_chars.c_str (), prop_output.c_str ());
       if (output_chars == prop_output)
         continue;
 
+      vector<int> prop_lits;
       for (auto &c : input_chars)
         assert (c == '-' || c == 'x' || c == 'u' || c == 'n' || c == '1' ||
                 c == '0' || c == '?');
@@ -80,13 +80,32 @@ inline void custom_1bit_propagate (State &state,
                   (lit > 0 ? LIT_TRUE : LIT_FALSE));
           reason.antecedent.push_back (-lit);
         }
+
+        if (prop_input[x] == '#')
+          continue;
+
+        auto prop_table_values = gc_values_1bit (prop_input[x]);
+        for (int y = 2; y >= 0; y--) {
+          auto &id = ids[y];
+          if (prop_table_values[y] == 0)
+            continue;
+          int lit = prop_table_values[y] * id;
+          if (lit == 0)
+            continue;
+
+          if (state.partial_assignment.get (id) != LIT_UNDEF)
+            continue;
+
+          // We're pushing to the front because we move down the trail
+          propagation_lits.push_front (lit);
+          prop_lits.push_back (lit);
+        }
       }
 
       if (reason.antecedent.empty ())
         continue;
 
       // Construct the antecedent with outputs
-      vector<int> prop_lits;
       for (long x = 0; x < output_size; x++) {
         // Ignore the high carry output if addends can't add up to >= 4
         if (function == add_ && x == 0 &&
@@ -118,8 +137,7 @@ inline void custom_1bit_propagate (State &state,
         }
         assert (output_chars[x] != '?' ? has_output_antecedent : true);
 
-        // TODO: Propagated char should have a higher score
-        if (prop_output[x] == '?' || prop_output[x] == '#')
+        if (prop_output[x] == '#')
           continue;
 
         auto prop_table_values = gc_values_1bit (prop_output[x]);
