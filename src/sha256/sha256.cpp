@@ -189,8 +189,7 @@ inline bool Propagator::custom_block () {
     return false;
   assert (!equations_vars.empty ());
 
-  // Form the augmented matrix
-  // Used to map the augmented matrix variable IDs
+  // Form the augmented matrix used to map the augmented matrix variable IDs
   two_bit.aug_mtx_var_map.clear ();
   int id = 0;
   for (auto &var : equations_vars)
@@ -295,18 +294,11 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     for (auto &lit : reason_clause)
       printf ("%d ", lit);
     printf ("\n");
-    // printf ("Propagation: %s -> %s\n", reason.differential.inputs.c_str
-    // (),
-    //         reason.differential.outputs.c_str ());
   }
 
   assert (reason_clause.size () > 0);
   int lit = reason_clause.back ();
   reason_clause.pop_back ();
-  // printf ("Debug: providing reason clause %d: %d (%d); remaining
-  // %ld\n",
-  //         propagated_lit, lit, state.partial_assignment.get (abs
-  //         (lit)), reason_clause.size ());
 
   return lit;
 }
@@ -348,15 +340,12 @@ int Propagator::cb_add_external_clause_lit () {
   assert (!clause.empty ());
   int lit = clause.back ();
   auto value = state.partial_assignment.get (abs (lit));
-  // printf ("Debug: gave EC lit %d (%d) %ld remaining\n", lit, value,
-  //         clause.size () - 1);
 
   // Pop clause and remove if empty
   clause.pop_back ();
   if (clause.empty ()) {
     external_clauses.pop_back ();
     stats.clauses_count++;
-    // printf ("Debug: EC ended\n");
   }
 
   // Sanity check for blocking clauses
