@@ -58,7 +58,11 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   printf ("2-bit addition differentials turned on.\n");
 #endif
 #if MENDEL_BRANCHING
-  printf ("Mendel's branching turned on.\n");
+  printf ("Mendel's branching turned on");
+#if !MENDEL_BRANCHING_STAGE_3
+  printf (" without stage 3");
+#endif
+  printf ("\n");
 #endif
 
 #ifdef LOGGING
