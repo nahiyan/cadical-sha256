@@ -533,6 +533,8 @@ void Stats::print (Internal *internal) {
   auto &reasons_count = SHA256::Propagator::stats.reasons_count;
   auto &mendel_branching_decisions_count =
       SHA256::Propagator::stats.mendel_branching_decisions_count;
+  auto &mendel_branching_stage3_count =
+      SHA256::Propagator::stats.mendel_branching_stage3_count;
   auto &strong_prop_decisions_count =
       SHA256::Propagator::stats.strong_prop_decisions_count;
   assert (decisions_count ==
@@ -541,6 +543,7 @@ void Stats::print (Internal *internal) {
   PRT ("ext. clauses:    %15ld", programmatic_claues);
   PRT ("ext. decisions:  %15ld", decisions_count);
   PRT ("ext. m. branch:  %15ld", mendel_branching_decisions_count);
+  PRT ("ext. m. brnch s3:%15ld", mendel_branching_stage3_count);
   PRT ("ext. strng prop.:%15ld", strong_prop_decisions_count);
 
   LINE ();

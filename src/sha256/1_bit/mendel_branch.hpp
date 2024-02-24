@@ -11,7 +11,8 @@ using namespace std;
 
 namespace SHA256 {
 inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
-                                list<list<Equation>> &equations_trail) {
+                                list<list<Equation>> &equations_trail,
+                                Stats &stats) {
   state.soft_refresh ();
 
   auto rand_ground_x = [&state] (list<int> &decision_lits, Word &word,
@@ -102,6 +103,7 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
         else
           decision_lits.push_back (-ids[x]);
         // printf ("Stage 3: Decision\n");
+        stats.mendel_branching_stage3_count++;
         return;
       }
     }

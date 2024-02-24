@@ -142,9 +142,11 @@ int Propagator::cb_decide () {
   if (++mendel_branch_counter % 20 == 0) {
     if (decision_lits.empty ()) {
 #if IS_4BIT
-      mendel_branch_4bit (state, decision_lits, two_bit.equations_trail);
+      mendel_branch_4bit (state, decision_lits, two_bit.equations_trail,
+                          stats);
 #else
-      mendel_branch_1bit (state, decision_lits, two_bit.equations_trail);
+      mendel_branch_1bit (state, decision_lits, two_bit.equations_trail,
+                          stats);
 #endif
       stats.mendel_branching_decisions_count += decision_lits.size ();
     }

@@ -118,6 +118,7 @@ struct Stats {
   uint64_t strong_prop_decisions_count = 0;
   // Decisions made with mendel's branching technique
   uint64_t mendel_branching_decisions_count = 0;
+  uint64_t mendel_branching_stage3_count = 0;
 };
 
 struct Operations {
