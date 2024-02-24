@@ -44,7 +44,7 @@ inline void custom_1bit_propagate (State &state,
       string &prop_output = output.second;
       // printf ("Prop: %s %s -> %s\n", input_chars.c_str (),
       //         output_chars.c_str (), prop_output.c_str ());
-      if (output_chars == prop_output)
+      if (output_chars == prop_output && input_chars == prop_input)
         continue;
 
       vector<int> prop_lits;
