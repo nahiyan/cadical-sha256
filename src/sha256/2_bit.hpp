@@ -208,7 +208,7 @@ inline int find_inconsistency_from_nullspace_vectors (
     }
   }
 
-  printf ("Least Hamming weight: %d\n", least_hamming_weight);
+  // printf ("Least Hamming weight: %d\n", least_hamming_weight);
 
   return inconsistent_eq_n;
 }
@@ -229,8 +229,8 @@ inline bool block_inconsistency (list<Equation *> equations,
   NTL::kernel (left_kernel_basis, coeff_matrix);
   auto equations_n = left_kernel_basis.NumCols ();
   assert (equations_n == equations.size ());
-  printf ("Basis dimension: %ld %ld\n", left_kernel_basis.NumRows (),
-          left_kernel_basis.NumCols ());
+  // printf ("Basis dimension: %ld %ld\n", left_kernel_basis.NumRows (),
+  //         left_kernel_basis.NumCols ());
 
   // TODO: Add combinations of the basis vectors
 

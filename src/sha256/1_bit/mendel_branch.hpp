@@ -95,7 +95,7 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
 
   // Stage 3
 #if MENDEL_BRANCHING_STAGE_3
-  derive_2bit_equations_1bit (state, equations_trail.back ());
+  derive_2bit_equations_1bit (state, equations_trail.back (), stats);
   for (auto &level : equations_trail) {
     for (auto &equation : level) {
       uint32_t ids[] = {equation.ids[0], equation.ids[1]};

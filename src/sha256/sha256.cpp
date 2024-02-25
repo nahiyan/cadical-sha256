@@ -95,7 +95,7 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
 }
 
 void Propagator::notify_backtrack (size_t new_level) {
-  Timer timer (&stats.total_cb_time);
+  // Timer timer (&stats.total_cb_time);
   while (state.current_trail.size () > new_level + 1) {
     // Unassign the variables that are removed from the trail
     auto &level = state.current_trail.back ();
@@ -136,7 +136,7 @@ void Propagator::notify_new_decision_level () {
 }
 
 int Propagator::cb_decide () {
-  Timer time (&stats.total_cb_time);
+  Timer timer (&stats.total_cb_time);
 
 #if MENDEL_BRANCHING
   if (++mendel_branch_counter % 20 == 0) {
@@ -240,7 +240,7 @@ inline bool Propagator::custom_block () {
 }
 
 int Propagator::cb_propagate () {
-  Timer time (&stats.total_cb_time);
+  Timer timer (&stats.total_cb_time);
 
 #if CUSTOM_PROP
   if (propagation_lits.empty ()) {
@@ -314,7 +314,7 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 }
 
 bool Propagator::cb_has_external_clause () {
-  Timer time (&stats.total_cb_time);
+  Timer timer (&stats.total_cb_time);
 
 #if STRONG_PROPAGATE
   if (decision_lits.empty ()) {
