@@ -16,7 +16,9 @@ extern pair<int, int> prop_diff_sizes[10];
 extern vector<int> (*prop_functions[10]) (vector<int>);
 inline void custom_1bit_propagate (State &state,
                                    list<int> &propagation_lits,
-                                   map<int, Reason> &reasons) {
+                                   map<int, Reason> &reasons,
+                                   Stats &stats) {
+  assert (propagation_lits.empty ());
   for (auto &level : state.prop_markings_trail) {
     for (auto marking_it = level.begin (); marking_it != level.end ();
          marking_it++) {
@@ -36,18 +38,41 @@ inline void custom_1bit_propagate (State &state,
         input_chars += *input_words[i].chars[bit_pos];
       for (int i = 0; i < output_size; i++)
         output_chars += output_words[i]->chars[bit_pos];
+      auto &function = prop_functions[op_id];
+
+      // Skip differentials with low probability
+      if (function != add_) {
+        int q_count = 0;
+        for (auto &c : input_chars)
+          if (c == '?')
+            q_count++;
+        for (auto &c : output_chars)
+          if (c == '?')
+            q_count++;
+
+        if (q_count == 0 || q_count == input_size + output_size)
+          continue;
+      }
 
       // Propagate
-      auto &function = prop_functions[op_id];
-      auto output = otf_propagate (function, input_chars, output_chars);
+      Timer *timer = new Timer (&stats.total_prop_time);
+      auto output =
+          otf_propagate (function, input_chars, output_chars, &stats);
+      delete timer;
       string &prop_input = output.first;
       string &prop_output = output.second;
       // printf ("Prop: %s %s -> %s\n", input_chars.c_str (),
       //         output_chars.c_str (), prop_output.c_str ());
-      if (output_chars == prop_output && input_chars == prop_input)
+      if (output_chars == prop_output && input_chars == prop_input) {
+        // printf ("Useless prop: %s -> %s\n", input_chars.c_str (),
+        //         output_chars.c_str ());
         continue;
+      }
+      // printf ("Useful prop: %s -> %s to %s -> %s\n", input_chars.c_str
+      // (),
+      //         output_chars.c_str (), prop_input.c_str (),
+      //         prop_output.c_str ());
 
-      vector<int> prop_lits;
       for (auto &c : input_chars)
         assert (c == '-' || c == 'x' || c == 'u' || c == 'n' || c == '1' ||
                 c == '0' || c == '?');
@@ -98,7 +123,6 @@ inline void custom_1bit_propagate (State &state,
 
           // We're pushing to the front because we move down the trail
           propagation_lits.push_front (lit);
-          prop_lits.push_back (lit);
         }
       }
 
@@ -154,12 +178,11 @@ inline void custom_1bit_propagate (State &state,
 
           // We're pushing to the front because we move down the trail
           propagation_lits.push_front (lit);
-          prop_lits.push_back (lit);
         }
       }
 
       // Since we're done with the antecedent, we can insert the reasons
-      for (auto &lit : prop_lits)
+      for (auto &lit : propagation_lits)
         reasons[lit] = reason;
 
       if (!propagation_lits.empty ())

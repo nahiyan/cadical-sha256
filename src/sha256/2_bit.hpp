@@ -51,18 +51,12 @@ otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
   assert (ids.first.size () == mask.size ());
   assert (ids.second.size () == mask.size ());
 
-  // TODO: Improve efficiency
-  FunctionId func_id = func == add_   ? add
-                       : func == xor_ ? xor3
-                       : func == maj_ ? maj
-                                      : ch;
-
   // Look in the cache
   bool is_cached = false;
   string cache_key;
   {
     stringstream ss;
-    ss << func_id << " " << inputs << " " << outputs;
+    ss << (int64_t) func << " " << inputs << " " << outputs;
     cache_key = ss.str ();
   }
   if (otf_2bit_cache.exists (cache_key)) {

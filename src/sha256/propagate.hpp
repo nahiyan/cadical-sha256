@@ -96,16 +96,11 @@ otf_propagate (vector<int> (*func) (vector<int> inputs), string inputs,
   if (stats != NULL)
     stats->prop_total_calls++;
 
-  FunctionId func_id = func == add_   ? add
-                       : func == xor_ ? xor3
-                       : func == maj_ ? maj
-                                      : ch;
-
   // Look in the cache
   string cache_key;
   {
     stringstream ss;
-    ss << func_id << " " << inputs << " " << outputs;
+    ss << (int64_t) func << " " << inputs << " " << outputs;
     cache_key = ss.str ();
     if (otf_prop_cache.exists (cache_key)) {
       if (stats != NULL)
