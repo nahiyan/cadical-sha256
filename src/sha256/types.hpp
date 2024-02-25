@@ -112,6 +112,10 @@ struct VarInfo {
 
 struct Stats {
   clock_t total_cb_time = 0;
+  // Time for differential propagation
+  clock_t total_prop_time = 0;
+  // Time for 2-bit equation derivation
+  clock_t total_two_bit_time = 0;
   uint64_t clauses_count = 0;
   uint64_t reasons_count = 0;
   uint64_t decisions_count = 0;
@@ -119,6 +123,12 @@ struct Stats {
   // Decisions made with mendel's branching technique
   uint64_t mendel_branching_decisions_count = 0;
   uint64_t mendel_branching_stage3_count = 0;
+
+  // Cache
+  uint64_t prop_total_calls = 0;
+  uint64_t prop_cached_calls = 0;
+  uint64_t two_bit_total_calls = 0;
+  uint64_t two_bit_cached_calls = 0;
 };
 
 struct Operations {

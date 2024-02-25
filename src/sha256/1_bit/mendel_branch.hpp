@@ -20,10 +20,16 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
     srand (clock () + j);
     if (rand () % 2 == 0) {
       // u
-      decision_lits.push_back (word.ids_f[j]);
+      if (state.partial_assignment.get (word.ids_f[j]) == LIT_UNDEF)
+        decision_lits.push_back (word.ids_f[j]);
+      else
+        decision_lits.push_back (-word.ids_g[j]);
     } else {
       // n
-      decision_lits.push_back (-word.ids_f[j]);
+      if (state.partial_assignment.get (word.ids_f[j]) == LIT_UNDEF)
+        decision_lits.push_back (-word.ids_f[j]);
+      else
+        decision_lits.push_back (word.ids_g[j]);
     }
     assert (state.partial_assignment.get (abs (decision_lits.back ())) ==
             LIT_UNDEF);
@@ -58,25 +64,30 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
   // Stage 2
   for (int i = -4; i < state.order; i++) {
     auto &a = state.steps[ABS_STEP (i)].a;
+    for (int j = 0; j < 32; j++) {
+      auto &c = a.chars[j];
+      if (c == '?') {
+        ground_xnor (decision_lits, a, j);
+        // printf ("Stage 2: Decision on A\n");
+        return;
+      } else if (c == 'x') {
+        rand_ground_x (decision_lits, a, j);
+        // printf ("Stage 2: Decision on A\n");
+        return;
+      }
+    }
+  }
+  for (int i = -4; i < state.order; i++) {
     auto &e = state.steps[ABS_STEP (i)].e;
     for (int j = 0; j < 32; j++) {
-      auto &a_c = a.chars[j];
-      auto &e_c = e.chars[j];
-      if (a_c == '?') {
-        ground_xnor (decision_lits, a, j);
-        // printf ("Stage 2: Decision\n");
-        return;
-      } else if (a_c == 'x') {
-        rand_ground_x (decision_lits, a, j);
-        // printf ("Stage 2: Decision\n");
-        return;
-      } else if (e_c == '?') {
+      auto &c = e.chars[j];
+      if (c == '?') {
         ground_xnor (decision_lits, e, j);
-        // printf ("Stage 2: Decision\n");
+        // printf ("Stage 2: Decision on E\n");
         return;
-      } else if (e_c == 'x') {
+      } else if (c == 'x') {
         rand_ground_x (decision_lits, e, j);
-        // printf ("Stage 2: Decision\n");
+        // printf ("Stage 2: Decision on E\n");
         return;
       }
     }

@@ -91,8 +91,10 @@ inline char get_symbol (const set<char> &symbols) {
 extern cache::lru_cache<string, pair<string, string>> otf_prop_cache;
 inline pair<string, string>
 otf_propagate (vector<int> (*func) (vector<int> inputs), string inputs,
-               string outputs) {
+               string outputs, Stats *stats = NULL) {
   assert (func == add_ ? outputs.size () == 3 : true);
+  if (stats != NULL)
+    stats->prop_total_calls++;
 
   FunctionId func_id = func == add_   ? add
                        : func == xor_ ? xor3
@@ -105,8 +107,11 @@ otf_propagate (vector<int> (*func) (vector<int> inputs), string inputs,
     stringstream ss;
     ss << func_id << " " << inputs << " " << outputs;
     cache_key = ss.str ();
-    if (otf_prop_cache.exists (cache_key))
+    if (otf_prop_cache.exists (cache_key)) {
+      if (stats != NULL)
+        stats->prop_cached_calls++;
       return otf_prop_cache.get (cache_key);
+    }
   }
 
   int inputs_size = inputs.size (), outputs_size = outputs.size ();

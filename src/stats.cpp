@@ -2,6 +2,7 @@
 
 #include "internal.hpp"
 #include "sha256/sha256.hpp"
+#include <ctime>
 
 namespace CaDiCaL {
 
@@ -539,6 +540,20 @@ void Stats::print (Internal *internal) {
       SHA256::Propagator::stats.strong_prop_decisions_count;
   assert (decisions_count ==
           mendel_branching_decisions_count + strong_prop_decisions_count);
+  PRT ("prop. total:     %15ld",
+       SHA256::Propagator::stats.prop_total_calls);
+  PRT ("prop. cached:    %15ld",
+       SHA256::Propagator::stats.prop_cached_calls);
+  PRT ("prop. cache score:%14.2f",
+       (float) SHA256::Propagator::stats.prop_cached_calls /
+           SHA256::Propagator::stats.prop_total_calls);
+  PRT ("2-bit total:     %15ld",
+       SHA256::Propagator::stats.two_bit_total_calls);
+  PRT ("2-bit cached:    %15ld",
+       SHA256::Propagator::stats.two_bit_cached_calls);
+  PRT ("2-bit cache score:%14.4f",
+       (float) SHA256::Propagator::stats.two_bit_cached_calls /
+           SHA256::Propagator::stats.two_bit_total_calls);
   PRT ("ext. reasons:    %15ld", reasons_count);
   PRT ("ext. clauses:    %15ld", programmatic_claues);
   PRT ("ext. decisions:  %15ld", decisions_count);
@@ -567,6 +582,8 @@ void Internal::print_resource_usage () {
   double total_cb_time =
       SHA256::Propagator::stats.total_cb_time / (double) CLOCKS_PER_SEC;
 
+  MSG ("total prop. time:                        %12.2f    seconds",
+       SHA256::Propagator::stats.total_prop_time / (double) CLOCKS_PER_SEC);
   MSG ("total callback time:                     %12.2f    seconds",
        total_cb_time);
   MSG ("discounted time:                         %12.2f    seconds",

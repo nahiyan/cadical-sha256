@@ -167,18 +167,20 @@ int Propagator::cb_decide () {
 inline void Propagator::custom_propagate () {
   state.soft_refresh ();
 #if IS_4BIT
-  custom_4bit_propagate (state, propagation_lits, reasons);
+  custom_4bit_propagate (state, propagation_lits, reasons, stats);
 #else
-  custom_1bit_propagate (state, propagation_lits, reasons);
+  custom_1bit_propagate (state, propagation_lits, reasons, stats);
 #endif
 }
 
 inline bool Propagator::custom_block () {
   state.soft_refresh ();
 #if IS_4BIT
-  derive_2bit_equations_4bit (state, two_bit.equations_trail.back ());
+  derive_2bit_equations_4bit (state, two_bit.equations_trail.back (),
+                              stats);
 #else
-  derive_2bit_equations_1bit (state, two_bit.equations_trail.back ());
+  derive_2bit_equations_1bit (state, two_bit.equations_trail.back (),
+                              stats);
 #endif
 
   // Collect the equations and the set of vars
