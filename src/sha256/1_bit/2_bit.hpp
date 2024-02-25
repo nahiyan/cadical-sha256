@@ -15,7 +15,8 @@ extern pair<int, int> two_bit_diff_sizes[10];
 extern vector<int> (*two_bit_functions[10]) (vector<int>);
 
 inline void derive_2bit_equations_1bit (State &state,
-                                        list<Equation> &equations) {
+                                        list<Equation> &equations,
+                                        Stats &stats) {
   for (auto &level : state.prop_markings_trail) {
     for (auto marking_it = level.begin (); marking_it != level.end ();
          marking_it++) {
@@ -57,8 +58,8 @@ inline void derive_2bit_equations_1bit (State &state,
 
       // Replace the equations for this particular spot
       auto &mask = masks_by_op_id[op_id];
-      auto new_equations =
-          otf_2bit_eqs (function, input_chars, output_chars, ids, mask);
+      auto new_equations = otf_2bit_eqs (function, input_chars,
+                                         output_chars, ids, mask, &stats);
       // Add the antecedent for the equations
       for (auto &equation : new_equations) {
         // Process inputs
