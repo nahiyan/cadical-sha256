@@ -17,17 +17,13 @@ extern vector<int> (*two_bit_functions[10]) (vector<int>);
 inline void derive_2bit_equations_1bit (State &state,
                                         list<Equation> &equations,
                                         Stats &stats) {
-  for (auto &level : state.prop_markings_trail) {
+  Timer timer (&stats.total_two_bit_derive_time);
+  for (auto &level : state.two_bit_markings_trail) {
     for (auto marking_it = level.begin (); marking_it != level.end ();
          marking_it++) {
       auto op_id = marking_it->op_id;
       auto step_i = marking_it->step_i;
       auto bit_pos = marking_it->bit_pos;
-
-#if !TWO_BIT_ADD_DIFFS
-      if (op_id >= op_add_w)
-        continue;
-#endif
       marking_it = level.erase (marking_it);
 
       auto &function = two_bit_functions[op_id];
@@ -58,8 +54,10 @@ inline void derive_2bit_equations_1bit (State &state,
 
       // Replace the equations for this particular spot
       auto &mask = masks_by_op_id[op_id];
+      // Timer *timer = new Timer (&stats.total_two_bit_derive_time);
       auto new_equations = otf_2bit_eqs (function, input_chars,
                                          output_chars, ids, mask, &stats);
+      // delete timer;
       // Add the antecedent for the equations
       for (auto &equation : new_equations) {
         // Process inputs

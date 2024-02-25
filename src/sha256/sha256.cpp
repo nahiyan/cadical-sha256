@@ -203,7 +203,9 @@ inline bool Propagator::custom_block () {
   for (auto &var : equations_vars)
     two_bit.aug_mtx_var_map[var] = id++;
 
+  Timer *timer = new Timer (&stats.total_two_bit_check_time);
   auto confl_equations = check_consistency (equations, false);
+  delete timer;
   bool is_consistent = confl_equations.empty ();
   if (is_consistent)
     return false;

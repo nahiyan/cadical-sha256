@@ -115,7 +115,8 @@ struct Stats {
   // Time for differential propagation
   clock_t total_prop_time = 0;
   // Time for 2-bit equation derivation
-  clock_t total_two_bit_time = 0;
+  clock_t total_two_bit_derive_time = 0;
+  clock_t total_two_bit_check_time = 0;
   uint64_t clauses_count = 0;
   uint64_t reasons_count = 0;
   uint64_t decisions_count = 0;

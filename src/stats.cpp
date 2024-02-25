@@ -584,6 +584,12 @@ void Internal::print_resource_usage () {
 
   MSG ("total prop. time:                        %12.2f    seconds",
        SHA256::Propagator::stats.total_prop_time / (double) CLOCKS_PER_SEC);
+  MSG ("total 2-bit. derive time:                %12.2f    seconds",
+       SHA256::Propagator::stats.total_two_bit_derive_time /
+           (double) CLOCKS_PER_SEC);
+  MSG ("total 2-bit. check time:                 %12.2f    seconds",
+       SHA256::Propagator::stats.total_two_bit_check_time /
+           (double) CLOCKS_PER_SEC);
   MSG ("total callback time:                     %12.2f    seconds",
        total_cb_time);
   MSG ("discounted time:                         %12.2f    seconds",
