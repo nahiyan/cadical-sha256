@@ -20,7 +20,7 @@ using namespace std;
 namespace SHA256 {
 class State {
 public:
-  clock_t temp_time = 0;
+  clock_t total_refresh_time = 0;
   deque<vector<int>> current_trail;
   int order;
   uint32_t zero_var_id;

@@ -598,12 +598,12 @@ void Internal::print_resource_usage () {
            (double) CLOCKS_PER_SEC);
   MSG ("total callback time:                     %12.2f    seconds",
        total_cb_time);
+  double total_refresh_time = SHA256::Propagator::state.total_refresh_time /
+                              (double) CLOCKS_PER_SEC;
+  MSG ("total refresh time:                      %12.2f    seconds",
+       total_refresh_time);
   MSG ("discounted time:                         %12.2f    seconds",
        internal->process_time () - total_cb_time);
-  double total_test_time =
-      SHA256::Propagator::state.temp_time / (double) CLOCKS_PER_SEC;
-  MSG ("temp time:                               %12.2f    seconds",
-       total_test_time);
 #endif
 }
 
