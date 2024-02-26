@@ -58,6 +58,7 @@ inline void State::refresh_char (Word &word, int index) {
 }
 
 void State::soft_refresh () {
+  Timer timer (&temp_time);
   for (auto &base_id : partial_assignment.updated_vars) {
     auto &info = vars_info[base_id];
     refresh_char (*info.word, 31 - info.identity.col);

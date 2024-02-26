@@ -590,14 +590,20 @@ void Internal::print_resource_usage () {
   MSG ("total 2-bit. check time:                 %12.2f    seconds",
        SHA256::Propagator::stats.total_two_bit_check_time /
            (double) CLOCKS_PER_SEC);
+  MSG ("total mendel branch time:                %12.2f    seconds",
+       SHA256::Propagator::stats.total_mendel_branch_time /
+           (double) CLOCKS_PER_SEC);
+  MSG ("total strong propagation time:           %12.2f    seconds",
+       SHA256::Propagator::stats.total_strong_propagate_time /
+           (double) CLOCKS_PER_SEC);
   MSG ("total callback time:                     %12.2f    seconds",
        total_cb_time);
   MSG ("discounted time:                         %12.2f    seconds",
        internal->process_time () - total_cb_time);
-  //   double total_test_time =
-  //       SHA256::Propagator::state.temp_time / (double) CLOCKS_PER_SEC;
-//   MSG ("temp time:                               %12.2f    seconds",
-//        total_test_time);
+  double total_test_time =
+      SHA256::Propagator::state.temp_time / (double) CLOCKS_PER_SEC;
+  MSG ("temp time:                               %12.2f    seconds",
+       total_test_time);
 #endif
 }
 

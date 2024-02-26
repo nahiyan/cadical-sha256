@@ -18,6 +18,7 @@ inline void custom_1bit_propagate (State &state,
                                    list<int> &propagation_lits,
                                    map<int, Reason> &reasons,
                                    Stats &stats) {
+  Timer timer (&stats.total_prop_time);
   assert (propagation_lits.empty ());
   for (auto &level : state.prop_markings_trail) {
     for (auto marking_it = level.begin (); marking_it != level.end ();
@@ -55,10 +56,10 @@ inline void custom_1bit_propagate (State &state,
       }
 
       // Propagate
-      Timer *timer = new Timer (&stats.total_prop_time);
+      // Timer *timer = new Timer (&stats.total_prop_time);
       auto output =
           otf_propagate (function, input_chars, output_chars, &stats);
-      delete timer;
+      // delete timer;
       string &prop_input = output.first;
       string &prop_output = output.second;
       // printf ("Prop: %s %s -> %s\n", input_chars.c_str (),

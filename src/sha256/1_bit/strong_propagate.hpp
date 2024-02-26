@@ -11,6 +11,7 @@
 using namespace std;
 
 namespace SHA256 {
+// TODO: Fix warnings regarding defining variables in the header
 string add_masks[4] = {".+.++", "+..+", "+++", "+...++"};
 int add_input_sizes[4] = {4, 3, 2, 5};
 
@@ -19,7 +20,9 @@ int add_input_sizes[4] = {4, 3, 2, 5};
 cache::lru_cache<string, pair<string, string>>
     strong_propagate_cache (100e3);
 inline void strong_propagate_branch_1bit (State &state,
-                                          list<int> &decision_lits) {
+                                          list<int> &decision_lits,
+                                          Stats &stats) {
+  Timer timer (&stats.total_strong_propagate_time);
   state.soft_refresh ();
   auto _word_chars = [] (Word &word) {
     string chars;
