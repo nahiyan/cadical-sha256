@@ -20,14 +20,15 @@ inline void custom_1bit_propagate (State &state,
                                    Stats &stats) {
   Timer timer (&stats.total_prop_time);
   assert (propagation_lits.empty ());
-  for (auto &level : state.prop_markings_trail) {
-    for (auto marking_it = level.begin (); marking_it != level.end ();
-         marking_it++) {
+  for (auto level = state.prop_markings_trail.end ();
+       level-- != state.prop_markings_trail.begin ();) {
+    for (auto marking_it = level->end ();
+         marking_it-- != level->begin ();) {
       auto op_id = marking_it->op_id;
       auto step_i = marking_it->step_i;
-      auto bit_pos = marking_it->bit_pos;
+      auto bit_pos = 31 - marking_it->bit_pos;
 
-      marking_it = level.erase (marking_it);
+      marking_it = level->erase (marking_it);
 
       // Construct the differential
       int input_size = prop_diff_sizes[op_id].first,
@@ -123,7 +124,7 @@ inline void custom_1bit_propagate (State &state,
             continue;
 
           // We're pushing to the front because we move down the trail
-          propagation_lits.push_front (lit);
+          propagation_lits.push_back (lit);
         }
       }
 
@@ -146,18 +147,16 @@ inline void custom_1bit_propagate (State &state,
 
         auto table_values = gc_values_1bit (output_chars[x]);
         bool has_output_antecedent = false;
-        {
-          if (output_chars[x] != '?') {
-            for (int y = 0; y < 3; y++) {
-              auto &id = ids[y];
-              int lit = table_values[y] * id;
-              if (lit == 0)
-                continue;
-              reason.antecedent.push_back (-lit);
-              assert (state.partial_assignment.get (id) ==
-                      (lit > 0 ? LIT_TRUE : LIT_FALSE));
-              has_output_antecedent = true;
-            }
+        if (output_chars[x] != '?') {
+          for (int y = 0; y < 3; y++) {
+            auto &id = ids[y];
+            int lit = table_values[y] * id;
+            if (lit == 0)
+              continue;
+            reason.antecedent.push_back (-lit);
+            assert (state.partial_assignment.get (id) ==
+                    (lit > 0 ? LIT_TRUE : LIT_FALSE));
+            has_output_antecedent = true;
           }
         }
         assert (output_chars[x] != '?' ? has_output_antecedent : true);
@@ -177,8 +176,7 @@ inline void custom_1bit_propagate (State &state,
           if (state.partial_assignment.get (id) != LIT_UNDEF)
             continue;
 
-          // We're pushing to the front because we move down the trail
-          propagation_lits.push_front (lit);
+          propagation_lits.push_back (lit);
         }
       }
 
