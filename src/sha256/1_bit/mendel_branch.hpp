@@ -102,7 +102,7 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
         auto &var_info = state.vars_info[ids[x]];
         auto &col = var_info.identity.col;
         auto &word = var_info.word;
-        if (word->char_ids[31 - col] != '-')
+        if (word->chars[31 - col] != '-')
           continue;
         assert (31 - col >= 0 && 31 - col <= 31);
         assert (word->ids_f[31 - col] == ids[x] ||
