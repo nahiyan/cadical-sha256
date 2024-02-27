@@ -581,7 +581,11 @@ void Internal::print_resource_usage () {
        m / (double) (1l << 20));
   double total_cb_time =
       SHA256::Propagator::stats.total_cb_time / (double) CLOCKS_PER_SEC;
+  double total_refresh_time = SHA256::Propagator::state.total_refresh_time /
+                              (double) CLOCKS_PER_SEC;
 
+  MSG ("total refresh time:                      %12.2f    seconds",
+       total_refresh_time);
   MSG ("total prop. time:                        %12.2f    seconds",
        SHA256::Propagator::stats.total_prop_time / (double) CLOCKS_PER_SEC);
   MSG ("total 2-bit. derive time:                %12.2f    seconds",
@@ -598,10 +602,6 @@ void Internal::print_resource_usage () {
            (double) CLOCKS_PER_SEC);
   MSG ("total callback time:                     %12.2f    seconds",
        total_cb_time);
-  double total_refresh_time = SHA256::Propagator::state.total_refresh_time /
-                              (double) CLOCKS_PER_SEC;
-  MSG ("total refresh time:                      %12.2f    seconds",
-       total_refresh_time);
   MSG ("discounted time:                         %12.2f    seconds",
        internal->process_time () - total_cb_time);
 #endif

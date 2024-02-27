@@ -22,7 +22,6 @@ cache::lru_cache<string, pair<string, string>>
 inline void strong_propagate_branch_1bit (State &state,
                                           list<int> &decision_lits,
                                           Stats &stats) {
-  Timer timer (&stats.total_strong_propagate_time);
   state.soft_refresh ();
   auto _word_chars = [] (Word &word) {
     string chars;

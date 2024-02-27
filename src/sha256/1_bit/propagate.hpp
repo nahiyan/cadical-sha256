@@ -18,7 +18,6 @@ inline void custom_1bit_propagate (State &state,
                                    list<int> &propagation_lits,
                                    map<int, Reason> &reasons,
                                    Stats &stats) {
-  Timer timer (&stats.total_prop_time);
   assert (propagation_lits.empty ());
   for (auto level = state.prop_markings_trail.end ();
        level-- != state.prop_markings_trail.begin ();) {
@@ -26,7 +25,7 @@ inline void custom_1bit_propagate (State &state,
          marking_it-- != level->begin ();) {
       auto op_id = marking_it->op_id;
       auto step_i = marking_it->step_i;
-      auto bit_pos = 31 - marking_it->bit_pos;
+      auto bit_index = 31 - marking_it->bit_pos;
 
       marking_it = level->erase (marking_it);
 
@@ -37,9 +36,9 @@ inline void custom_1bit_propagate (State &state,
       auto &output_words = state.operations[step_i].outputs_by_op_id[op_id];
       string input_chars, output_chars;
       for (int i = 0; i < input_size; i++)
-        input_chars += *input_words[i].chars[bit_pos];
+        input_chars += *input_words[i].chars[bit_index];
       for (int i = 0; i < output_size; i++)
-        output_chars += output_words[i]->chars[bit_pos];
+        output_chars += output_words[i]->chars[bit_index];
       auto &function = prop_functions[op_id];
 
       // Skip differentials with low probability
@@ -86,9 +85,9 @@ inline void custom_1bit_propagate (State &state,
         if (input_chars[x] == '?')
           continue;
 
-        uint32_t ids[] = {input_words[x].ids_f[bit_pos],
-                          input_words[x].ids_g[bit_pos],
-                          input_words[x].char_ids[bit_pos]};
+        uint32_t ids[] = {input_words[x].ids_f[bit_index],
+                          input_words[x].ids_g[bit_index],
+                          input_words[x].char_ids[bit_index]};
 
         // Count the const zeroes
         if (ids[0] == state.zero_var_id) {
@@ -138,9 +137,9 @@ inline void custom_1bit_propagate (State &state,
             (input_size - const_zeroes_count) < 4)
           continue;
 
-        uint32_t ids[] = {output_words[x]->ids_f[bit_pos],
-                          output_words[x]->ids_g[bit_pos],
-                          output_words[x]->char_ids[bit_pos]};
+        uint32_t ids[] = {output_words[x]->ids_f[bit_index],
+                          output_words[x]->ids_g[bit_index],
+                          output_words[x]->char_ids[bit_index]};
 
         if (ids[0] == state.zero_var_id)
           continue;

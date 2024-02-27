@@ -13,7 +13,6 @@ namespace SHA256 {
 inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
                                 list<list<Equation>> &equations_trail,
                                 Stats &stats) {
-  Timer timer (&stats.total_mendel_branch_time);
   auto rand_ground_x = [&state] (list<int> &decision_lits, Word &word,
                                  int &j) {
     srand (clock () + j);

@@ -139,19 +139,21 @@ int Propagator::cb_decide () {
   Timer timer (&stats.total_cb_time);
 
 #if MENDEL_BRANCHING
-  if (++mendel_branch_counter % 20 == 0) {
-    if (decision_lits.empty ()) {
-      state.soft_refresh ();
+  // if (++mendel_branch_counter % 20 == 0) {
+  if (decision_lits.empty ()) {
+    state.soft_refresh ();
+    Timer *mb_timer = new Timer (&stats.total_mendel_branch_time);
 #if IS_4BIT
-      mendel_branch_4bit (state, decision_lits, two_bit.equations_trail,
-                          stats);
+    mendel_branch_4bit (state, decision_lits, two_bit.equations_trail,
+                        stats);
 #else
-      mendel_branch_1bit (state, decision_lits, two_bit.equations_trail,
-                          stats);
+    mendel_branch_1bit (state, decision_lits, two_bit.equations_trail,
+                        stats);
 #endif
-      stats.mendel_branching_decisions_count += decision_lits.size ();
-    }
+    delete mb_timer;
+    stats.mendel_branching_decisions_count += decision_lits.size ();
   }
+  // }
 #endif
 
   if (decision_lits.empty ())
@@ -167,6 +169,7 @@ int Propagator::cb_decide () {
 
 inline bool Propagator::custom_block () {
   state.soft_refresh ();
+  Timer *derive_timer = new Timer (&stats.total_two_bit_derive_time);
 #if IS_4BIT
   derive_2bit_equations_4bit (state, two_bit.equations_trail.back (),
                               stats);
@@ -174,6 +177,7 @@ inline bool Propagator::custom_block () {
   derive_2bit_equations_1bit (state, two_bit.equations_trail.back (),
                               stats);
 #endif
+  delete derive_timer;
   Timer timer (&stats.total_two_bit_check_time);
 
   // Collect the equations and the set of vars
@@ -238,12 +242,14 @@ int Propagator::cb_propagate () {
 #if CUSTOM_PROP
   if (propagation_lits.empty ()) {
     state.soft_refresh ();
-// if (++prop_counter % 20 == 0)
+    // if (++prop_counter % 20 == 0)
+    Timer *prop_timer = new Timer (&stats.total_prop_time);
 #if IS_4BIT
     custom_4bit_propagate (state, propagation_lits, reasons, stats);
 #else
     custom_1bit_propagate (state, propagation_lits, reasons, stats);
 #endif
+    delete prop_timer;
   }
 #endif
 
@@ -316,11 +322,13 @@ bool Propagator::cb_has_external_clause () {
 
 #if STRONG_PROPAGATE
   if (decision_lits.empty ()) {
+    Timer *sp_timer = new Timer (&stats.total_strong_propagate_time);
 #if IS_4BIT
     strong_propagate_branch_4bit (state, decision_lits, stats);
 #else
     strong_propagate_branch_1bit (state, decision_lits, stats);
 #endif
+    delete sp_timer;
     stats.strong_prop_decisions_count += decision_lits.size ();
   }
 #endif

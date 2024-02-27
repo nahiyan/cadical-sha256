@@ -17,14 +17,14 @@ extern vector<int> (*two_bit_functions[10]) (vector<int>);
 inline void derive_2bit_equations_1bit (State &state,
                                         list<Equation> &equations,
                                         Stats &stats) {
-  Timer timer (&stats.total_two_bit_derive_time);
-  for (auto &level : state.two_bit_markings_trail) {
-    for (auto marking_it = level.begin (); marking_it != level.end ();
-         marking_it++) {
+  for (auto level = state.two_bit_markings_trail.end ();
+       level-- != state.two_bit_markings_trail.begin ();) {
+    for (auto marking_it = level->end ();
+         marking_it-- != level->begin ();) {
       auto op_id = marking_it->op_id;
       auto step_i = marking_it->step_i;
-      auto bit_pos = marking_it->bit_pos;
-      marking_it = level.erase (marking_it);
+      auto bit_index = 31 - marking_it->bit_pos;
+      marking_it = level->erase (marking_it);
 
       auto &function = two_bit_functions[op_id];
 #if !TWO_BIT_ADD_DIFFS
@@ -39,14 +39,14 @@ inline void derive_2bit_equations_1bit (State &state,
       string input_chars, output_chars;
       pair<vector<uint32_t>, vector<uint32_t>> ids;
       for (int i = 0; i < input_size; i++) {
-        input_chars += *input_words[i].chars[bit_pos];
-        ids.first.push_back (input_words[i].ids_f[bit_pos]);
-        ids.second.push_back (input_words[i].ids_g[bit_pos]);
+        input_chars += *input_words[i].chars[bit_index];
+        ids.first.push_back (input_words[i].ids_f[bit_index]);
+        ids.second.push_back (input_words[i].ids_g[bit_index]);
       }
       for (int i = 0; i < output_size; i++) {
-        output_chars += output_words[i]->chars[bit_pos];
-        ids.first.push_back (output_words[i]->ids_f[bit_pos]);
-        ids.second.push_back (output_words[i]->ids_g[bit_pos]);
+        output_chars += output_words[i]->chars[bit_index];
+        ids.first.push_back (output_words[i]->ids_f[bit_index]);
+        ids.second.push_back (output_words[i]->ids_g[bit_index]);
       }
       string all_chars = input_chars + output_chars;
       assert (input_size + output_size == int (ids.first.size ()));
@@ -66,9 +66,9 @@ inline void derive_2bit_equations_1bit (State &state,
           if (input_chars[input_i] == '?')
             continue;
 
-          uint32_t ids[] = {input_words[input_i].ids_f[bit_pos],
-                            input_words[input_i].ids_g[bit_pos],
-                            input_words[input_i].char_ids[bit_pos]};
+          uint32_t ids[] = {input_words[input_i].ids_f[bit_index],
+                            input_words[input_i].ids_g[bit_index],
+                            input_words[input_i].char_ids[bit_index]};
           if (ids[0] == state.zero_var_id) {
             const_zeroes_count++;
             continue;
@@ -96,9 +96,9 @@ inline void derive_2bit_equations_1bit (State &state,
               (input_size - const_zeroes_count) < 4)
             continue;
 
-          uint32_t ids[] = {output_words[output_i]->ids_f[bit_pos],
-                            output_words[output_i]->ids_g[bit_pos],
-                            output_words[output_i]->char_ids[bit_pos]};
+          uint32_t ids[] = {output_words[output_i]->ids_f[bit_index],
+                            output_words[output_i]->ids_g[bit_index],
+                            output_words[output_i]->char_ids[bit_index]};
 
           if (ids[0] == state.zero_var_id)
             continue;
