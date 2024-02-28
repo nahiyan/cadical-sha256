@@ -26,7 +26,7 @@ inline void custom_1bit_propagate (State &state,
       auto op_id = marking_it->op_id;
       auto step_i = marking_it->step_i;
       auto bit_pos = marking_it->bit_pos;
-
+      auto basis = marking_it->basis;
       marking_it = level->erase (marking_it);
 
       // Construct the differential
@@ -35,10 +35,18 @@ inline void custom_1bit_propagate (State &state,
       auto &input_words = state.operations[step_i].inputs_by_op_id[op_id];
       auto &output_words = state.operations[step_i].outputs_by_op_id[op_id];
       string input_chars, output_chars;
-      for (int i = 0; i < input_size; i++)
+      bool basis_found = false;
+      for (int i = 0; i < input_size; i++) {
         input_chars += *input_words[i].chars[bit_pos];
-      for (int i = 0; i < output_size; i++)
+        if (input_words[i].char_ids[bit_pos] == basis)
+          basis_found = true;
+      }
+      for (int i = 0; i < output_size; i++) {
         output_chars += output_words[i]->chars[bit_pos];
+        if (output_words[i]->char_ids[bit_pos] == basis)
+          basis_found = true;
+      }
+      assert (basis_found);
       auto &function = prop_functions[op_id];
 
       // Skip differentials with low probability

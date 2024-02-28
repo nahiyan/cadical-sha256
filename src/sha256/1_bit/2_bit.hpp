@@ -24,6 +24,7 @@ inline void derive_2bit_equations_1bit (State &state,
       auto op_id = marking_it->op_id;
       auto step_i = marking_it->step_i;
       auto bit_pos = marking_it->bit_pos;
+      auto basis = marking_it->basis;
       marking_it = level->erase (marking_it);
 
       auto &function = two_bit_functions[op_id];
@@ -38,16 +39,22 @@ inline void derive_2bit_equations_1bit (State &state,
       auto &output_words = state.operations[step_i].outputs_by_op_id[op_id];
       string input_chars, output_chars;
       pair<vector<uint32_t>, vector<uint32_t>> ids;
+      bool basis_found = false;
       for (int i = 0; i < input_size; i++) {
         input_chars += *input_words[i].chars[bit_pos];
         ids.first.push_back (input_words[i].ids_f[bit_pos]);
         ids.second.push_back (input_words[i].ids_g[bit_pos]);
+        if (input_words[i].char_ids[bit_pos] == basis)
+          basis_found = true;
       }
       for (int i = 0; i < output_size; i++) {
         output_chars += output_words[i]->chars[bit_pos];
         ids.first.push_back (output_words[i]->ids_f[bit_pos]);
         ids.second.push_back (output_words[i]->ids_g[bit_pos]);
+        if (output_words[i]->char_ids[bit_pos] == basis)
+          basis_found = true;
       }
+      assert (basis_found);
       string all_chars = input_chars + output_chars;
       assert (input_size + output_size == int (ids.first.size ()));
       assert (input_size + output_size == int (ids.second.size ()));

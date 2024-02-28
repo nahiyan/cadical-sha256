@@ -347,7 +347,7 @@ void State::set_operations () {
 
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_add_e);
-      add_var_info_word (&steps[i].e, i, op_add_e);
+      add_var_info_word (&steps[ABS_STEP (i)].e, i, op_add_e);
 
       // Set the outputs
       operations[i].add_e.outputs[0] = &zero_word;
@@ -379,7 +379,7 @@ void State::set_operations () {
 
       for (int j = 0; j < 5; j++)
         add_var_info_sword (&operands[j], i, op_add_a);
-      add_var_info_word (&steps[i].a, i, op_add_a);
+      add_var_info_word (&steps[ABS_STEP (i)].a, i, op_add_a);
 
       // Set the outputs
       operations[i].add_a.outputs[0] = &steps[i].add_a_r[1];

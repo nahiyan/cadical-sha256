@@ -221,6 +221,8 @@ struct Marking {
   OperationId op_id;
   int step_i;
   int bit_pos;
+  // The variable that led to this marking
+  uint32_t basis;
 };
 
 } // namespace SHA256
