@@ -1,5 +1,7 @@
 #include "tests.hpp"
 #include "2_bit.hpp"
+#include "NTL/mat_GF2.h"
+#include "linear_propagate.hpp"
 #include "propagate.hpp"
 #include "sha256.hpp"
 #include "state.hpp"
@@ -300,6 +302,30 @@ void test_bit_manipulator () {
   assert (x == x_ && y == y_);
 }
 
+void test_linear_prop () {
+  NTL::mat_GF2 mat_A;
+  mat_A.SetDims (16, 16);
+
+  // Express the function as linear equations
+  int x_map[4] = {0, 2, 4, 6};
+  int y_map[4] = {8, 10, 12, 14};
+  for (int i = 0; i < 4; i++) {
+    int x_indices[3] = {(i + 1) % 4, (i + 2) % 4, (i + 3) % 4};
+
+    // Block f
+    for (int x = 0; x < 3; x++)
+      mat_A[i * 2][x_map[x_indices[x]]] = 1;
+    mat_A[i * 2][y_map[i]] = 1;
+
+    // Block g
+    for (int x = 0; x < 3; x++)
+      mat_A[i * 2 + 1][x_map[x_indices[x]] + 1] = 1;
+    mat_A[i * 2 + 1][y_map[i] + 1] = 1;
+  }
+
+  linear_propagate (mat_A, "???1", "00--");
+}
+
 void run_tests () {
   printf ("Running tests\n");
   test_group_strong_prop ();
@@ -308,6 +334,7 @@ void run_tests () {
   test_otf_2bit_eqs ();
   test_consistency_checker ();
   test_bit_manipulator ();
+  // test_linear_prop ();
   printf ("All tests passed!\n");
 }
 } // namespace SHA256
