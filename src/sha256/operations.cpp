@@ -38,10 +38,6 @@ void State::set_operations () {
   auto add_var_info_sword = [this] (SoftWord *word, int step,
                                     OperationId op_id) {
     for (int pos = 0; pos < 32; pos++) {
-      // TODO: Remove this
-      if (word->ids_f[pos] == this->zero_var_id)
-        continue;
-
       this->vars_info[word->ids_f[pos]].operations.push_back (
           {op_id, step, pos});
       this->vars_info[word->ids_g[pos]].operations.push_back (
@@ -58,10 +54,6 @@ void State::set_operations () {
   auto add_var_info_word = [this] (Word *word, int step,
                                    OperationId op_id) {
     for (int pos = 0; pos < 32; pos++) {
-      // TODO: Remove this
-      if (word->ids_f[pos] == this->zero_var_id)
-        continue;
-
       this->vars_info[word->ids_f[pos]].operations.push_back (
           {op_id, step, pos});
       this->vars_info[word->ids_g[pos]].operations.push_back (
