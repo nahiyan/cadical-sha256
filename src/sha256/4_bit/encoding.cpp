@@ -159,28 +159,26 @@ void add_4bit_variables (string line, CaDiCaL::Solver *&solver) {
         word.chars = string (32, '?');
 
       // Add the IDs
-      for (int i = 31, id = value, id2 = value; i >= 0;
-           i--, id++, id2 += 4) {
+      for (int i = 0, id = value, id2 = value; i < 32;
+           i++, id++, id2 += 4) {
         if (prefix[0] == 'D') {
           word.char_ids[i] = id2;
           for (int j = 0; j < 4; j++)
-            state.vars_info[id2 + j] = {&word, 31 - i, step, var_name};
+            state.vars_info[id2 + j] = {&word, step, i, var_name};
           assert (id == value ? state.vars_info[id2].identity.col == 0
                               : true);
         } else if (is_f) {
           word.ids_f[i] = id;
-          state.vars_info[id] = {&word, 31 - i, step, var_name};
+          state.vars_info[id] = {&word, step, i, var_name};
         } else {
           word.ids_g[i] = id;
-          state.vars_info[id] = {&word, 31 - i, step, var_name};
+          state.vars_info[id] = {&word, step, i, var_name};
         }
       }
 
       // Add to observed vars
       if (word.ids_f[0] != 0 && word.ids_g[0] != 0 && word.char_ids[0] != 0)
         for (int i = 0; i < 32; i++) {
-          // solver->add_observed_var (word.ids_f[i]);
-          // solver->add_observed_var (word.ids_g[i]);
           for (int j = 0; j < 4; j++)
             solver->add_observed_var (word.char_ids[i] + j);
         }

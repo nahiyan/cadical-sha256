@@ -25,13 +25,13 @@ inline void strong_propagate_branch_1bit (State &state,
   state.soft_refresh ();
   auto _word_chars = [] (Word &word) {
     string chars;
-    for (int i = 0; i < 32; i++)
+    for (int i = 31; i >= 0; i--)
       chars += word.chars[i];
     return chars;
   };
   auto _soft_word_chars = [] (SoftWord &word) {
     string chars;
-    for (int i = 0; i < 32; i++)
+    for (int i = 31; i >= 0; i--)
       chars += *word.chars[i];
     return chars;
   };
@@ -121,6 +121,7 @@ inline void strong_propagate_branch_1bit (State &state,
           propagated_words.push_back (word);
         }
 
+        assert ('5' - '0' == 5);
         for (auto &c : cache_value.second)
           underived_indices.push_back (c - '0');
       }
@@ -137,7 +138,8 @@ inline void strong_propagate_branch_1bit (State &state,
         string &original_chars = words_chars[index];
         string &propagated_chars = propagated_words[i];
 
-        for (int j = 0; j < 32; j++)
+        // Try dealing with the MSBs first
+        for (int j = 31; j >= 0; j--)
           if (original_chars[j] != propagated_chars[j]) {
             assert (compare_gcs (original_chars[j], propagated_chars[j]));
             // printf ("Strong prop. %d: %c %c\n", op_id, original_chars[j],
@@ -145,14 +147,14 @@ inline void strong_propagate_branch_1bit (State &state,
             uint32_t ids[3];
             if (index == input_size) {
               // Output word
-              ids[0] = output_word->ids_f[j];
-              ids[1] = output_word->ids_g[j];
-              ids[2] = output_word->char_ids[j];
+              ids[0] = output_word->ids_f[31 - j];
+              ids[1] = output_word->ids_g[31 - j];
+              ids[2] = output_word->char_ids[31 - j];
             } else {
               // Input word
-              ids[0] = input_words[index].ids_f[j];
-              ids[1] = input_words[index].ids_g[j];
-              ids[2] = input_words[index].char_ids[j];
+              ids[0] = input_words[index].ids_f[31 - j];
+              ids[1] = input_words[index].ids_g[31 - j];
+              ids[2] = input_words[index].char_ids[31 - j];
             }
 
             // Branch on this differential character

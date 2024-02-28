@@ -25,10 +25,6 @@ public:
   ~Timer () { *this->target += clock () - start_time; }
 };
 
-string rotate_word (string word, int amount, bool is_circular = true);
-vector<uint32_t> rotate_word (vector<uint32_t> word, int amount,
-                              bool is_circular = true);
-
 vector<string> cartesian_product (vector<vector<char>> input);
 vector<string> cartesian_product (vector<char> input, int repeat);
 
@@ -68,6 +64,7 @@ inline void print (vector<uint32_t> &vec) {
   printf ("\n");
 }
 
+// Euclidean mod
 inline int64_t e_mod (int64_t a, int64_t b) {
   int64_t r = a % b;
   return r >= 0 ? r : r + abs (b);
@@ -78,6 +75,27 @@ inline bool is_in (char x, vector<char> chars) {
 }
 inline bool is_in (int x, vector<int> y) {
   return find (y.begin (), y.end (), x) != y.end ();
+}
+
+template <class T>
+vector<T> rotate_vec (vector<T> vec, int amount_, bool is_circular = true) {
+  int amount = abs (amount_);
+  bool right_rotate = amount_ > 0 ? true : false;
+  if (right_rotate)
+    rotate (vec.rbegin (), vec.rbegin () + amount, vec.rend ());
+  else
+    rotate (vec.begin (), vec.begin () + amount, vec.end ());
+
+  if (!is_circular) {
+    if (right_rotate)
+      for (int i = 0; i < amount; i++)
+        vec[i] = 0;
+    else
+      for (int i = 0; i < amount; i++)
+        vec[vec.size () - i - 1] = 0;
+  }
+
+  return vec;
 }
 
 inline vector<int> add_ (vector<int> inputs) {

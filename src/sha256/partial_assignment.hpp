@@ -39,11 +39,12 @@ public:
 
   inline void mark_updated_var (int id) {
     assert (id > 0);
-    auto &word = vars_info[id].word;
+    auto &var_info = vars_info[id];
+    auto &word = var_info.word;
     if (word == NULL)
       return;
 
-    uint32_t base_id = word->char_ids[31 - vars_info[id].identity.col];
+    uint32_t base_id = word->char_ids[var_info.identity.col];
     updated_vars.insert (base_id);
   }
 

@@ -38,32 +38,40 @@ void State::set_operations () {
   auto add_var_info_sword = [this] (SoftWord *word, int step,
                                     OperationId op_id) {
     for (int pos = 0; pos < 32; pos++) {
+      // TODO: Remove this
       if (word->ids_f[pos] == this->zero_var_id)
         continue;
 
       this->vars_info[word->ids_f[pos]].operations.push_back (
-          {op_id, step, 31 - pos});
+          {op_id, step, pos});
       this->vars_info[word->ids_g[pos]].operations.push_back (
-          {op_id, step, 31 - pos});
-      for (int k = 0; k < 4; k++)
+          {op_id, step, pos});
+      int k = 0;
+#if IS_4BIT
+      for (; k < 4; k++)
+#endif
         this->vars_info[word->char_ids[pos] + k].operations.push_back (
-            {op_id, step, 31 - pos});
+            {op_id, step, pos});
     }
   };
 
   auto add_var_info_word = [this] (Word *word, int step,
                                    OperationId op_id) {
     for (int pos = 0; pos < 32; pos++) {
+      // TODO: Remove this
       if (word->ids_f[pos] == this->zero_var_id)
         continue;
 
       this->vars_info[word->ids_f[pos]].operations.push_back (
-          {op_id, step, 31 - pos});
+          {op_id, step, pos});
       this->vars_info[word->ids_g[pos]].operations.push_back (
-          {op_id, step, 31 - pos});
-      for (int k = 0; k < 4; k++)
+          {op_id, step, pos});
+      int k = 0;
+#if IS_4BIT
+      for (; k < 4; k++)
+#endif
         this->vars_info[word->char_ids[pos] + k].operations.push_back (
-            {op_id, step, 31 - pos});
+            {op_id, step, pos});
     }
   };
 
@@ -86,41 +94,29 @@ void State::set_operations () {
         // s0
         Word &word = steps[i - 15].w;
         SoftWord *operands = operations[i].s0.inputs;
-        vector<uint32_t> id_vecs[] = {to_vec (word.ids_f),
-                                      to_vec (word.ids_g),
-                                      to_vec (word.char_ids)};
-        for (int k = 0; k < 3; k++) {
-          vector<uint32_t> inputs[] = {
-              rotate_word (id_vecs[k], -7),
-              rotate_word (id_vecs[k], -18),
-              rotate_word (id_vecs[k], -3, false),
-          };
-          for (int j = 0; j < 3; j++)
-            copy (inputs[j].begin (), inputs[j].end (),
-                  k == 0   ? operands[j].ids_f
-                  : k == 1 ? operands[j].ids_g
-                           : operands[j].char_ids);
-        }
 
-        for (int j = 0; j < 32; j++) {
-          if (operands[2].ids_f[j] == 0)
-            operands[2].ids_f[j] = zero_var_id;
-          if (operands[2].ids_g[j] == 0)
-            operands[2].ids_g[j] = zero_var_id + 1;
-          if (operands[2].char_ids[j] == 0)
-            operands[2].char_ids[j] = zero_var_id + 2;
-        }
+        vector<int> indices[3];
+        for (int j = 0; j < 32; j++)
+          for (int k = 0; k < 3; k++)
+            indices[k].push_back (31 - j);
+        indices[0] = rotate_vec (indices[0], 7);
+        indices[1] = rotate_vec (indices[1], 18);
+        indices[2] = rotate_vec (indices[2], 3, false);
 
-        for (int j = 0; j < 32; j++) {
-          operands[0].chars[j] = &word.chars[e_mod (j - 7, 32)];
-          operands[1].chars[j] = &word.chars[e_mod (j - 18, 32)];
-          // Ensure that the first 3 chars aren't used
-          operands[2].chars[j] =
-              j >= 3 ? &word.chars[e_mod (j - 3, 32)] : zero_char;
-          assert (operands[0].chars[j] != NULL);
-          assert (operands[1].chars[j] != NULL);
-          assert (operands[2].chars[j] != NULL);
-        }
+        for (int k = 0; k < 3; k++)
+          for (int j = 0; j < 32; j++) {
+            operands[k].ids_f[31 - j] = k == 2 && j < 3
+                                            ? zero_var_id + 0
+                                            : word.ids_f[indices[k][j]];
+            operands[k].ids_g[31 - j] = k == 2 && j < 3
+                                            ? zero_var_id + 1
+                                            : word.ids_g[indices[k][j]];
+            operands[k].char_ids[31 - j] =
+                k == 2 && j < 3 ? zero_var_id + 2
+                                : word.char_ids[indices[k][j]];
+            operands[k].chars[31 - j] =
+                k == 2 && j < 3 ? zero_char : &word.chars[indices[k][j]];
+          }
 
         for (int j = 0; j < 3; j++)
           add_var_info_sword (&operands[j], i, op_s0);
@@ -136,48 +132,39 @@ void State::set_operations () {
         // s1
         Word &word = steps[i - 2].w;
         SoftWord *operands = operations[i].s1.inputs;
-        vector<uint32_t> id_vecs[] = {to_vec (word.ids_f),
-                                      to_vec (word.ids_g),
-                                      to_vec (word.char_ids)};
-        for (int k = 0; k < 3; k++) {
-          vector<uint32_t> inputs[] = {
-              rotate_word (id_vecs[k], -17),
-              rotate_word (id_vecs[k], -19),
-              rotate_word (id_vecs[k], -10, false),
-          };
-          for (int j = 0; j < 3; j++)
-            copy (inputs[j].begin (), inputs[j].end (),
-                  k == 0   ? operands[j].ids_f
-                  : k == 1 ? operands[j].ids_g
-                           : operands[j].char_ids);
-        }
 
-        for (int j = 0; j < 32; j++) {
-          if (operands[2].ids_f[j] == 0)
-            operands[2].ids_f[j] = zero_var_id;
-          if (operands[2].ids_g[j] == 0)
-            operands[2].ids_g[j] = zero_var_id + 1;
-          if (operands[2].char_ids[j] == 0)
-            operands[2].char_ids[j] = zero_var_id + 2;
-        }
+        vector<int> indices[3];
+        for (int j = 0; j < 32; j++)
+          for (int k = 0; k < 3; k++)
+            indices[k].push_back (31 - j);
+        indices[0] = rotate_vec (indices[0], 17);
+        indices[1] = rotate_vec (indices[1], 19);
+        indices[2] = rotate_vec (indices[2], 10, false);
 
-        for (int j = 0; j < 32; j++) {
-          operands[0].chars[j] = &word.chars[e_mod (j - 17, 32)];
-          operands[1].chars[j] = &word.chars[e_mod (j - 19, 32)];
-          // Ensure that the first 10 chars aren't used
-          operands[2].chars[j] =
-              j >= 10 ? &word.chars[e_mod (j - 10, 32)] : zero_char;
-        }
+        for (int k = 0; k < 3; k++)
+          for (int j = 0; j < 32; j++) {
+            operands[k].ids_f[31 - j] = k == 2 && j < 10
+                                            ? zero_var_id + 0
+                                            : word.ids_f[indices[k][j]];
+            operands[k].ids_g[31 - j] = k == 2 && j < 10
+                                            ? zero_var_id + 1
+                                            : word.ids_g[indices[k][j]];
+            operands[k].char_ids[31 - j] =
+                k == 2 && j < 10 ? zero_var_id + 2
+                                 : word.char_ids[indices[k][j]];
+            operands[k].chars[31 - j] =
+                k == 2 && j < 10 ? zero_char : &word.chars[indices[k][j]];
+          }
 
         for (int j = 0; j < 3; j++)
           add_var_info_sword (&operands[j], i, op_s1);
         add_var_info_word (&steps[i].s1, i, op_s1);
 
         if (i == 20) {
-          assert (vars_info[operands[0].char_ids[31 - 22]].identity.col ==
-                  7);
-          assert (get<2> (vars_info[operands[0].char_ids[31 - 22]]
-                              .operations[0]) == 7);
+          assert (vars_info[operands[0].char_ids[22]].identity.col == 7);
+          assert (
+              get<2> (vars_info[operands[0].char_ids[22]].operations[0]) ==
+              7);
         }
 
         // Set the outputs
@@ -193,8 +180,8 @@ void State::set_operations () {
         auto &operands = operations[i].add_w.inputs;
         for (int j = 0; j < 4; j++)
           operands[j] = to_soft_word (*words[j]);
-        operands[4] = to_soft_word (steps[i].add_w_r[0], 1);
-        operands[5] = to_soft_word (steps[i].add_w_r[1], 2);
+        operands[4] = to_soft_word (steps[i].add_w_r[0], -1);
+        operands[5] = to_soft_word (steps[i].add_w_r[1], -2);
 
         for (int j = 0; j < 6; j++)
           add_var_info_sword (&operands[j], i, op_add_w);
@@ -216,26 +203,22 @@ void State::set_operations () {
       // sigma0
       Word &word = steps[ABS_STEP (i - 1)].a;
       SoftWord *operands = operations[i].sigma0.inputs;
-      vector<uint32_t> id_vecs[] = {
-          to_vec (word.ids_f), to_vec (word.ids_g), to_vec (word.char_ids)};
-      for (int k = 0; k < 3; k++) {
-        vector<uint32_t> inputs[] = {
-            rotate_word (id_vecs[k], -2),
-            rotate_word (id_vecs[k], -13),
-            rotate_word (id_vecs[k], -22),
-        };
-        for (int j = 0; j < 3; j++)
-          copy (inputs[j].begin (), inputs[j].end (),
-                k == 0   ? operands[j].ids_f
-                : k == 1 ? operands[j].ids_g
-                         : operands[j].char_ids);
-      }
 
-      for (int j = 0; j < 32; j++) {
-        operands[0].chars[j] = &word.chars[e_mod (j - 2, 32)];
-        operands[1].chars[j] = &word.chars[e_mod (j - 13, 32)];
-        operands[2].chars[j] = &word.chars[e_mod (j - 22, 32)];
-      }
+      vector<int> indices[3];
+      for (int j = 0; j < 32; j++)
+        for (int k = 0; k < 3; k++)
+          indices[k].push_back (31 - j);
+      indices[0] = rotate_vec (indices[0], 2);
+      indices[1] = rotate_vec (indices[1], 13);
+      indices[2] = rotate_vec (indices[2], 22);
+
+      for (int k = 0; k < 3; k++)
+        for (int j = 0; j < 32; j++) {
+          operands[k].ids_f[31 - j] = word.ids_f[indices[k][j]];
+          operands[k].ids_g[31 - j] = word.ids_g[indices[k][j]];
+          operands[k].char_ids[31 - j] = word.char_ids[indices[k][j]];
+          operands[k].chars[31 - j] = &word.chars[indices[k][j]];
+        }
 
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_sigma0);
@@ -253,26 +236,22 @@ void State::set_operations () {
       // sigma1
       Word &word = steps[ABS_STEP (i - 1)].e;
       SoftWord *operands = operations[i].sigma1.inputs;
-      vector<uint32_t> id_vecs[] = {
-          to_vec (word.ids_f), to_vec (word.ids_g), to_vec (word.char_ids)};
-      for (int k = 0; k < 3; k++) {
-        vector<uint32_t> inputs[] = {
-            rotate_word (id_vecs[k], -6),
-            rotate_word (id_vecs[k], -11),
-            rotate_word (id_vecs[k], -25),
-        };
-        for (int j = 0; j < 3; j++)
-          copy (inputs[j].begin (), inputs[j].end (),
-                k == 0   ? operands[j].ids_f
-                : k == 1 ? operands[j].ids_g
-                         : operands[j].char_ids);
-      }
 
-      for (int j = 0; j < 32; j++) {
-        operands[0].chars[j] = &word.chars[e_mod (j - 6, 32)];
-        operands[1].chars[j] = &word.chars[e_mod (j - 11, 32)];
-        operands[2].chars[j] = &word.chars[e_mod (j - 25, 32)];
-      }
+      vector<int> indices[3];
+      for (int j = 0; j < 32; j++)
+        for (int k = 0; k < 3; k++)
+          indices[k].push_back (31 - j);
+      indices[0] = rotate_vec (indices[0], 6);
+      indices[1] = rotate_vec (indices[1], 11);
+      indices[2] = rotate_vec (indices[2], 25);
+
+      for (int k = 0; k < 3; k++)
+        for (int j = 0; j < 32; j++) {
+          operands[k].ids_f[31 - j] = word.ids_f[indices[k][j]];
+          operands[k].ids_g[31 - j] = word.ids_g[indices[k][j]];
+          operands[k].char_ids[31 - j] = word.char_ids[indices[k][j]];
+          operands[k].chars[31 - j] = &word.chars[indices[k][j]];
+        }
 
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_sigma1);
@@ -330,13 +309,13 @@ void State::set_operations () {
       auto &operands = operations[i].add_t.inputs;
       for (int j = 0; j < 5; j++)
         operands[j] = to_soft_word (*words[j]);
-      operands[5] = to_soft_word (steps[i].add_t_r[0], 1);
-      operands[6] = to_soft_word (steps[i].add_t_r[1], 2);
+      operands[5] = to_soft_word (steps[i].add_t_r[0], -1);
+      operands[6] = to_soft_word (steps[i].add_t_r[1], -2);
 
-      assert (operands[6].ids_f[31] == zero_var_id);
-      assert (operands[6].ids_f[30] == zero_var_id);
-      assert (operands[6].ids_f[29] == steps[i].add_t_r[1].ids_f[31]);
-      assert (operands[6].ids_f[0] == steps[i].add_t_r[1].ids_f[2]);
+      assert (operands[6].ids_f[0] == zero_var_id);
+      assert (operands[6].ids_f[1] == zero_var_id);
+      assert (operands[6].ids_f[2] == steps[i].add_t_r[1].ids_f[0]);
+      assert (operands[6].ids_f[31] == steps[i].add_t_r[1].ids_f[29]);
 
       for (int j = 0; j < 7; j++)
         add_var_info_sword (&operands[j], i, op_add_t);
@@ -360,11 +339,11 @@ void State::set_operations () {
       };
       for (int j = 0; j < 2; j++)
         operands[j] = to_soft_word (*words[j]);
-      operands[2] = to_soft_word (steps[i].add_e_r[0], 1);
+      operands[2] = to_soft_word (steps[i].add_e_r[0], -1);
 
-      assert (operands[2].ids_f[31] == zero_var_id);
-      assert (operands[2].ids_f[30] == steps[i].add_e_r[0].ids_f[31]);
-      assert (operands[2].ids_f[0] == steps[i].add_e_r[0].ids_f[1]);
+      assert (operands[2].ids_f[0] == zero_var_id);
+      assert (operands[2].ids_f[1] == steps[i].add_e_r[0].ids_f[0]);
+      assert (operands[2].ids_f[31] == steps[i].add_e_r[0].ids_f[30]);
 
       for (int j = 0; j < 3; j++)
         add_var_info_sword (&operands[j], i, op_add_e);
@@ -385,18 +364,18 @@ void State::set_operations () {
       Word *words[] = {&steps[i].t, &steps[i].sigma0, &steps[i].maj};
       for (int j = 0; j < 3; j++)
         operands[j] = to_soft_word (*words[j]);
-      operands[3] = to_soft_word (steps[i].add_a_r[0], 1);
-      operands[4] = to_soft_word (steps[i].add_a_r[1], 2);
+      operands[3] = to_soft_word (steps[i].add_a_r[0], -1);
+      operands[4] = to_soft_word (steps[i].add_a_r[1], -2);
 
-      assert (operands[4].ids_f[31] == zero_var_id);
-      assert (operands[4].ids_f[30] == zero_var_id);
-      assert (operands[4].ids_f[29] != zero_var_id);
-      assert (operands[3].ids_f[31] == zero_var_id);
-      assert (operands[3].ids_f[30] != zero_var_id);
-      assert (operands[4].ids_f[29] == steps[i].add_a_r[1].ids_f[31]);
-      assert (operands[4].ids_f[0] == steps[i].add_a_r[1].ids_f[2]);
-      assert (operands[3].ids_f[29] == steps[i].add_a_r[0].ids_f[30]);
-      assert (operands[3].ids_f[0] == steps[i].add_a_r[0].ids_f[1]);
+      assert (operands[4].ids_f[0] == zero_var_id);
+      assert (operands[4].ids_f[1] == zero_var_id);
+      assert (operands[4].ids_f[2] != zero_var_id);
+      assert (operands[3].ids_f[0] == zero_var_id);
+      assert (operands[3].ids_f[1] != zero_var_id);
+      assert (operands[4].ids_f[2] == steps[i].add_a_r[1].ids_f[0]);
+      assert (operands[4].ids_f[31] == steps[i].add_a_r[1].ids_f[29]);
+      assert (operands[3].ids_f[2] == steps[i].add_a_r[0].ids_f[1]);
+      assert (operands[3].ids_f[31] == steps[i].add_a_r[0].ids_f[30]);
 
       for (int j = 0; j < 5; j++)
         add_var_info_sword (&operands[j], i, op_add_a);

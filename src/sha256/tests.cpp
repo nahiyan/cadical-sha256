@@ -148,12 +148,33 @@ void test_group_strong_prop () {
 }
 
 void test_rotate_word () {
-  assert ("u10u101u0-0u1-nn-n-u-1u---11un0u" ==
-          rotate_word ("0u1-nn-n-u-1u---11un0uu10u101u0-", -10));
-  assert ("u0-0u1-nn-n-u-1u---11un0uu10u101" ==
-          rotate_word ("0u1-nn-n-u-1u---11un0uu10u101u0-", -3));
-  assert ("0000u1-nn-n-u-1u---11un0uu10u101" ==
-          rotate_word ("0u1-nn-n-u-1u---11un0uu10u101u0-", -3, false));
+  assert ((vector<int>{3, 4, 1, 2} == rotate_vec<int> ({1, 2, 3, 4}, 2)));
+  assert ((vector<int>{0, 0, 1, 2} ==
+           rotate_vec<int> ({1, 2, 3, 4}, 2, false)));
+  {
+    vector<char> expected_word = {'u', '1', '0', 'u', '1', '0', '1', 'u',
+                                  '0', '-', '0', 'u', '1', '-', 'n', 'n',
+                                  '-', 'n', '-', 'u', '-', '1', 'u', '-',
+                                  '-', '-', '1', '1', 'u', 'n', '0', 'u'};
+    assert (expected_word ==
+            rotate_vec<char> ({'0', 'u', '1', '-', 'n', 'n', '-', 'n',
+                               '-', 'u', '-', '1', 'u', '-', '-', '-',
+                               '1', '1', 'u', 'n', '0', 'u', 'u', '1',
+                               '0', 'u', '1', '0', '1', 'u', '0', '-'},
+                              10));
+  }
+  {
+    vector<char> expected_word = {0,   0,   0,   '0', 'u', '1', '-', 'n',
+                                  'n', '-', 'n', '-', 'u', '-', '1', 'u',
+                                  '-', '-', '-', '1', '1', 'u', 'n', '0',
+                                  'u', 'u', '1', '0', 'u', '1', '0', '1'};
+    assert (expected_word ==
+            rotate_vec<char> ({'0', 'u', '1', '-', 'n', 'n', '-', 'n',
+                               '-', 'u', '-', '1', 'u', '-', '-', '-',
+                               '1', '1', 'u', 'n', '0', 'u', 'u', '1',
+                               '0', 'u', '1', '0', '1', 'u', '0', '-'},
+                              3, false));
+  }
 }
 
 void test_otf_propagate () {

@@ -159,7 +159,7 @@ void add_1bit_variables (string line, CaDiCaL::Solver *&solver) {
         word.chars = string (32, '?');
 
       // Add the IDs
-      for (int i = 31, id = value; i >= 0; i--, id++) {
+      for (int i = 0, id = value; i < 32; i++, id++) {
         if (prefix[0] == 'D')
           word.char_ids[i] = id;
         else if (is_f)
@@ -167,7 +167,7 @@ void add_1bit_variables (string line, CaDiCaL::Solver *&solver) {
         else
           word.ids_g[i] = id;
 
-        state.vars_info[id] = {&word, 31 - i, step, var_name};
+        state.vars_info[id] = {&word, step, i, var_name};
       }
 
       // Add to observed vars

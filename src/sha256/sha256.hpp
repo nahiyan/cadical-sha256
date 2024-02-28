@@ -19,7 +19,7 @@
 #define TWO_BIT_ADD_DIFFS false
 #define STRONG_PROPAGATE false
 #define MENDEL_BRANCHING false
-#define MENDEL_BRANCHING_STAGE_3 false
+#define MENDEL_BRANCHING_STAGES 3
 #define IS_4BIT false
 #define ABS_STEP(i) (i + 4)
 

@@ -40,10 +40,11 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
             LIT_UNDEF);
   };
 
+#if MENDEL_BRANCHING_STAGES >= 1
   // Stage 1
   for (int i = state.order - 1; i >= 0; i--) {
     auto &w = state.steps[i].w;
-    for (int j = 0; j < 32; j++) {
+    for (int j = 31; j >= 0; j--) {
       auto &c = w.chars[j];
       // Impose '-' for '?'
       if (c == '?') {
@@ -58,11 +59,13 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
       }
     }
   }
+#endif
 
+#if MENDEL_BRANCHING_STAGES >= 2
   // Stage 2
   for (int i = -4; i < state.order; i++) {
     auto &a = state.steps[ABS_STEP (i)].a;
-    for (int j = 0; j < 32; j++) {
+    for (int j = 31; j >= 0; j--) {
       auto &c = a.chars[j];
       if (c == '?') {
         ground_xnor (decision_lits, a, j);
@@ -77,7 +80,7 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
   }
   for (int i = -4; i < state.order; i++) {
     auto &e = state.steps[ABS_STEP (i)].e;
-    for (int j = 0; j < 32; j++) {
+    for (int j = 31; j >= 0; j--) {
       auto &c = e.chars[j];
       if (c == '?') {
         ground_xnor (decision_lits, e, j);
@@ -90,9 +93,10 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
       }
     }
   }
+#endif
 
   // Stage 3
-#if MENDEL_BRANCHING_STAGE_3
+#if MENDEL_BRANCHING_STAGES == 3
   derive_2bit_equations_1bit (state, equations_trail.back (), stats);
   for (auto &level : equations_trail) {
     for (auto &equation : level) {
@@ -101,11 +105,10 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
         auto &var_info = state.vars_info[ids[x]];
         auto &col = var_info.identity.col;
         auto &word = var_info.word;
-        if (word->chars[31 - col] != '-')
+        if (word->chars[col] != '-')
           continue;
-        assert (31 - col >= 0 && 31 - col <= 31);
-        assert (word->ids_f[31 - col] == ids[x] ||
-                word->ids_g[31 - col] == ids[x]);
+        assert (col >= 0 && col <= 31);
+        assert (word->ids_f[col] == ids[x] || word->ids_g[col] == ids[x]);
         srand (clock () + x);
         if (rand () % 2 == 0)
           decision_lits.push_back (ids[x]);

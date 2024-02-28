@@ -588,10 +588,10 @@ void Internal::print_resource_usage () {
        total_refresh_time);
   MSG ("total prop. time:                        %12.2f    seconds",
        SHA256::Propagator::stats.total_prop_time / (double) CLOCKS_PER_SEC);
-  MSG ("total 2-bit. derive time:                %12.2f    seconds",
+  MSG ("total 2-bit derive time:                 %12.2f    seconds",
        SHA256::Propagator::stats.total_two_bit_derive_time /
            (double) CLOCKS_PER_SEC);
-  MSG ("total 2-bit. check time:                 %12.2f    seconds",
+  MSG ("total 2-bit check time:                  %12.2f    seconds",
        SHA256::Propagator::stats.total_two_bit_check_time /
            (double) CLOCKS_PER_SEC);
   MSG ("total mendel branch time:                %12.2f    seconds",

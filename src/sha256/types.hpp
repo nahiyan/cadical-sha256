@@ -102,10 +102,10 @@ struct VarInfo {
   vector<tuple<OperationId, int, int>> operations;
 
   VarInfo () {}
-  VarInfo (Word *word, int col, int step, VariableName name) {
+  VarInfo (Word *word, int step, int col, VariableName name) {
     this->word = word;
-    this->identity.col = col;
     this->identity.step = step;
+    this->identity.col = col;
     this->identity.name = name;
   }
 };

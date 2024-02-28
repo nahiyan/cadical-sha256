@@ -14,10 +14,7 @@ inline void State::refresh_char (Word &word, int index) {
   char &c = word.chars[index];
   char c_before = c;
 
-  if (id_f == 0 || id_g == 0 || base_id == 0) {
-    c = '?';
-    return;
-  }
+  assert (id_f != 0 && id_g != 0 && base_id != 0);
   assert (word.chars.size () == 32);
 
 #if IS_4BIT
@@ -61,7 +58,7 @@ void State::soft_refresh () {
   Timer timer (&total_refresh_time);
   for (auto &base_id : partial_assignment.updated_vars) {
     auto &info = vars_info[base_id];
-    refresh_char (*info.word, 31 - info.identity.col);
+    refresh_char (*info.word, info.identity.col);
   }
   partial_assignment.updated_vars.clear ();
 }
@@ -105,111 +102,38 @@ void State::hard_refresh (bool will_propagate) {
         refresh_word (step.s1);
         refresh_word (step.add_w_r[0]);
         refresh_word (step.add_w_r[1]);
-
-        // if (will_propagate) {
-        //   {
-        //     // s0
-        //     vector<string> inputs (3);
-        //     for (int j = 0; j < 3; j++)
-        //       inputs[j] = get_soft_word_chars
-        //       (operations[i].s0.inputs[j]);
-
-        //     step.s0.chars = propagate (xor3, inputs, step.s0.chars);
-        //   }
-        //   {
-        //     // s1
-        //     vector<string> inputs (3);
-        //     for (int j = 0; j < 3; j++)
-        //       inputs[j] = get_soft_word_chars
-        //       (operations[i].s1.inputs[j]);
-        //     step.s1.chars = propagate (xor3, inputs, step.s1.chars);
-        //   }
-
-        //   prop_with_int_diff (add_w, {
-        //                                  &steps[i].w.chars,
-        //                                  &steps[i].s1.chars,
-        //                                  &steps[i - 7].w.chars,
-        //                                  &steps[i].s0.chars,
-        //                                  &steps[i - 16].w.chars,
-        //                              });
-        // }
       }
-
-      // if (will_propagate) {
-      //   {
-      //     // sigma0
-      //     vector<string> inputs (3);
-      //     for (int j = 0; j < 3; j++)
-      //       inputs[j] =
-      //           get_soft_word_chars (operations[i].sigma0.inputs[j]);
-      //     step.sigma0.chars = propagate (xor3, inputs,
-      //     step.sigma0.chars);
-      //   }
-      //   {
-      //     // sigma1
-      //     vector<string> inputs (3);
-      //     for (int j = 0; j < 3; j++)
-      //       inputs[j] =
-      //           get_soft_word_chars (operations[i].sigma1.inputs[j]);
-      //     step.sigma1.chars = propagate (xor3, inputs,
-      //     step.sigma1.chars);
-      //   }
-
-      //   {
-      //     // maj
-      //     vector<string> inputs (3);
-      //     for (int j = 0; j < 3; j++)
-      //       inputs[j] = get_soft_word_chars
-      //       (operations[i].maj.inputs[j]);
-      //     step.maj.chars = propagate (maj, inputs, step.maj.chars);
-      //   }
-      //   {
-      //     // ch
-      //     vector<string> inputs (3);
-      //     for (int j = 0; j < 3; j++)
-      //       inputs[j] = get_soft_word_chars (operations[i].ch.inputs[j]);
-      //     step.ch.chars = propagate (ch, inputs, step.ch.chars);
-      //   }
-
-      //   prop_with_int_diff (add_e, {
-      //                                  &steps[ABS_STEP (i)].e.chars,
-      //                                  &steps[ABS_STEP (i - 4)].a.chars,
-      //                                  &steps[ABS_STEP (i - 4)].e.chars,
-      //                                  &steps[i].sigma1.chars,
-      //                                  &steps[i].ch.chars,
-      //                                  &steps[i].w.chars,
-      //                              });
-      //   prop_with_int_diff (add_a, {
-      //                                  &steps[ABS_STEP (i)].a.chars,
-      //                                  &steps[ABS_STEP (i)].e.chars,
-      //                                  &steps[ABS_STEP (i - 4)].a.chars,
-      //                                  &steps[i].sigma0.chars,
-      //                                  &steps[i].maj.chars,
-      //                              });
-      // }
     }
   }
 }
 
 void State::print () {
+  auto reverse_string = [] (string str) -> string {
+    string new_str;
+    for (auto it = str.end (); it-- != str.begin ();)
+      new_str += *it;
+    return new_str;
+  };
+
   for (int i = -4; i < order; i++) {
     auto &step = steps[ABS_STEP (i)];
     printf (i >= 0 && i <= 9 ? " %d " : "%d ", i);
-    printf ("%s %s", step.a.chars.c_str (), step.e.chars.c_str ());
+    printf ("%s %s", reverse_string (step.a.chars).c_str (),
+            reverse_string (step.e.chars).c_str ());
     if (i >= 0) {
       auto &step_ = steps[i];
-      printf (" %s", step_.w.chars.c_str ());
+      printf (" %s", reverse_string (step_.w.chars).c_str ());
       if (i >= 16) {
-        printf (" %s", step_.s0.chars.c_str ());
-        printf (" %s", step_.s1.chars.c_str ());
+        printf (" %s", reverse_string (step_.s0.chars).c_str ());
+        printf (" %s", reverse_string (step_.s1.chars).c_str ());
       } else {
         printf ("                                 ");
         printf ("                                 ");
       }
-      printf (" %s", step_.sigma0.chars.c_str ());
-      printf (" %s", step_.sigma1.chars.c_str ());
-      printf (" %s", step_.maj.chars.c_str ());
-      printf (" %s", step_.ch.chars.c_str ());
+      printf (" %s", reverse_string (step_.sigma0.chars).c_str ());
+      printf (" %s", reverse_string (step_.sigma1.chars).c_str ());
+      printf (" %s", reverse_string (step_.maj.chars).c_str ());
+      printf (" %s", reverse_string (step_.ch.chars).c_str ());
     }
     printf ("\n");
   }
