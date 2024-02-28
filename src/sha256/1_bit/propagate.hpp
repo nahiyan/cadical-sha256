@@ -50,18 +50,17 @@ inline void custom_1bit_propagate (State &state,
       auto &function = prop_functions[op_id];
 
       // Skip differentials with low probability
-      if (function != add_) {
-        int q_count = 0;
-        for (auto &c : input_chars)
-          if (c == '?')
-            q_count++;
-        for (auto &c : output_chars)
-          if (c == '?')
-            q_count++;
+      int q_count = 0;
+      for (auto &c : input_chars)
+        if (c == '?')
+          q_count++;
+      for (auto &c : output_chars)
+        if (c == '?')
+          q_count++;
 
-        if (q_count == 0 || q_count == input_size + output_size)
-          continue;
-      }
+      if ((function != add_ && q_count == 0) ||
+          q_count == input_size + output_size)
+        continue;
 
       // Propagate
       auto output =
