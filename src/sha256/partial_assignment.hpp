@@ -12,7 +12,6 @@
 #include <vector>
 
 // TODO: Make it dynamic
-#define MAX_VAR_ID 200000
 
 using namespace std;
 

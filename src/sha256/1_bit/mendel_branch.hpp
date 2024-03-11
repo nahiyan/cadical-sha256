@@ -12,7 +12,7 @@ using namespace std;
 namespace SHA256 {
 inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
                                 list<list<Equation>> &equations_trail,
-                                Stats &stats) {
+                                TwoBit &two_bit, Stats &stats) {
   auto rand_ground_x = [&state] (list<int> &decision_lits, Word &word,
                                  int &j) {
     srand (clock () + j);
@@ -97,7 +97,9 @@ inline void mendel_branch_1bit (State &state, list<int> &decision_lits,
 
   // Stage 3
 #if MENDEL_BRANCHING_STAGES == 3
-  derive_2bit_equations_1bit (state, equations_trail.back (), stats);
+  // TODO: Handle blocking clauses
+  derive_2bit_equations_1bit (state, equations_trail.back (), two_bit,
+                              int (equations_trail.size () - 1), stats);
   for (auto &level : equations_trail) {
     for (auto &equation : level) {
       uint32_t ids[] = {equation.ids[0], equation.ids[1]};

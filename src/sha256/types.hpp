@@ -1,6 +1,7 @@
 #ifndef _sha256_types_hpp_INCLUDED
 #define _sha256_types_hpp_INCLUDED
 
+#include "2_bit_graph.hpp"
 #include <cinttypes>
 #include <list>
 #include <map>
@@ -210,6 +211,10 @@ struct TwoBit {
   map<int, int> aug_mtx_var_map;
   // TODO: Use a sorted set of pairs
   map<uint64_t, int> eq_freq;
+
+  // * Graph approach
+  TwoBitGraph graph;
+  list<pair<unordered_set<int>, int>> blocking_clauses;
 };
 
 struct Step {

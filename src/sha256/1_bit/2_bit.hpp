@@ -14,9 +14,9 @@ extern string masks_by_op_id[10];
 extern pair<int, int> two_bit_diff_sizes[10];
 extern vector<int> (*two_bit_functions[10]) (vector<int>);
 
-inline void derive_2bit_equations_1bit (State &state,
-                                        list<Equation> &equations,
-                                        Stats &stats) {
+inline void derive_2bit_equations_1bit (
+    State &state, list<Equation> &current_lvl_equations, TwoBit &two_bit,
+    int trail_level, Stats &stats) {
   for (auto level = state.two_bit_markings_trail.end ();
        level-- != state.two_bit_markings_trail.begin ();) {
     for (auto marking_it = level->end ();
@@ -61,10 +61,8 @@ inline void derive_2bit_equations_1bit (State &state,
 
       // Replace the equations for this particular spot
       auto &mask = masks_by_op_id[op_id];
-      // Timer *timer = new Timer (&stats.total_two_bit_derive_time);
       auto new_equations = otf_2bit_eqs (function, input_chars,
                                          output_chars, ids, mask, &stats);
-      // delete timer;
       // Add the antecedent for the equations
       for (auto &equation : new_equations) {
         // Process inputs
@@ -121,7 +119,33 @@ inline void derive_2bit_equations_1bit (State &state,
           }
         }
         assert (!equation.antecedent.empty ());
-        equations.push_back (equation);
+        current_lvl_equations.push_back (equation);
+
+        // Graph-based approach for detecting inconsistencies
+        vector<vector<int> *> blocking_antecedents;
+        bool trivial_conflict = two_bit.graph.add_edge (
+            equation.ids[0], equation.ids[1], equation.diff,
+            &current_lvl_equations.back ().antecedent,
+            &blocking_antecedents);
+        if (trivial_conflict) {
+          // printf ("Graph: detected trivial inconsistency (%d %d)\n",
+          //         equation.ids[0], equation.ids[1]);
+        } else {
+          auto path = two_bit.graph.shortest_inconsistent_cycle (
+              equation.ids[0], equation.ids[1], &blocking_antecedents);
+          // if (!path.empty ())
+          //   printf ("Graph: detected inconsistency (%ld equations)\n",
+          //           blocking_antecedents.size ());
+        }
+
+        if (!blocking_antecedents.empty ()) {
+          unordered_set<int> blocking_clause;
+          for (auto &antecedent : blocking_antecedents)
+            for (auto &lit : *antecedent)
+              blocking_clause.insert (lit);
+          two_bit.blocking_clauses.push_back (
+              {blocking_clause, trail_level});
+        }
       }
     }
   }

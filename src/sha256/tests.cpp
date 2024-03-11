@@ -1,5 +1,6 @@
 #include "tests.hpp"
 #include "2_bit.hpp"
+#include "2_bit_graph.hpp"
 #include "NTL/mat_GF2.h"
 #include "linear_propagate.hpp"
 #include "propagate.hpp"
@@ -326,6 +327,146 @@ void test_linear_prop () {
   linear_propagate (mat_A, "???1", "00--");
 }
 
+void test_2_bit_graph () {
+  vector<int> antecedent;
+  {
+    TwoBitGraph graph;
+    graph.add_edge (15024, 15013, 1, &antecedent);
+    graph.add_edge (15024, 15088, 1, &antecedent);
+    graph.add_edge (15013, 15077, 1, &antecedent);
+    graph.add_edge (15088, 15077, 0, &antecedent);
+    graph.add_edge (15088, 15099, 0, &antecedent);
+    graph.add_edge (15099, 15090, 1, &antecedent);
+    graph.add_edge (15090, 15078, 1, &antecedent);
+    graph.add_edge (15078, 15089, 0, &antecedent);
+    graph.add_edge (15089, 15077, 1, &antecedent);
+    graph.add_edge (15078, 15014, 1, &antecedent);
+    graph.add_edge (15090, 15026, 0, &antecedent);
+
+    {
+      list<uint32_t> path =
+          graph.shortest_inconsistent_cycle (15088, 15077);
+      assert ((path == list<uint32_t>{15088, 15024, 15013, 15077}));
+    }
+    {
+      list<uint32_t> path =
+          graph.shortest_inconsistent_cycle (15024, 15013);
+      assert ((path == list<uint32_t>{15024, 15088, 15077, 15013}));
+    }
+    {
+      list<uint32_t> path =
+          graph.shortest_inconsistent_cycle (15078, 15090);
+      assert ((path ==
+               list<uint32_t>{15078, 15089, 15077, 15088, 15099, 15090}));
+    }
+  }
+
+  {
+    TwoBitGraph graph;
+    graph.add_edge (1773, 1901, 0, &antecedent);
+    graph.add_edge (1901, 1965, 0, &antecedent);
+    graph.add_edge (1965, 1956, 1, &antecedent);
+    graph.add_edge (1956, 1979, 1, &antecedent);
+    graph.add_edge (1979, 1915, 1, &antecedent);
+    graph.add_edge (1915, 1892, 0, &antecedent);
+    graph.add_edge (1892, 1912, 1, &antecedent);
+    graph.add_edge (1912, 1901, 1, &antecedent);
+
+    list<uint32_t> path = graph.shortest_inconsistent_cycle (1912, 1892);
+    assert (
+        (path == list<uint32_t>{1912, 1901, 1965, 1956, 1979, 1915, 1892}));
+  }
+
+  {
+    TwoBitGraph graph;
+    graph.add_edge (14895, 15023, 0, &antecedent);
+    graph.add_edge (15023, 15087, 0, &antecedent);
+    graph.add_edge (15087, 15096, 1, &antecedent);
+    graph.add_edge (15096, 15032, 0, &antecedent);
+    graph.add_edge (15032, 14904, 0, &antecedent);
+    graph.add_edge (14904, 14895, 0, &antecedent);
+    graph.add_edge (15032, 15023, 1, &antecedent);
+
+    {
+      list<uint32_t> path =
+          graph.shortest_inconsistent_cycle (15032, 15023);
+      assert ((path == list<uint32_t>{15032, 14904, 14895, 15023}));
+    }
+  }
+
+  {
+    TwoBitGraph graph;
+    vector<int> antecedent1 = {1955, 15075, 27598, 27607, 8385, 21505};
+    vector<int> antecedent2 = {27598, 27502, -27406, 34033};
+    vector<int> antecedent3 = {-1891, -15011, 27502, 27511, 8065, 21185};
+    vector<int> antecedent4 = {27607, 27511, 1847, -14967, 34042};
+    vector<int> antecedent5 = {27598, 27502, 1838, -14958, 34033};
+    graph.add_edge (15022, 15086, 0, &antecedent2);
+    graph.add_edge (15022, 15086, 0, &antecedent5);
+    graph.add_edge (15022, 15031, 1, &antecedent3);
+    graph.add_edge (15086, 15095, 0, &antecedent1);
+    graph.add_edge (15095, 15031, 0, &antecedent4);
+
+    {
+      vector<vector<int> *> blocking_antecedents;
+      list<uint32_t> path = graph.shortest_inconsistent_cycle (
+          15095, 15031, &blocking_antecedents);
+      assert ((path == list<uint32_t>{15095, 15086, 15022, 15031}));
+      assert ((blocking_antecedents ==
+               vector<vector<int> *>{&antecedent4, &antecedent3,
+                                     &antecedent2, &antecedent1}));
+    }
+  }
+
+  {
+    TwoBitGraph graph;
+    vector<int> antecedent1 = {};
+    vector<int> antecedent2 = {};
+    vector<int> antecedent3 = {};
+    vector<int> antecedent4 = {};
+    vector<int> antecedent5 = {};
+    vector<int> antecedent6 = {};
+    graph.add_edge (1892, 1956, 1, &antecedent1);
+    graph.add_edge (1892, 1912, 0, &antecedent2);
+    graph.add_edge (1912, 1976, 0, &antecedent3);
+    graph.add_edge (1976, 1956, 1, &antecedent4);
+    graph.add_edge (1976, 1965, 1, &antecedent5);
+    graph.add_edge (1956, 1965, 0, &antecedent6);
+
+    auto path = graph.shortest_inconsistent_cycle (1892, 1956);
+    assert (path.empty ());
+  }
+
+  {
+    TwoBitGraph graph;
+    vector<int> antecedent1 = {};
+    vector<int> antecedent2 = {};
+    vector<int> antecedent3 = {};
+    vector<int> antecedent4 = {};
+    vector<int> antecedent5 = {};
+    vector<int> antecedent6 = {};
+    graph.add_edge (1, 2, 0, &antecedent1);
+    graph.add_edge (1, 2, 0, &antecedent1);
+    graph.add_edge (1, 2, 0, &antecedent2);
+
+    assert (graph.get_antecedents (1, 2).size () == 2);
+
+    graph.remove_edge (1, 2, 0, &antecedent1);
+    assert (graph.get_antecedents (1, 2).size () == 1);
+    graph.remove_edge (1, 2, 0, &antecedent1);
+    assert (graph.get_antecedents (1, 2).size () == 1);
+
+    graph.remove_edge (1, 2, 0, &antecedent3);
+    assert (graph.get_antecedents (1, 2).size () == 1);
+
+    graph.remove_edge (1, 2, 1, &antecedent2);
+    assert (graph.get_antecedents (1, 2).size () == 1);
+
+    graph.remove_edge (1, 2, 0, &antecedent2);
+    assert (graph.get_antecedents (1, 2).size () == 0);
+  }
+}
+
 void run_tests () {
   printf ("Running tests\n");
   test_group_strong_prop ();
@@ -335,6 +476,7 @@ void run_tests () {
   test_consistency_checker ();
   test_bit_manipulator ();
   // test_linear_prop ();
+  test_2_bit_graph ();
   printf ("All tests passed!\n");
 }
 } // namespace SHA256

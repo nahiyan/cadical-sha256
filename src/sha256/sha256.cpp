@@ -101,6 +101,12 @@ void Propagator::notify_backtrack (size_t new_level) {
       // printf ("Unassign %d (%ld)\n", lit, state.current_trail.size () -
       // 1);
     }
+
+    // Remove 2-bit edges from the graph
+    for (auto &equation : two_bit.equations_trail.back ())
+      two_bit.graph.remove_edge (equation.ids[0], equation.ids[1],
+                                 equation.diff, &equation.antecedent);
+
     state.current_trail.pop_back ();
     two_bit.equations_trail.pop_back ();
     state.prop_markings_trail.pop_back ();
@@ -142,10 +148,10 @@ int Propagator::cb_decide () {
     Timer *mb_timer = new Timer (&stats.total_mendel_branch_time);
 #if IS_4BIT
     mendel_branch_4bit (state, decision_lits, two_bit.equations_trail,
-                        stats);
+                        two_bit, stats);
 #else
     mendel_branch_1bit (state, decision_lits, two_bit.equations_trail,
-                        stats);
+                        two_bit, stats);
 #endif
     delete mb_timer;
     stats.mendel_branching_decisions_count += decision_lits.size ();
@@ -166,71 +172,119 @@ int Propagator::cb_decide () {
 
 inline bool Propagator::custom_block () {
   state.soft_refresh ();
-  Timer *derive_timer = new Timer (&stats.total_two_bit_derive_time);
+  Timer timer (&stats.total_two_bit_derive_time);
+  int trail_level = int (two_bit.equations_trail.size () - 1);
 #if IS_4BIT
   derive_2bit_equations_4bit (state, two_bit.equations_trail.back (),
                               stats);
 #else
   derive_2bit_equations_1bit (state, two_bit.equations_trail.back (),
-                              stats);
+                              two_bit, trail_level, stats);
 #endif
-  delete derive_timer;
-  Timer timer (&stats.total_two_bit_check_time);
 
-  // Collect the equations and the set of vars
-  set<uint32_t> equations_vars;
-  list<Equation *> equations;
-  for (auto &level : two_bit.equations_trail)
-    for (auto &equation : level) {
-      equations.push_back (&equation);
-      equations_vars.insert (equation.ids[0]);
-      equations_vars.insert (equation.ids[1]);
+  int shortest_l_graph_based = INT_MAX;
+  unordered_set<int> shortest_c_graph_based;
+  for (auto &entry : two_bit.blocking_clauses) {
+    if (entry.second >= trail_level) {
+      printf ("Graph: b. clause (size %ld): ", entry.first.size ());
+      for (auto &lit : entry.first)
+        assert (state.partial_assignment.get (abs (lit)) ==
+                (lit > 0 ? LIT_FALSE : LIT_TRUE));
+      for (auto &lit : entry.first)
+        printf ("%d ", lit);
+      printf ("\n");
+
+      if (entry.first.size () < shortest_l_graph_based) {
+        shortest_l_graph_based = entry.first.size ();
+        shortest_c_graph_based = entry.first;
+      }
     }
-
-  if (equations.empty ())
-    return false;
-  assert (!equations_vars.empty ());
-
-  // Form the augmented matrix used to map the augmented matrix variable IDs
-  two_bit.aug_mtx_var_map.clear ();
-  int id = 0;
-  for (auto &var : equations_vars)
-    two_bit.aug_mtx_var_map[var] = id++;
-
-  // Timer *timer = new Timer (&stats.total_two_bit_check_time);
-  auto confl_equations = check_consistency (equations, false);
-  // delete timer;
-  bool is_consistent = confl_equations.empty ();
-  if (is_consistent)
-    return false;
-
-  // Block inconsistencies
-  assert (external_clauses.empty ());
-  block_inconsistency (equations, two_bit.aug_mtx_var_map,
-                       state.partial_assignment, external_clauses);
-  // Keep only the shortest clause
-  assert (!external_clauses.empty ());
-  // printf ("Blocking clauses count: %ld\n", external_clauses.size ());
-  int shortest_index = -1, shortest_length = INT_MAX;
-  for (int i = 0; i < int (external_clauses.size ()); i++) {
-    int size = external_clauses[i].size ();
-    if (size >= shortest_length)
-      continue;
-
-    shortest_length = size;
-    shortest_index = i;
   }
-  auto shortest_clause = external_clauses[shortest_index];
-  assert (!shortest_clause.empty ());
-  external_clauses.clear ();
-  external_clauses.push_back (shortest_clause);
-  for (auto &lit : shortest_clause)
-    assert (state.partial_assignment.get (abs (lit)) ==
-            (lit > 0 ? LIT_FALSE : LIT_TRUE));
-  printf ("Blocking clause: ");
-  print (shortest_clause);
+  two_bit.blocking_clauses.clear ();
+  if (!shortest_c_graph_based.empty ()) {
+    vector<int> clause;
+    for (auto &lit : shortest_c_graph_based)
+      clause.push_back (lit);
+    external_clauses.push_back (clause);
+    printf ("Blocking clause: ");
+    print (clause);
+    return true;
+  }
 
-  return true;
+  return false;
+
+  // // Collect the equations and the set of vars
+  // set<uint32_t> equations_vars;
+  // list<Equation *> equations;
+  // for (auto &level : two_bit.equations_trail)
+  //   for (auto &equation : level) {
+  //     equations.push_back (&equation);
+  //     equations_vars.insert (equation.ids[0]);
+  //     equations_vars.insert (equation.ids[1]);
+  //   }
+
+  // if (equations.empty ())
+  //   return false;
+  // assert (!equations_vars.empty ());
+
+  // // Form the augmented matrix used to map the augmented matrix variable
+  // IDs two_bit.aug_mtx_var_map.clear (); int id = 0; for (auto &var :
+  // equations_vars)
+  //   two_bit.aug_mtx_var_map[var] = id++;
+
+  // auto confl_equations = check_consistency (equations, true);
+  // bool is_consistent = confl_equations.empty ();
+  // if (is_consistent)
+  //   return false;
+
+  // printf ("Equations count: %ld\n", equations.size ());
+  // for (auto &equation : equations) {
+  //   string ant_str;
+  //   for (auto &lit : equation->antecedent)
+  //     ant_str += to_string (lit) + " ";
+  //   printf ("%d->%d[dir=none,color=\"%s\",label=\"%s.\"];",
+  //           equation->ids[0], equation->ids[1],
+  //           equation->diff == 0 ? "black" : "red", ant_str.c_str ());
+  // }
+  // printf ("\n");
+  // printf ("Graph print:\n");
+  // two_bit.graph.print ();
+
+  // for (auto &equation : confl_equations) {
+  //   cout << equation.ids[0] << (equation.diff == 0 ? " = " : "=/=")
+  //        << equation.ids[1] << endl;
+  // }
+
+  // // Block inconsistencies
+  // assert (external_clauses.empty ());
+  // block_inconsistency (equations, two_bit.aug_mtx_var_map,
+  //                      state.partial_assignment, external_clauses);
+  // // Keep only the shortest clause
+  // assert (!external_clauses.empty ());
+  // // printf ("Blocking clauses count: %ld\n", external_clauses.size ());
+  // int shortest_index = -1, shortest_length = INT_MAX;
+  // for (int i = 0; i < int (external_clauses.size ()); i++) {
+  //   int size = external_clauses[i].size ();
+  //   if (size >= shortest_length)
+  //     continue;
+
+  //   shortest_length = size;
+  //   shortest_index = i;
+  // }
+  // auto shortest_clause = external_clauses[shortest_index];
+  // assert (!shortest_clause.empty ());
+  // external_clauses.clear ();
+  // external_clauses.push_back (shortest_clause);
+  // for (auto &lit : shortest_clause)
+  //   assert (state.partial_assignment.get (abs (lit)) ==
+  //           (lit > 0 ? LIT_FALSE : LIT_TRUE));
+  // printf ("Blocking clause (size %ld): ", shortest_clause.size ());
+  // print (shortest_clause);
+
+  // if (shortest_clause.size () != shortest_l_graph_based)
+  //   printf ("IMPORTANT!\n");
+
+  // return true;
 }
 
 int Propagator::cb_propagate () {

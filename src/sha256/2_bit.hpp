@@ -15,6 +15,7 @@
 #include <memory>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define TWO_BIT_XOR2_ID 0
@@ -31,7 +32,6 @@
 using namespace std;
 
 namespace SHA256 {
-
 // Checks GF(2) equations and returns conflicting equations (equations that
 // conflicts with previously added ones)
 inline vector<Equation> check_consistency (list<Equation *> &equations,
@@ -85,6 +85,7 @@ inline vector<Equation> check_consistency (list<Equation *> &equations,
           confl_eq.ids[0] = var1;
           confl_eq.ids[1] = var2;
           confl_eq.diff = lit2 < 0 ? 1 : 0;
+          confl_eq.antecedent = equation->antecedent;
           conflicting_equations.push_back (confl_eq);
           if (!exhaustive)
             return conflicting_equations;
@@ -247,9 +248,13 @@ inline bool block_inconsistency (list<Equation *> equations,
   // Store lits in a set to avoid duplicates
   set<int> clause_lits;
   int eq_index = 0;
+  // printf ("Constructing conflict clause\n");
   for (auto &equation : equations) {
     if (inconsistency_deref[eq_index++] == 0)
       continue;
+
+    // cout << equation->ids[0] << (equation->diff == 0 ? " = " : "=/=")
+    //      << equation->ids[1] << endl;
 
     auto &antecedent = equation->antecedent;
     assert (!antecedent.empty ());
