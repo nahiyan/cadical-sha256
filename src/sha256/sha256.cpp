@@ -185,20 +185,14 @@ inline bool Propagator::custom_block () {
   int shortest_l_graph_based = INT_MAX;
   unordered_set<int> shortest_c_graph_based;
   for (auto &entry : two_bit.blocking_clauses) {
-    if (entry.second >= trail_level) {
-      printf ("Graph: b. clause (size %ld): ", entry.first.size ());
-      for (auto &lit : entry.first)
-        assert (state.partial_assignment.get (abs (lit)) ==
-                (lit > 0 ? LIT_FALSE : LIT_TRUE));
-      for (auto &lit : entry.first)
-        printf ("%d ", lit);
-      printf ("\n");
+    if (entry.second < trail_level)
+      continue;
 
-      if (entry.first.size () < shortest_l_graph_based) {
-        shortest_l_graph_based = entry.first.size ();
-        shortest_c_graph_based = entry.first;
-      }
-    }
+    if (entry.first.size () >= shortest_l_graph_based)
+      continue;
+
+    shortest_l_graph_based = entry.first.size ();
+    shortest_c_graph_based = entry.first;
   }
   two_bit.blocking_clauses.clear ();
   if (!shortest_c_graph_based.empty ()) {
