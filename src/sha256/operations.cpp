@@ -386,27 +386,47 @@ void State::set_operations () {
 }
 
 void State::print_operations () {
-  auto print_chars = [] (SoftWord &word) {
-    for (int i = 0; i < 32; i++)
+  auto print_chars_sword = [] (SoftWord &word) {
+    for (int i = 31; i >= 0; i--)
       printf ("%c", *word.chars[i]);
-    printf (" ");
+  };
+  auto print_chars_word = [] (Word &word) {
+    for (int i = 31; i >= 0; i--)
+      printf ("%c", word.chars[i]);
   };
 
+  // for (int i = 16; i < order; i++) {
+  //   auto &word = operations[i].s0;
+  //   printf ("s0: ");
+  //   for (int j = 0; j < 3; j++)
+  //     print_chars (word.inputs[j]);
+  //   cout << steps[i].s0.chars;
+  //   printf ("\n");
+  // }
   for (int i = 16; i < order; i++) {
-    auto &word = operations[i].s0;
-    printf ("s0: ");
-    for (int j = 0; j < 3; j++)
-      print_chars (word.inputs[j]);
-    cout << steps[i].s0.chars;
-    printf ("\n");
-  }
-  for (int i = 16; i < order; i++) {
-    auto &word = operations[i].s1;
-    printf ("s1: ");
-    for (int j = 0; j < 3; j++)
-      print_chars (word.inputs[j]);
-    cout << steps[i].s1.chars;
-    printf ("\n");
+    // auto &word = operations[i].s1;
+    // printf ("s1: ");
+    // for (int j = 0; j < 3; j++)
+    //   print_chars (word.inputs[j]);
+    // cout << steps[i].s1.chars;
+    // printf ("\n");
+
+    // add.W
+    {
+      printf ("\nW_%d = s1(W_%d) + W_%d + s0(W_%d) + W_%d\n", i, i - 2,
+              i - 7, i - 15, i - 16);
+      auto &inputs = operations[i].add_w.inputs;
+      auto &outputs = operations[i].add_w.outputs;
+      for (int k = 0; k < 6; k++) {
+        print_chars_sword (inputs[k]);
+        printf ("\n");
+      }
+      printf ("\n");
+      for (int k = 0; k < 3; k++) {
+        print_chars_word (*outputs[k]);
+        printf ("\n");
+      }
+    }
   }
 
   // TODO: Print the rest of the operations
