@@ -15,9 +15,9 @@
 #include <string>
 
 #define CUSTOM_PROP false
+#define STRONG_PROPAGATE false
 #define CUSTOM_BLOCKING false
 #define TWO_BIT_ADD_DIFFS false
-#define STRONG_PROPAGATE false
 #define MENDEL_BRANCHING false
 #define MENDEL_BRANCHING_STAGES 3
 #define IS_4BIT false
