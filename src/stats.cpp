@@ -544,7 +544,7 @@ void Stats::print (Internal *internal) {
        SHA256::Propagator::stats.prop_total_calls);
   PRT ("prop. cached:    %15ld",
        SHA256::Propagator::stats.prop_cached_calls);
-  PRT ("prop. cache score:%14.2f",
+  PRT ("prop. cache score:%14.4f",
        (float) SHA256::Propagator::stats.prop_cached_calls /
            SHA256::Propagator::stats.prop_total_calls);
   PRT ("2-bit total:     %15ld",

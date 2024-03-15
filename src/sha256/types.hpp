@@ -206,11 +206,6 @@ struct Equation {
 
 struct TwoBit {
   list<list<Equation>> equations_trail;
-  // set<Equation> equations;
-  // vector<Equation> eqs_by_op[10][64][32];
-  map<int, int> aug_mtx_var_map;
-  // TODO: Use a sorted set of pairs
-  map<uint64_t, int> eq_freq;
 
   // * Graph approach
   TwoBitGraph graph;

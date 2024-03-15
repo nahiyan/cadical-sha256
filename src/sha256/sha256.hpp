@@ -26,7 +26,6 @@
 using namespace std;
 
 namespace SHA256 {
-
 class Propagator : CaDiCaL::ExternalPropagator {
   CaDiCaL::Solver *solver;
   list<int> propagation_lits;
