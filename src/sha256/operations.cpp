@@ -395,22 +395,7 @@ void State::print_operations () {
       printf ("%c", word.chars[i]);
   };
 
-  // for (int i = 16; i < order; i++) {
-  //   auto &word = operations[i].s0;
-  //   printf ("s0: ");
-  //   for (int j = 0; j < 3; j++)
-  //     print_chars (word.inputs[j]);
-  //   cout << steps[i].s0.chars;
-  //   printf ("\n");
-  // }
   for (int i = 16; i < order; i++) {
-    // auto &word = operations[i].s1;
-    // printf ("s1: ");
-    // for (int j = 0; j < 3; j++)
-    //   print_chars (word.inputs[j]);
-    // cout << steps[i].s1.chars;
-    // printf ("\n");
-
     // add.W
     {
       printf ("\nW_%d = s1(W_%d) + W_%d + s0(W_%d) + W_%d\n", i, i - 2,
@@ -418,6 +403,66 @@ void State::print_operations () {
       auto &inputs = operations[i].add_w.inputs;
       auto &outputs = operations[i].add_w.outputs;
       for (int k = 0; k < 6; k++) {
+        print_chars_sword (inputs[k]);
+        printf ("\n");
+      }
+      printf ("\n");
+      for (int k = 0; k < 3; k++) {
+        print_chars_word (*outputs[k]);
+        printf ("\n");
+      }
+    }
+  }
+
+  for (int i = 0; i < order; i++) {
+    // add.A
+    {
+      printf ("\nA_%d = T_%d + sigma0(A_%d) + MAJ(A_%d, A_%d, A_%d)\n", i,
+              i, i - 1, i - 1, i - 2, i - 3);
+      auto &inputs = operations[i].add_a.inputs;
+      auto &outputs = operations[i].add_a.outputs;
+
+      for (int k = 0; k < 5; k++) {
+        print_chars_sword (inputs[k]);
+        printf ("\n");
+      }
+      printf ("\n");
+      for (int k = 0; k < 3; k++) {
+        print_chars_word (*outputs[k]);
+        printf ("\n");
+      }
+    }
+  }
+
+  for (int i = 0; i < order; i++) {
+    // add.E
+    {
+      printf ("\nE_%d = A_%d + T_%d\n", i, i - 4, i);
+      auto &inputs = operations[i].add_e.inputs;
+      auto &outputs = operations[i].add_e.outputs;
+
+      for (int k = 0; k < 3; k++) {
+        print_chars_sword (inputs[k]);
+        printf ("\n");
+      }
+      printf ("\n");
+      for (int k = 0; k < 3; k++) {
+        print_chars_word (*outputs[k]);
+        printf ("\n");
+      }
+    }
+  }
+
+  for (int i = 0; i < order; i++) {
+    // add.T
+    {
+      printf ("\nT_%d = E_%d + sigma1(E_%d) + IF(E_%d, E_%d, E_%d) + K_%d "
+              "+ W_%d\n",
+              i, i - 4, i - 1, i - 1, i - 2, i - 3, i, i);
+      auto &inputs = operations[i].add_t.inputs;
+      auto &outputs = operations[i].add_t.outputs;
+
+      for (int k = 0; k < 7; k++) {
         print_chars_sword (inputs[k]);
         printf ("\n");
       }
