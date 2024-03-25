@@ -89,6 +89,23 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
   // printf ("Assign %d (%c%c) in level %ld\n", lit,
   //         solver->is_decision (lit) ? 'd' : 'p', is_fixed ? 'f' : 'l',
   //         state.current_trail.size () - 1);
+
+  // Log down the stats if it's a decision
+  if (solver->is_decision (lit)) {
+    switch (state.vars_info[abs (lit)].identity.name) {
+    case DW:
+      (lit > 0 ? stats.dw_count.second : stats.dw_count.first)++;
+      break;
+    case DE:
+      (lit > 0 ? stats.de_count.second : stats.de_count.first)++;
+      break;
+    case DA:
+      (lit > 0 ? stats.da_count.second : stats.da_count.first)++;
+      break;
+    default:
+      break;
+    }
+  }
 }
 
 void Propagator::notify_backtrack (size_t new_level) {
@@ -294,7 +311,7 @@ bool Propagator::cb_has_external_clause () {
 
 #if STRONG_PROPAGATE
   if (decision_lits.empty ()) {
-    Timer *sp_timer = new Timer (&stats.total_strong_propagate_time);
+    Timer *sp_timer = new Timer (&stats.total_ww_propagate_time);
 #if IS_4BIT
     strong_propagate_branch_4bit (state, decision_lits, stats);
 #else

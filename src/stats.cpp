@@ -559,7 +559,16 @@ void Stats::print (Internal *internal) {
   PRT ("ext. decisions:  %15ld", decisions_count);
   PRT ("ext. m. branch:  %15ld", mendel_branching_decisions_count);
   PRT ("ext. m. brnch s3:%15ld", mendel_branching_stage3_count);
-  PRT ("ext. strng prop.:%15ld", strong_prop_decisions_count);
+  PRT ("ext. ww prop.:   %15ld", strong_prop_decisions_count);
+  PRT ("DW branching ratio:  %11.2f",
+       SHA256::Propagator::stats.dw_count.first /
+           (float) SHA256::Propagator::stats.dw_count.second);
+  PRT ("DE branching ratio:  %11.2f",
+       SHA256::Propagator::stats.de_count.first /
+           (float) SHA256::Propagator::stats.de_count.second);
+  PRT ("DA branching ratio:  %11.2f",
+       SHA256::Propagator::stats.da_count.first /
+           (float) SHA256::Propagator::stats.da_count.second);
 
   LINE ();
   MSG ("%sseconds are measured in %s time for solving%s",
@@ -586,19 +595,17 @@ void Internal::print_resource_usage () {
 
   MSG ("total refresh time:                      %12.2f    seconds",
        total_refresh_time);
-  MSG ("total prop. time:                        %12.2f    seconds",
-       SHA256::Propagator::stats.total_prop_time / (double) CLOCKS_PER_SEC);
+  MSG ("total prop. time:                %12.2f    seconds",
+       SHA256::Propagator::stats.total_bw_prop_time /
+           (double) CLOCKS_PER_SEC);
+  MSG ("total wordwise prop. time:               %12.2f    seconds",
+       SHA256::Propagator::stats.total_ww_propagate_time /
+           (double) CLOCKS_PER_SEC);
   MSG ("total 2-bit derive time:                 %12.2f    seconds",
        SHA256::Propagator::stats.total_two_bit_derive_time /
            (double) CLOCKS_PER_SEC);
-  MSG ("total 2-bit check time:                  %12.2f    seconds",
-       SHA256::Propagator::stats.total_two_bit_check_time /
-           (double) CLOCKS_PER_SEC);
   MSG ("total mendel branch time:                %12.2f    seconds",
        SHA256::Propagator::stats.total_mendel_branch_time /
-           (double) CLOCKS_PER_SEC);
-  MSG ("total strong propagation time:           %12.2f    seconds",
-       SHA256::Propagator::stats.total_strong_propagate_time /
            (double) CLOCKS_PER_SEC);
   MSG ("total callback time:                     %12.2f    seconds",
        total_cb_time);
