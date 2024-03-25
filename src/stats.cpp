@@ -596,8 +596,7 @@ void Internal::print_resource_usage () {
   MSG ("total refresh time:                      %12.2f    seconds",
        total_refresh_time);
   MSG ("total prop. time:                %12.2f    seconds",
-       SHA256::Propagator::stats.total_bw_prop_time /
-           (double) CLOCKS_PER_SEC);
+       SHA256::Propagator::stats.total_prop_time / (double) CLOCKS_PER_SEC);
   MSG ("total wordwise prop. time:               %12.2f    seconds",
        SHA256::Propagator::stats.total_ww_propagate_time /
            (double) CLOCKS_PER_SEC);
