@@ -135,6 +135,16 @@ struct Stats {
   pair<uint64_t, uint64_t> dw_count = {0, 0};
   pair<uint64_t, uint64_t> de_count = {0, 0};
   pair<uint64_t, uint64_t> da_count = {0, 0};
+  pair<uint64_t, uint64_t> a_count = {0, 0};
+  pair<uint64_t, uint64_t> e_count = {0, 0};
+  pair<uint64_t, uint64_t> w_count = {0, 0};
+
+  vector<uint64_t> decisions_dist_da = vector<uint64_t> (10000, 0);
+  vector<uint64_t> decisions_dist_de = vector<uint64_t> (10000, 0);
+  vector<uint64_t> decisions_dist_dw = vector<uint64_t> (10000, 0);
+  vector<uint64_t> decisions_dist_a = vector<uint64_t> (10000, 0);
+  vector<uint64_t> decisions_dist_e = vector<uint64_t> (10000, 0);
+  vector<uint64_t> decisions_dist_w = vector<uint64_t> (10000, 0);
 
   // Cache stats
   uint64_t prop_total_calls = 0;

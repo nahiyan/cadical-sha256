@@ -529,51 +529,69 @@ void Stats::print (Internal *internal) {
          stats.extended, relative (stats.extended, stats.weakened));
   }
 
-  auto &programmatic_claues = SHA256::Propagator::stats.clauses_count;
-  auto &decisions_count = SHA256::Propagator::stats.decisions_count;
-  auto &reasons_count = SHA256::Propagator::stats.reasons_count;
+  auto &sha256_stats = SHA256::Propagator::stats;
+  auto &programmatic_claues = sha256_stats.clauses_count;
+  auto &decisions_count = sha256_stats.decisions_count;
+  auto &reasons_count = sha256_stats.reasons_count;
   auto &mendel_branching_decisions_count =
-      SHA256::Propagator::stats.mendel_branching_decisions_count;
+      sha256_stats.mendel_branching_decisions_count;
   auto &mendel_branching_stage3_count =
-      SHA256::Propagator::stats.mendel_branching_stage3_count;
+      sha256_stats.mendel_branching_stage3_count;
   auto &strong_prop_decisions_count =
-      SHA256::Propagator::stats.strong_prop_decisions_count;
+      sha256_stats.strong_prop_decisions_count;
   assert (decisions_count ==
           mendel_branching_decisions_count + strong_prop_decisions_count);
-  PRT ("prop. total:     %15ld",
-       SHA256::Propagator::stats.prop_total_calls);
-  PRT ("prop. cached:    %15ld",
-       SHA256::Propagator::stats.prop_cached_calls);
-  PRT ("prop. cache score:%14.4f",
-       (float) SHA256::Propagator::stats.prop_cached_calls /
-           SHA256::Propagator::stats.prop_total_calls);
-  PRT ("2-bit total:     %15ld",
-       SHA256::Propagator::stats.two_bit_total_calls);
-  PRT ("2-bit cached:    %15ld",
-       SHA256::Propagator::stats.two_bit_cached_calls);
+  PRT ("prop. total:     %15ld", sha256_stats.prop_total_calls);
+  PRT ("prop. cached:    %15ld", sha256_stats.prop_cached_calls);
+  PRT ("prop. cache score:%14.4f", (float) sha256_stats.prop_cached_calls /
+                                       sha256_stats.prop_total_calls);
+  PRT ("2-bit total:     %15ld", sha256_stats.two_bit_total_calls);
+  PRT ("2-bit cached:    %15ld", sha256_stats.two_bit_cached_calls);
   PRT ("2-bit cache score:%14.4f",
-       (float) SHA256::Propagator::stats.two_bit_cached_calls /
-           SHA256::Propagator::stats.two_bit_total_calls);
+       (float) sha256_stats.two_bit_cached_calls /
+           sha256_stats.two_bit_total_calls);
   PRT ("ext. reasons:    %15ld", reasons_count);
   PRT ("ext. clauses:    %15ld", programmatic_claues);
   PRT ("ext. decisions:  %15ld", decisions_count);
   PRT ("ext. m. branch:  %15ld", mendel_branching_decisions_count);
   PRT ("ext. m. brnch s3:%15ld", mendel_branching_stage3_count);
   PRT ("ext. ww prop.:   %15ld", strong_prop_decisions_count);
-  PRT ("DW branching ratio:  %11.2f",
-       SHA256::Propagator::stats.dw_count.first /
-           (float) SHA256::Propagator::stats.dw_count.second);
-  PRT ("DE branching ratio:  %11.2f",
-       SHA256::Propagator::stats.de_count.first /
-           (float) SHA256::Propagator::stats.de_count.second);
-  PRT ("DA branching ratio:  %11.2f",
-       SHA256::Propagator::stats.da_count.first /
-           (float) SHA256::Propagator::stats.da_count.second);
+  PRT ("DW branching ratio:  %11.4f",
+       sha256_stats.dw_count.first /
+           (float) (sha256_stats.dw_count.first +
+                    sha256_stats.dw_count.second));
+  PRT ("DE branching ratio:  %11.4f",
+       sha256_stats.de_count.first /
+           (float) (sha256_stats.de_count.first +
+                    sha256_stats.de_count.second));
+  PRT ("DA branching ratio:  %11.4f",
+       sha256_stats.da_count.first /
+           (float) (sha256_stats.da_count.first +
+                    sha256_stats.da_count.second));
 
   LINE ();
   MSG ("%sseconds are measured in %s time for solving%s",
        tout.magenta_code (), internal->opts.realtime ? "real" : "process",
        tout.normal_code ());
+
+  printf ("%4s %10s %10s %10s %10s %10s %10s\n", "i", "DA", "DE", "DW", "A",
+          "E", "W");
+  for (int i = 0; i < 10000; i++) {
+    if (sha256_stats.decisions_dist_da[i] +
+            sha256_stats.decisions_dist_de[i] +
+            sha256_stats.decisions_dist_dw[i] +
+            sha256_stats.decisions_dist_a[i] +
+            sha256_stats.decisions_dist_e[i] +
+            sha256_stats.decisions_dist_w[i] ==
+        0)
+      continue;
+    printf (
+        "%4d %10ld %10ld %10ld %10ld %10ld %10ld\n", i,
+        sha256_stats.decisions_dist_da[i],
+        sha256_stats.decisions_dist_de[i],
+        sha256_stats.decisions_dist_dw[i], sha256_stats.decisions_dist_a[i],
+        sha256_stats.decisions_dist_e[i], sha256_stats.decisions_dist_w[i]);
+  }
 
 #endif // ifndef QUIET
 }
