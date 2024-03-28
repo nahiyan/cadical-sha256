@@ -568,12 +568,22 @@ void Stats::print (Internal *internal) {
        sha256_stats.da_count.first /
            (float) (sha256_stats.da_count.first +
                     sha256_stats.da_count.second));
+  PRT (" A branching ratio:  %11.4f",
+       sha256_stats.a_count.first / (float) (sha256_stats.a_count.first +
+                                             sha256_stats.a_count.second));
+  PRT (" E branching ratio:  %11.4f",
+       sha256_stats.e_count.first / (float) (sha256_stats.e_count.first +
+                                             sha256_stats.e_count.second));
+  PRT (" W branching ratio:  %11.4f",
+       sha256_stats.w_count.first / (float) (sha256_stats.w_count.first +
+                                             sha256_stats.w_count.second));
 
   LINE ();
   MSG ("%sseconds are measured in %s time for solving%s",
        tout.magenta_code (), internal->opts.realtime ? "real" : "process",
        tout.normal_code ());
 
+  printf ("Decision distribution by level (based on false value count):\n");
   printf ("%4s %10s %10s %10s %10s %10s %10s\n", "i", "DA", "DE", "DW", "A",
           "E", "W");
   for (int i = 0; i < 10000; i++) {

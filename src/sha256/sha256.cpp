@@ -98,27 +98,33 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
     switch (state.vars_info[abs (lit)].identity.name) {
     case DW:
       (lit > 0 ? stats.dw_count.second : stats.dw_count.first)++;
-      stats.decisions_dist_dw[state.current_trail.size () - 2]++;
+      if (lit < 0)
+        stats.decisions_dist_dw[state.current_trail.size () - 2]++;
       break;
     case DE:
       (lit > 0 ? stats.de_count.second : stats.de_count.first)++;
-      stats.decisions_dist_de[state.current_trail.size () - 2]++;
+      if (lit < 0)
+        stats.decisions_dist_de[state.current_trail.size () - 2]++;
       break;
     case DA:
       (lit > 0 ? stats.da_count.second : stats.da_count.first)++;
-      stats.decisions_dist_da[state.current_trail.size () - 2]++;
+      if (lit < 0)
+        stats.decisions_dist_da[state.current_trail.size () - 2]++;
       break;
     case A:
       (lit > 0 ? stats.a_count.second : stats.a_count.first)++;
-      stats.decisions_dist_a[state.current_trail.size () - 2]++;
+      if (lit < 0)
+        stats.decisions_dist_a[state.current_trail.size () - 2]++;
       break;
     case E:
       (lit > 0 ? stats.e_count.second : stats.e_count.first)++;
-      stats.decisions_dist_e[state.current_trail.size () - 2]++;
+      if (lit < 0)
+        stats.decisions_dist_e[state.current_trail.size () - 2]++;
       break;
     case W:
       (lit > 0 ? stats.w_count.second : stats.w_count.first)++;
-      stats.decisions_dist_w[state.current_trail.size () - 2]++;
+      if (lit < 0)
+        stats.decisions_dist_w[state.current_trail.size () - 2]++;
       break;
     default:
       break;
