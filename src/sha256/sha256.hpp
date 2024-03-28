@@ -17,6 +17,8 @@
 #define ABS_STEP(i) (i + 4)
 #define IS_4BIT false
 
+#define SET_PHASE false
+
 #define CUSTOM_PROP false
 #define STRONG_PROPAGATE false
 #define CUSTOM_BLOCKING false

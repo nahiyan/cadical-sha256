@@ -568,13 +568,13 @@ void Stats::print (Internal *internal) {
        sha256_stats.da_count.first /
            (float) (sha256_stats.da_count.first +
                     sha256_stats.da_count.second));
-  PRT (" A branching ratio:  %11.4f",
+  PRT ("A branching ratio:   %11.4f",
        sha256_stats.a_count.first / (float) (sha256_stats.a_count.first +
                                              sha256_stats.a_count.second));
-  PRT (" E branching ratio:  %11.4f",
+  PRT ("E branching ratio:   %11.4f",
        sha256_stats.e_count.first / (float) (sha256_stats.e_count.first +
                                              sha256_stats.e_count.second));
-  PRT (" W branching ratio:  %11.4f",
+  PRT ("W branching ratio:   %11.4f",
        sha256_stats.w_count.first / (float) (sha256_stats.w_count.first +
                                              sha256_stats.w_count.second));
 
