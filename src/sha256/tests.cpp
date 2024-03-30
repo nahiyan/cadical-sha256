@@ -65,7 +65,7 @@ void test_brute_force () {
 void test_apply_grounding () {
   // TODO: Add tests
 }
-void test_strong_prop () {
+void test_wordwise_prop () {
   {
     vector<string> expected = {"--uunu-nx--x", "--u--n-B-BB-"};
     auto actual = strong_propagate ({"--xxxx-xx--x", "--B--D-BBBB-"}, 1147);
@@ -139,7 +139,7 @@ void test_strong_prop () {
   }
 }
 
-void test_group_strong_prop () {
+void test_group_wordwise_prop () {
   test_int_diff ();
   test_adjust_constant ();
   test_is_congruent ();
@@ -147,7 +147,7 @@ void test_group_strong_prop () {
   test_gen_vars ();
   test_brute_force ();
   test_apply_grounding ();
-  test_strong_prop ();
+  test_wordwise_prop ();
 }
 
 void test_rotate_word () {
@@ -469,7 +469,7 @@ void test_2_bit_graph () {
 
 void run_tests () {
   printf ("Running tests\n");
-  test_group_strong_prop ();
+  test_group_wordwise_prop ();
   test_rotate_word ();
   test_otf_propagate ();
   test_otf_2bit_eqs ();
