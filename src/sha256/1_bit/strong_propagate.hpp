@@ -105,6 +105,17 @@ inline void strong_propagate_branch_1bit (State &state,
         propagated_words =
             strong_propagate (underived_words, word_diffs_sum);
 
+        // printf ("Step %2d (Before), %d: ", step_i, op_id);
+        // for (auto &chars : words_chars)
+        //   cout << chars << " ";
+        // cout << endl;
+        // printf ("Step %2d (After), %d:  ", step_i, op_id);
+        // for (auto &chars : propagated_words)
+        //   cout << chars << " ";
+        // cout << endl;
+        // printf ("Constant = %ld (%ld underived count)\n", word_diffs_sum,
+        //         underived_words.size ());
+
         // Cache the strong propagation
         pair<string, string> cache_value;
         for (auto &propagated_word : propagated_words)
@@ -126,11 +137,6 @@ inline void strong_propagate_branch_1bit (State &state,
           underived_indices.push_back (c - '0');
       }
       assert (propagated_words.size () == underived_indices.size ());
-
-      // printf ("Step %2d (Before), %d: ", step_i, op_id);
-      // for (auto &chars : words_chars)
-      //   cout << chars << " ";
-      // cout << endl;
 
       // Deal with the propagated words
       for (int i = 0; i < int (underived_indices.size ()); i++) {
@@ -168,15 +174,12 @@ inline void strong_propagate_branch_1bit (State &state,
               decision_lits.push_back (lit);
               assert (state.partial_assignment.get (abs (lit)) ==
                       LIT_UNDEF);
+              // printf ("Wordwise propagated (count %ld)\n",
+              //         underived_indices.size ());
               return;
             }
           }
       }
-
-      // printf ("Step %2d (After), %d:  ", step_i, op_id);
-      // for (auto &chars : words_chars)
-      //   cout << chars << " ";
-      // cout << endl;
     }
 }
 } // namespace SHA256
