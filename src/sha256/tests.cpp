@@ -47,12 +47,20 @@ void test_can_overflow () {
 }
 
 void test_gen_vars () {
-  vector<string> expected = {
-      "",  "vv1", "vv", "",   "v1", "vv", "v", "",   "1",
-      "v", "v",   "v",  "vv", "vv", "vv", "v", "vv", "",
-  };
-  auto actual = gen_vars ({"-uxxu-xx1u---x-00x", "--?0-?0--u?A-???5-"});
-  assert (actual == expected);
+  {
+    vector<string> expected = {
+        "",  "vv1", "vv", "",   "v1", "vv", "v", "",   "1",
+        "v", "v",   "v",  "vv", "vv", "vv", "v", "vv", "",
+    };
+    auto actual = gen_vars ({"-uxxu-xx1u---x-00x", "--?0-?0--u?A-???5-"});
+    assert (actual == expected);
+  }
+
+  {
+    vector<string> expected = {"v", "vv", "vv", "vv", "v",
+                               "",  "v",  "v",  "",   ""};
+    auto actual = gen_vars ({"x???xx1xx-"});
+  }
 }
 
 void test_brute_force () {
@@ -135,6 +143,11 @@ void test_wordwise_prop () {
     auto actual = strong_propagate ({"xx-nnx--uxxu-xx1u---x-00x-u0-1--",
                                      "---------?0-?0--u?A-???5-u---?--"},
                                     2896892384);
+    assert (expected == actual);
+  }
+  {
+    vector<string> expected = {"x???xu1uu-"};
+    auto actual = strong_propagate ({"x???xx1xx-"}, 70);
     assert (expected == actual);
   }
 }
