@@ -62,6 +62,10 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
           MENDEL_BRANCHING_STAGES);
 #endif
 
+#if SET_PHASE
+  printf ("Phase set to false for state and message variables.\n");
+#endif
+
 #ifdef LOGGING
   printf ("Logging is enabled!\n");
 #endif
@@ -139,8 +143,22 @@ void Propagator::notify_backtrack (size_t new_level) {
     auto &level = state.current_trail.back ();
     for (auto &lit : level) {
       state.partial_assignment.unset (lit);
-      // printf ("Unassign %d (%ld)\n", lit, state.current_trail.size () -
-      // 1);
+// printf ("Unassign %d (%ld)\n", lit, state.current_trail.size () -
+// 1);
+
+// Set the phase to false for primary variables
+#if SET_PHASE
+      {
+        int var = abs (lit);
+        if (state.vars_info[var].identity.name == DA ||
+            state.vars_info[var].identity.name == DE ||
+            state.vars_info[var].identity.name == DW ||
+            state.vars_info[var].identity.name == A ||
+            state.vars_info[var].identity.name == E ||
+            state.vars_info[var].identity.name == W)
+          solver->phase (-var);
+      }
+#endif
     }
 
     // Remove 2-bit edges from the graph

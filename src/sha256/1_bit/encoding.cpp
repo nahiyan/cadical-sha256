@@ -25,15 +25,23 @@ void add_1bit_variables (string line, CaDiCaL::Solver *&solver) {
 
 #if SET_PHASE
     // Set the initial decision phases
-    printf ("c setting the decision phases\n");
     for (int i = -4; i < state.order; i++) {
-      for (int j = 0; j < 32; j++)
+      for (int j = 0; j < 32; j++) {
+        solver->phase (-state.steps[ABS_STEP (i)].a.ids_f[j]);
+        solver->phase (-state.steps[ABS_STEP (i)].a.ids_g[j]);
         solver->phase (-state.steps[ABS_STEP (i)].a.char_ids[j]);
-      for (int j = 0; j < 32; j++)
+      }
+      for (int j = 0; j < 32; j++) {
+        solver->phase (-state.steps[ABS_STEP (i)].e.ids_f[j]);
+        solver->phase (-state.steps[ABS_STEP (i)].e.ids_g[j]);
         solver->phase (-state.steps[ABS_STEP (i)].e.char_ids[j]);
+      }
       if (i >= 0)
-        for (int j = 0; j < 32; j++)
+        for (int j = 0; j < 32; j++) {
+          solver->phase (-state.steps[i].w.ids_f[j]);
+          solver->phase (-state.steps[i].w.ids_g[j]);
           solver->phase (-state.steps[i].w.char_ids[j]);
+        }
     }
     printf ("\n");
 #endif
