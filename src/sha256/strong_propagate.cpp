@@ -341,7 +341,7 @@ vector<string> strong_propagate (vector<string> words, int64_t constant) {
     // Flush the stash
     if (i == 0) {
       island_ends = true;
-      if (can_overflow && can_overflow)
+      if (can_overflow)
         overflow_brute_force_indices.push_back (islands.size ());
     }
 
