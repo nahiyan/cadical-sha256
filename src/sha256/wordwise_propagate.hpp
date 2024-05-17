@@ -1,5 +1,5 @@
-#ifndef _sha256_strong_propagate_hpp_INCLUDED
-#define _sha256_strong_propagate_hpp_INCLUDED
+#ifndef _sha256_wordwise_propagate_hpp_INCLUDED
+#define _sha256_wordwise_propagate_hpp_INCLUDED
 
 #include "types.hpp"
 #include <cstdint>

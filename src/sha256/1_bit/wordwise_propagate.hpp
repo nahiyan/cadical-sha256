@@ -1,10 +1,10 @@
-#ifndef _sha256_1_bit_strong_propagate_hpp_INCLUDED
-#define _sha256_1_bit_strong_propagate_hpp_INCLUDED
+#ifndef _sha256_1_bit_wordwise_propagate_hpp_INCLUDED
+#define _sha256_1_bit_wordwise_propagate_hpp_INCLUDED
 
 #include "../lru_cache.hpp"
 #include "../state.hpp"
-#include "../strong_propagate.hpp"
 #include "../util.hpp"
+#include "../wordwise_propagate.hpp"
 #include <sstream>
 #include <string>
 
@@ -15,13 +15,13 @@ namespace SHA256 {
 string add_masks[4] = {".+.++", "+..+", "+++", "+...++"};
 int add_input_sizes[4] = {4, 3, 2, 5};
 
-// Strong propagate (through branching) words by taking information inside
+// Wordwise propagate (through branching) words by taking information inside
 // the addition equation
 cache::lru_cache<string, pair<string, string>>
-    strong_propagate_cache (100e3);
-inline void strong_propagate_branch_1bit (State &state,
-                                          list<int> &decision_lits,
-                                          Stats &stats) {
+    wordwise_propagate_cache (100e3);
+inline void wordwise_propagate_branch_1bit (State &state,
+                                            list<int> &decision_lits,
+                                            Stats &stats) {
   state.soft_refresh ();
   auto _word_chars = [] (Word &word) {
     string chars;
@@ -71,10 +71,10 @@ inline void strong_propagate_branch_1bit (State &state,
         assert (!cache_key.empty ());
       }
 
-      // Do strong propagation
+      // Do wordwise propagation
       vector<string> propagated_words;
       vector<int> underived_indices;
-      if (!strong_propagate_cache.exists (cache_key)) {
+      if (!wordwise_propagate_cache.exists (cache_key)) {
         // Calculate the word diffs
         vector<string> underived_words;
         vector<int64_t> word_diffs;
@@ -116,16 +116,16 @@ inline void strong_propagate_branch_1bit (State &state,
         // printf ("Constant = %ld (%ld underived count)\n", word_diffs_sum,
         //         underived_words.size ());
 
-        // Cache the strong propagation
+        // Cache the wordwise propagation result
         pair<string, string> cache_value;
         for (auto &propagated_word : propagated_words)
           cache_value.first += propagated_word;
         for (auto &index : underived_indices)
           cache_value.second += to_string (index);
-        strong_propagate_cache.put (cache_key, cache_value);
+        wordwise_propagate_cache.put (cache_key, cache_value);
       } else {
         pair<string, string> cache_value =
-            strong_propagate_cache.get (cache_key);
+            wordwise_propagate_cache.get (cache_key);
         int words_count = cache_value.first.size () / 32;
         for (int i = 0; i < words_count; i++) {
           string word = cache_value.first.substr (i * 32, 32);

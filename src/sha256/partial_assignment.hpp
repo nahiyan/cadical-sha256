@@ -11,8 +11,6 @@
 #include <string>
 #include <vector>
 
-// TODO: Make it dynamic
-
 using namespace std;
 
 namespace SHA256 {

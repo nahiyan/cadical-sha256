@@ -1,16 +1,15 @@
 #include "sha256.hpp"
+#if !IS_4BIT
 #include "1_bit/2_bit.hpp"
 #include "1_bit/encoding.hpp"
-#include "1_bit/mendel_branch.hpp"
 #include "1_bit/propagate.hpp"
-#include "1_bit/strong_propagate.hpp"
-#include "2_bit.hpp"
+#include "1_bit/wordwise_propagate.hpp"
+#else
 #include "4_bit/2_bit.hpp"
 #include "4_bit/encoding.hpp"
 #include "4_bit/propagate.hpp"
-#include "lru_cache.hpp"
+#endif
 #include "state.hpp"
-#include "strong_propagate.hpp"
 #include "tests.hpp"
 #include "types.hpp"
 #include "util.hpp"
@@ -44,6 +43,11 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   state.two_bit_markings_trail.push_back ({});
   // load_prop_rules ();
   // load_two_bit_rules ();
+
+  if (IS_4BIT) {
+    printf ("4-bit encoding is broken in this stage.\n");
+    exit (0);
+  }
 
 #if CUSTOM_PROP
   printf ("Bitsliced propagation turned on.\n");
@@ -357,7 +361,7 @@ bool Propagator::cb_has_external_clause () {
 #if IS_4BIT
     strong_propagate_branch_4bit (state, decision_lits, stats);
 #else
-    strong_propagate_branch_1bit (state, decision_lits, stats);
+    wordwise_propagate_branch_1bit (state, decision_lits, stats);
 #endif
     delete sp_timer;
     stats.strong_prop_decisions_count += decision_lits.size ();

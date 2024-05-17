@@ -1,4 +1,4 @@
-#include "strong_propagate.hpp"
+#include "wordwise_propagate.hpp"
 #include "sha256.hpp"
 #include "types.hpp"
 #include "util.hpp"
