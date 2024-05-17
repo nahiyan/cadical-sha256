@@ -44,8 +44,8 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   // load_prop_rules ();
   // load_two_bit_rules ();
 
-  if (IS_4BIT) {
-    printf ("4-bit encoding is broken in this stage.\n");
+  if (ENC_TYPE == FourBit) {
+    printf ("4-bit encoding isn't supported anymore.\n");
     exit (0);
   }
 

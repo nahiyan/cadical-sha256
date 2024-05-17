@@ -6,8 +6,8 @@
 #include "propagate.hpp"
 #include "sha256.hpp"
 #include "state.hpp"
-#include "strong_propagate.hpp"
 #include "util.hpp"
+#include "wordwise_propagate.hpp"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
