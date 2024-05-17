@@ -76,78 +76,79 @@ void test_apply_grounding () {
 void test_wordwise_prop () {
   {
     vector<string> expected = {"--uunu-nx--x", "--u--n-B-BB-"};
-    auto actual = strong_propagate ({"--xxxx-xx--x", "--B--D-BBBB-"}, 1147);
+    auto actual =
+        wordwise_propagate ({"--xxxx-xx--x", "--B--D-BBBB-"}, 1147);
     assert (expected == actual);
   }
 
   {
     vector<string> expected = {"-u-------uu-uu-u0u1--u-0-n---n0-"};
-    auto actual =
-        strong_propagate ({"-u-?-----uu-uu-u0u1?-u-0-n?--n0-"}, 1080902588);
+    auto actual = wordwise_propagate ({"-u-?-----uu-uu-u0u1?-u-0-n?--n0-"},
+                                      1080902588);
     assert (expected == actual);
   }
 
   {
     vector<string> expected = {"---nuu1ununnn-1unnnnnn-n--0-1---"};
-    auto actual =
-        strong_propagate ({"---nuu1ununnn-1uxnxnxn-x--0-1---"}, 4236772096);
+    auto actual = wordwise_propagate ({"---nuu1ununnn-1uxnxnxn-x--0-1---"},
+                                      4236772096);
     assert (expected == actual);
   }
 
   {
     vector<string> expected = {"x-n-nn-xxn-u-u--uuuux-u---x-x---",
                                "-------B-n--u------D---n--BBu---"};
-    auto actual = strong_propagate ({"x-x-xx-xxn-x-x--xxxxx-x---x-x---",
-                                     "-------BDD--B------D---DD-BBBB--"},
-                                    1411180832);
+    auto actual = wordwise_propagate ({"x-x-xx-xxn-x-x--xxxxx-x---x-x---",
+                                       "-------BDD--B------D---DD-BBBB--"},
+                                      1411180832);
     assert (expected == actual);
   }
 
   {
     vector<string> expected = {"xxxxxxu----n-unnnu-x--uxxxu-xxx-",
                                "DDDDD-n-nn--u-----D-u--DD-BBBB--"};
-    auto actual = strong_propagate ({"xxxxxxx----x-xxxxx-x--uxxxx-xxx-",
-                                     "DDDDD-D-nn--B-----D-B--DD-BBBB--"},
-                                    725137662);
+    auto actual = wordwise_propagate ({"xxxxxxx----x-xxxxx-x--uxxxx-xxx-",
+                                       "DDDDD-D-nn--B-----D-B--DD-BBBB--"},
+                                      725137662);
     assert (expected == actual);
   }
 
   {
     vector<string> expected = {"----x-nx---n--n--nu--uunu-nx--x-",
                                "DDDD-nD-nn--u-----n--u--n-B-BB--"};
-    auto actual = strong_propagate ({"----x-xx---x--x--xx--xxxx-xx--x-",
-                                     "DDDD-DD-nn-Du-----D--B--D-BBBB--"},
-                                    2151008502);
+    auto actual = wordwise_propagate ({"----x-xx---x--x--xx--xxxx-xx--x-",
+                                       "DDDD-DD-nn-Du-----D--B--D-BBBB--"},
+                                      2151008502);
     assert (expected == actual);
   }
 
   {
     vector<string> expected = {"--n-1u-----00--x1-n-x--n--------",
                                "un000unuuu110A5-11n-x0nn110-0nu1"};
-    auto actual = strong_propagate ({"--n-1x-----00--x1-n-x--n--------",
-                                     "un000unuuu110A5-11n-x0nn110-0nu1"},
-                                    666942462);
+    auto actual = wordwise_propagate ({"--n-1x-----00--x1-n-x--n--------",
+                                       "un000unuuu110A5-11n-x0nn110-0nu1"},
+                                      666942462);
     assert (expected == actual);
   }
 
   {
     vector<string> expected = {"0nun1n--uu--n--nuuu0u--uu-uuuu0-"};
-    auto actual =
-        strong_propagate ({"0nun1x--ux--n--nxxu0x--ux-uuxu0-"}, 3434604988);
+    auto actual = wordwise_propagate ({"0nun1x--ux--n--nxxu0x--ux-uuxu0-"},
+                                      3434604988);
     assert (expected == actual);
   }
 
   {
     vector<string> expected = {"xu-nnu--uxxu-xn1u---x-00x-u0-1--",
                                "---------?0-?0--u-u-??n5-u------"};
-    auto actual = strong_propagate ({"xx-nnx--uxxu-xx1u---x-00x-u0-1--",
-                                     "---------?0-?0--u?A-???5-u---?--"},
-                                    2896892384);
+    auto actual = wordwise_propagate ({"xx-nnx--uxxu-xx1u---x-00x-u0-1--",
+                                       "---------?0-?0--u?A-???5-u---?--"},
+                                      2896892384);
     assert (expected == actual);
   }
   {
     vector<string> expected = {"x???xu1uu-"};
-    auto actual = strong_propagate ({"x???xx1xx-"}, 70);
+    auto actual = wordwise_propagate ({"x???xx1xx-"}, 70);
     assert (expected == actual);
   }
 }

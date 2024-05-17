@@ -55,7 +55,7 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
 #if CUSTOM_BLOCKING
   printf ("Custom blocking turned on.\n");
 #endif
-#if STRONG_PROPAGATE
+#if WORDWISE_PROPAGATE
   printf ("Wordwise propagation (branch-based) turned on.\n");
 #endif
 #if TWO_BIT_ADD_DIFFS
@@ -355,11 +355,11 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 bool Propagator::cb_has_external_clause () {
   Timer timer (&stats.total_cb_time);
 
-#if STRONG_PROPAGATE
+#if WORDWISE_PROPAGATE
   if (decision_lits.empty ()) {
     Timer *sp_timer = new Timer (&stats.total_ww_propagate_time);
 #if IS_4BIT
-    strong_propagate_branch_4bit (state, decision_lits, stats);
+    wordwise_propagate_branch_4bit (state, decision_lits, stats);
 #else
     wordwise_propagate_branch_1bit (state, decision_lits, stats);
 #endif

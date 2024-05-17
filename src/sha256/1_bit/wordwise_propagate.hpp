@@ -103,7 +103,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
 
         // Derive the underived words
         propagated_words =
-            strong_propagate (underived_words, word_diffs_sum);
+            wordwise_propagate (underived_words, word_diffs_sum);
 
         // printf ("Step %2d (Before), %d: ", step_i, op_id);
         // for (auto &chars : words_chars)

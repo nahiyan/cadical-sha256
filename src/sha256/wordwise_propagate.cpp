@@ -269,7 +269,7 @@ vector<string> apply_grounding (vector<string> words,
   return derived_words;
 }
 
-vector<string> strong_propagate (vector<string> words, int64_t constant) {
+vector<string> wordwise_propagate (vector<string> words, int64_t constant) {
   auto count_vars = [] (vector<string> cols) {
     int vars_count = 0;
     for (auto &col : cols) {
@@ -424,7 +424,7 @@ void prop_with_word_diff (AdditionId equation_id, vector<string *> words) {
   vector<string> underived_words;
   for (int i = 0; i < underived_count; i++)
     underived_words.push_back (*words[underived_indices[i]]);
-  auto derived_words = strong_propagate (underived_words, constant);
+  auto derived_words = wordwise_propagate (underived_words, constant);
 
   for (int i = 0; i < underived_count; i++) {
     auto index = underived_indices[i];

@@ -47,7 +47,7 @@ inline void State::refresh_char (Word &word, int index) {
 #endif
         two_bit_markings_trail.back ().push_back (
             {op_id, step, pos, base_id});
-#if STRONG_PROPAGATE
+#if WORDWISE_PROPAGATE
       if (op_id >= op_add_w)
         marked_operations_strong_prop[op_id][step] = true;
 #endif

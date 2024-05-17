@@ -20,7 +20,7 @@ string brute_force (vector<string> var_cols, int64_t constant,
 vector<string> apply_grounding (vector<string> words,
                                 vector<string> var_cols,
                                 vector<char> values);
-vector<string> strong_propagate (vector<string> words, int64_t constant);
+vector<string> wordwise_propagate (vector<string> words, int64_t constant);
 void prop_with_word_diff (AdditionId equation_id, vector<string *> words);
 } // namespace SHA256
 
