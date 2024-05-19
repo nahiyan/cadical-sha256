@@ -12,6 +12,7 @@
 using namespace std;
 
 namespace SHA256 {
+#if IS_1BIT
 extern pair<int, int> prop_diff_sizes[10];
 extern vector<int> (*prop_functions[10]) (vector<int>);
 inline void custom_1bit_propagate (State &state,
@@ -194,6 +195,7 @@ inline void custom_1bit_propagate (State &state,
 }
 int load_1bit_prop_rules (ifstream &db,
                           cache::lru_cache<string, string> &cache);
+#endif
 } // namespace SHA256
 
 #endif

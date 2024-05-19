@@ -1,14 +1,12 @@
 #include "sha256.hpp"
-#if !IS_4BIT
 #include "1_bit/2_bit.hpp"
 #include "1_bit/encoding.hpp"
 #include "1_bit/propagate.hpp"
 #include "1_bit/wordwise_propagate.hpp"
-#else
 #include "4_bit/2_bit.hpp"
 #include "4_bit/encoding.hpp"
 #include "4_bit/propagate.hpp"
-#endif
+#include "li2024/encoding.hpp"
 #include "state.hpp"
 #include "tests.hpp"
 #include "types.hpp"
@@ -45,7 +43,7 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
   // load_two_bit_rules ();
 
   if (IS_4BIT) {
-    printf ("4-bit encoding is broken in this stage.\n");
+    printf ("4-bit encoding isn't supported anymore.\n");
     exit (0);
   }
 
@@ -79,8 +77,10 @@ void Propagator::parse_comment_line (string line,
                                      CaDiCaL::Solver *&solver) {
 #if IS_4BIT
   add_4bit_variables (line, solver);
-#else
+#elif IS_1BIT
   add_1bit_variables (line, solver);
+#elif IS_LI2024
+  add_li2024_variables (line, solver);
 #endif
 }
 
@@ -240,7 +240,7 @@ inline bool Propagator::custom_block () {
 #if IS_4BIT
   derive_2bit_equations_4bit (state, two_bit.equations_trail.back (),
                               stats);
-#else
+#elif IS_1BIT
   derive_2bit_equations_1bit (state, two_bit.equations_trail.back (),
                               two_bit, trail_level, stats);
 #endif

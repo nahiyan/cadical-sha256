@@ -583,6 +583,7 @@ void Stats::print (Internal *internal) {
        tout.magenta_code (), internal->opts.realtime ? "real" : "process",
        tout.normal_code ());
 
+#if SHOW_DECISION_DIST
   printf ("Decision distribution by level (based on false value count):\n");
   printf ("%4s %10s %10s %10s %10s %10s %10s\n", "i", "DA", "DE", "DW", "A",
           "E", "W");
@@ -602,6 +603,7 @@ void Stats::print (Internal *internal) {
         sha256_stats.decisions_dist_dw[i], sha256_stats.decisions_dist_a[i],
         sha256_stats.decisions_dist_e[i], sha256_stats.decisions_dist_w[i]);
   }
+#endif
 
 #endif // ifndef QUIET
 }

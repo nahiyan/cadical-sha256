@@ -4,6 +4,7 @@
 #include "util.hpp"
 
 namespace SHA256 {
+#if !IS_LI2024
 void State::set_operations () {
   // TODO: Free up this heap allocation later
   char *zero_char = new char;
@@ -43,7 +44,7 @@ void State::set_operations () {
       this->vars_info[word->ids_g[pos]].operations.push_back (
           {op_id, step, pos});
       int k = 0;
-#if IS_4BIT
+#if ENC_TYPE == FourBit
       for (; k < 4; k++)
 #endif
         this->vars_info[word->char_ids[pos] + k].operations.push_back (
@@ -59,7 +60,7 @@ void State::set_operations () {
       this->vars_info[word->ids_g[pos]].operations.push_back (
           {op_id, step, pos});
       int k = 0;
-#if IS_4BIT
+#if ENC_TYPE == FourBit
       for (; k < 4; k++)
 #endif
         this->vars_info[word->char_ids[pos] + k].operations.push_back (
@@ -476,4 +477,5 @@ void State::print_operations () {
 
   // TODO: Print the rest of the operations
 }
+#endif
 } // namespace SHA256

@@ -5,6 +5,7 @@
 #include <sstream>
 
 namespace SHA256 {
+#if IS_1BIT
 void add_1bit_variables (string line, CaDiCaL::Solver *&solver) {
   auto &state = Propagator::state;
 
@@ -20,7 +21,7 @@ void add_1bit_variables (string line, CaDiCaL::Solver *&solver) {
     state.set_operations ();
 
     printf ("Initial state:\n");
-    state.hard_refresh ();
+    state.soft_refresh ();
     state.print ();
 
 #if SET_PHASE
@@ -203,4 +204,5 @@ void add_1bit_variables (string line, CaDiCaL::Solver *&solver) {
     }
   }
 }
+#endif
 } // namespace SHA256

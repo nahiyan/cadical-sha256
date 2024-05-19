@@ -10,6 +10,7 @@
 using namespace std;
 
 namespace SHA256 {
+#if IS_1BIT
 extern string masks_by_op_id[10];
 extern pair<int, int> two_bit_diff_sizes[10];
 extern vector<int> (*two_bit_functions[10]) (vector<int>);
@@ -153,6 +154,7 @@ inline void derive_2bit_equations_1bit (
 
 int load_1bit_two_bit_rules (ifstream &db,
                              cache::lru_cache<string, string> &cache);
+#endif
 } // namespace SHA256
 
 #endif

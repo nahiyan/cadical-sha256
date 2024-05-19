@@ -5,6 +5,7 @@
 #include <sstream>
 
 namespace SHA256 {
+#if IS_4BIT
 void add_4bit_variables (string line, CaDiCaL::Solver *&solver) {
   auto &state = Propagator::state;
 
@@ -185,4 +186,5 @@ void add_4bit_variables (string line, CaDiCaL::Solver *&solver) {
     }
   }
 }
+#endif
 } // namespace SHA256

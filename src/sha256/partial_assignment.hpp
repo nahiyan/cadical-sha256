@@ -14,7 +14,6 @@
 using namespace std;
 
 namespace SHA256 {
-
 class PartialAssignment {
   uint8_t *variables;
 
@@ -41,7 +40,12 @@ public:
     if (word == NULL)
       return;
 
+#if !IS_LI2024
     uint32_t base_id = word->char_ids[var_info.identity.col];
+#else
+    uint32_t base_id = word->char_ids[0][var_info.identity.col];
+#endif
+    assert (base_id > 0);
     updated_vars.insert (base_id);
   }
 

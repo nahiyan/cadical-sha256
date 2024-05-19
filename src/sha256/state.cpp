@@ -1,6 +1,7 @@
 #include "state.hpp"
 #include "1_bit/state.hpp"
 #include "4_bit/state.hpp"
+#include "li2024/state.hpp"
 #include "sha256.hpp"
 #include "types.hpp"
 #include "util.hpp"
@@ -8,13 +9,22 @@
 using namespace SHA256;
 
 inline void State::refresh_char (Word &word, int index) {
+#if !IS_LI2024
   auto &id_f = word.ids_f[index];
   auto &id_g = word.ids_g[index];
   auto &base_id = word.char_ids[index];
+#else
+  auto &id_v = word.char_ids[0][index];
+  auto &id_d = word.char_ids[1][index];
+#endif
   char &c = word.chars[index];
   char c_before = c;
 
+#if IS_LI2024
+  assert (id_v != 0 && id_d != 0);
+#else
   assert (id_f != 0 && id_g != 0 && base_id != 0);
+#endif
   assert (word.chars.size () == 32);
 
 #if IS_4BIT
@@ -23,6 +33,10 @@ inline void State::refresh_char (Word &word, int index) {
                     partial_assignment.get (base_id + 2),
                     partial_assignment.get (base_id + 3)};
   refresh_4bit_char (diff, c);
+#elif IS_LI2024
+  uint8_t v = partial_assignment.get (id_v);
+  uint8_t d = partial_assignment.get (id_d);
+  refresh_li2024_char (v, d, c);
 #else
   uint8_t x = partial_assignment.get (id_f);
   uint8_t x_ = partial_assignment.get (id_g);
@@ -36,6 +50,9 @@ inline void State::refresh_char (Word &word, int index) {
 
   // Mark the operation if the new char has a higher score
   if (c_before == '?' || compare_gcs (c_before, c_after)) {
+#if IS_LI2024
+    uint32_t base_id = v;
+#endif
     auto &operations = vars_info[base_id].operations;
     for (auto &operation : operations) {
       auto &op_id = get<0> (operation);
@@ -58,6 +75,7 @@ inline void State::refresh_char (Word &word, int index) {
 void State::soft_refresh () {
   Timer timer (&total_refresh_time);
   for (auto &base_id : partial_assignment.updated_vars) {
+    assert (base_id > 0);
     auto &info = vars_info[base_id];
     refresh_char (*info.word, info.identity.col);
   }

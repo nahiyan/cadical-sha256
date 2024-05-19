@@ -10,6 +10,10 @@
 #include <string>
 #include <vector>
 
+#define IS_LI2024 true
+#define IS_4BIT false
+#define IS_1BIT false
+
 #define LIT_TRUE 2
 #define LIT_FALSE 1
 #define LIT_UNDEF 0
@@ -76,15 +80,23 @@ enum OperationId {
 };
 
 struct Word {
+#if !IS_LI2024
   // f and g refer to the 2 blocks of SHA-256
   uint32_t ids_f[32], ids_g[32], char_ids[32];
+#else
+  uint32_t char_ids[2][32];
+#endif
   // Differential characteristics
   string chars;
 };
 // A soft word has its characteristics defined in another word
 struct SoftWord {
+#if !IS_LI2024
   // f and g refer to the 2 blocks of SHA-256
   uint32_t ids_f[32], ids_g[32], char_ids[32];
+#else
+  uint32_t char_ids[2][32];
+#endif
   // Differential characteristics
   char *chars[32];
 };

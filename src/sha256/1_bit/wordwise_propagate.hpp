@@ -11,6 +11,7 @@
 using namespace std;
 
 namespace SHA256 {
+#if IS_1BIT
 // TODO: Fix warnings regarding defining variables in the header
 string add_masks[4] = {".+.++", "+..+", "+++", "+...++"};
 int add_input_sizes[4] = {4, 3, 2, 5};
@@ -182,6 +183,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
       }
     }
 }
+#endif
 } // namespace SHA256
 
 #endif

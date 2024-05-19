@@ -15,7 +15,6 @@
 #include <string>
 
 #define ABS_STEP(i) (i + 4)
-#define IS_4BIT false
 
 #define SET_PHASE false
 
@@ -25,6 +24,8 @@
 #define TWO_BIT_ADD_DIFFS false
 #define MENDEL_BRANCHING false
 #define MENDEL_BRANCHING_STAGES 3
+
+#define SHOW_DECISION_DIST false
 
 using namespace std;
 
@@ -49,9 +50,8 @@ public:
   void notify_new_decision_level ();
   void notify_backtrack (size_t new_level);
   bool cb_check_found_model (const std::vector<int> &model) {
-    (void) model;
-    state.hard_refresh ();
     printf ("Final state:\n");
+    state.soft_refresh ();
     state.print ();
     return true;
   }
