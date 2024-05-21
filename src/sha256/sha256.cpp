@@ -7,6 +7,7 @@
 #include "4_bit/encoding.hpp"
 #include "4_bit/propagate.hpp"
 #include "li2024/encoding.hpp"
+#include "li2024/wordwise_propagate.hpp"
 #include "state.hpp"
 #include "tests.hpp"
 #include "types.hpp"
@@ -53,7 +54,7 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
 #if CUSTOM_BLOCKING
   printf ("Custom blocking turned on.\n");
 #endif
-#if STRONG_PROPAGATE
+#if WORDWISE_PROPAGATE
   printf ("Wordwise propagation (branch-based) turned on.\n");
 #endif
 #if TWO_BIT_ADD_DIFFS
@@ -355,16 +356,18 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
 bool Propagator::cb_has_external_clause () {
   Timer timer (&stats.total_cb_time);
 
-#if STRONG_PROPAGATE
+#if WORDWISE_PROPAGATE
   if (decision_lits.empty ()) {
     Timer *sp_timer = new Timer (&stats.total_ww_propagate_time);
 #if IS_4BIT
-    strong_propagate_branch_4bit (state, decision_lits, stats);
-#else
+    wordwise_propagate_branch_4bit (state, decision_lits, stats);
+#elif IS_1BIT
     wordwise_propagate_branch_1bit (state, decision_lits, stats);
+#elif IS_LI2024
+    wordwise_propagate_branch_li2024 (state, decision_lits, stats);
 #endif
     delete sp_timer;
-    stats.strong_prop_decisions_count += decision_lits.size ();
+    stats.wordwise_prop_decisions_count += decision_lits.size ();
   }
 #endif
 

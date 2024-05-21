@@ -537,10 +537,10 @@ void Stats::print (Internal *internal) {
       sha256_stats.mendel_branching_decisions_count;
   auto &mendel_branching_stage3_count =
       sha256_stats.mendel_branching_stage3_count;
-  auto &strong_prop_decisions_count =
-      sha256_stats.strong_prop_decisions_count;
+  auto &wordwise_prop_decisions_count =
+      sha256_stats.wordwise_prop_decisions_count;
   assert (decisions_count ==
-          mendel_branching_decisions_count + strong_prop_decisions_count);
+          mendel_branching_decisions_count + wordwise_prop_decisions_count);
   PRT ("prop. total:     %15ld", sha256_stats.prop_total_calls);
   PRT ("prop. cached:    %15ld", sha256_stats.prop_cached_calls);
   PRT ("prop. cache score:%14.4f", (float) sha256_stats.prop_cached_calls /
@@ -555,7 +555,7 @@ void Stats::print (Internal *internal) {
   PRT ("ext. decisions:  %15ld", decisions_count);
   PRT ("ext. m. branch:  %15ld", mendel_branching_decisions_count);
   PRT ("ext. m. brnch s3:%15ld", mendel_branching_stage3_count);
-  PRT ("ext. ww prop.:   %15ld", strong_prop_decisions_count);
+  PRT ("ext. ww prop.:   %15ld", wordwise_prop_decisions_count);
   PRT ("DW branching ratio:  %11.4f",
        sha256_stats.dw_count.first /
            (float) (sha256_stats.dw_count.first +
