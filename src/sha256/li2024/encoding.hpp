@@ -24,8 +24,13 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
     for (int i = 0; i < state.order + 4; i++) {
       state.steps[i].a.chars = string (32, '?');
       state.steps[i].e.chars = string (32, '?');
-      if (i <= state.order)
+      if (i <= state.order) {
         state.steps[i].w.chars = string (32, '?');
+        for (int j = 0; j < 5; j++)
+          state.steps[i].b[j].chars = string (32, '?');
+        for (int j = 0; j < 4; j++)
+          state.steps[i].c[j].chars = string (33, '?');
+      }
     }
 
     printf ("Initial state:\n");
@@ -55,9 +60,18 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
 
   // Pair the prefixes with the words
   vector<pair<string, Word &>> prefix_pairs = {
-      {"xv_", state.steps[step].a}, {"xd_", state.steps[step].a},
-      {"yv_", state.steps[step].e}, {"yd_", state.steps[step].e},
-      {"wv_", state.steps[step].w}, {"wd_", state.steps[step].w},
+      {"xv_", state.steps[step].a},     {"xd_", state.steps[step].a},
+      {"yv_", state.steps[step].e},     {"yd_", state.steps[step].e},
+      {"wv_", state.steps[step].w},     {"wd_", state.steps[step].w},
+      {"bv0_", state.steps[step].b[0]}, {"bd0_", state.steps[step].b[0]},
+      {"bv1_", state.steps[step].b[1]}, {"bd1_", state.steps[step].b[1]},
+      {"bv2_", state.steps[step].b[2]}, {"bd2_", state.steps[step].b[2]},
+      {"bv3_", state.steps[step].b[3]}, {"bd3_", state.steps[step].b[3]},
+      {"bv4_", state.steps[step].b[4]}, {"bd4_", state.steps[step].b[4]},
+      {"cv0_", state.steps[step].c[0]}, {"cd0_", state.steps[step].c[0]},
+      {"cv1_", state.steps[step].c[1]}, {"cd1_", state.steps[step].c[1]},
+      {"cv2_", state.steps[step].c[2]}, {"cd2_", state.steps[step].c[2]},
+      {"cv3_", state.steps[step].c[3]}, {"cd3_", state.steps[step].c[3]},
       // {"s0_", state.steps[step].s0},
       // {"s1_", state.steps[step].s1},
       // {"sigma0_", state.steps[step].sigma0},
@@ -92,7 +106,12 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
     int id = value;
     state.vars_info[id] = {&word, step, col, var_name};
     int char_id_type =
-        (prefix == "xv_" || prefix == "yv_" || prefix == "wv_") ? 0 : 1;
+        (prefix == "xv_" || prefix == "yv_" || prefix == "wv_" ||
+         prefix == "bv0_" || prefix == "bv1_" || prefix == "bv2_" ||
+         prefix == "bv3_" || prefix == "bv4_" || prefix == "cv0_" ||
+         prefix == "cv1_" || prefix == "cv2_" || prefix == "cv3_")
+            ? 0
+            : 1;
     word.char_ids[char_id_type][col] = id;
     assert (id > 0);
 

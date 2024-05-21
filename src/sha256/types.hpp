@@ -84,7 +84,7 @@ struct Word {
   // f and g refer to the 2 blocks of SHA-256
   uint32_t ids_f[32], ids_g[32], char_ids[32];
 #else
-  uint32_t char_ids[2][32];
+  uint32_t char_ids[2][33];
 #endif
   // Differential characteristics
   string chars;
@@ -245,6 +245,10 @@ struct TwoBit {
 struct Step {
   Word a, e, w, s0, s1, sigma0, sigma1, ch, maj, k, t, add_w_r[2],
       add_t_r[2], add_e_r[1], add_a_r[2];
+#if IS_LI2024
+  Word b[5];
+  Word c[4];
+#endif
 };
 
 struct Marking {
