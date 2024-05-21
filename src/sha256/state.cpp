@@ -22,10 +22,11 @@ inline void State::refresh_char (Word &word, int index) {
 
 #if IS_LI2024
   assert (id_v != 0 && id_d != 0);
+  assert (word.chars.size () == 32 || word.chars.size () == 33);
 #else
   assert (id_f != 0 && id_g != 0 && base_id != 0);
-#endif
   assert (word.chars.size () == 32);
+#endif
 
 #if IS_4BIT
   uint8_t diff[] = {partial_assignment.get (base_id + 0),
