@@ -14,6 +14,12 @@
 #define IS_4BIT false
 #define IS_1BIT false
 
+#if IS_LI2024
+#define NUM_OPS 4
+#else
+#define NUM_OPS 10
+#endif
+
 #define LIT_TRUE 2
 #define LIT_FALSE 1
 #define LIT_UNDEF 0
@@ -26,6 +32,7 @@ enum FunctionId { ch, maj, xor3, add };
 enum AdditionId { add_a, add_e, add_w, add_t };
 
 enum VariableName {
+#if !IS_LI2024
   Unknown,
   Zero,
   A,
@@ -64,9 +71,25 @@ enum VariableName {
   Dadd_E_lc,
   Dadd_A_lc,
   Dadd_A_hc,
+#else
+  Unknown,
+  A,
+  E,
+  W,
+  B0,
+  B1,
+  B2,
+  B3,
+  B4,
+  C0,
+  C1,
+  C2,
+  C3,
+#endif
 };
 
 enum OperationId {
+#if !IS_LI2024
   op_s0,
   op_s1,
   op_sigma0,
@@ -77,6 +100,12 @@ enum OperationId {
   op_add_a,
   op_add_e,
   op_add_t,
+#else
+  op_add_b2,
+  op_add_b3,
+  op_add_b5,
+  op_add_b4,
+#endif
 };
 
 struct Word {
@@ -166,6 +195,7 @@ struct Stats {
 };
 
 struct Operations {
+#if !IS_LI2024
   struct S0 {
     SoftWord inputs[3];
     Word *outputs[1];
@@ -208,8 +238,16 @@ struct Operations {
     Word *outputs[3];
   } add_a;
 
-  SoftWord *inputs_by_op_id[10];
-  Word **outputs_by_op_id[10];
+  SoftWord *inputs_by_op_id[NUM_OPS];
+  Word **outputs_by_op_id[NUM_OPS];
+#else
+  struct AddB2 {
+    SoftWord inputs[3];
+    SoftWord outputs[2];
+  } add_b2;
+  SoftWord *inputs_by_op_id[NUM_OPS];
+  SoftWord *outputs_by_op_id[NUM_OPS];
+#endif
 };
 
 struct Reason {

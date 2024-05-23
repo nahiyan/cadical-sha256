@@ -11,9 +11,9 @@ using namespace std;
 
 namespace SHA256 {
 #if IS_1BIT
-extern string masks_by_op_id[10];
-extern pair<int, int> two_bit_diff_sizes[10];
-extern vector<int> (*two_bit_functions[10]) (vector<int>);
+extern string masks_by_op_id[NUM_OPS];
+extern pair<int, int> two_bit_diff_sizes[NUM_OPS];
+extern vector<int> (*two_bit_functions[NUM_OPS]) (vector<int>);
 
 inline void derive_2bit_equations_1bit (
     State &state, list<Equation> &current_lvl_equations, TwoBit &two_bit,

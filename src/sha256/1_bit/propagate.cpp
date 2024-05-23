@@ -6,12 +6,13 @@
 #include <sstream>
 
 namespace SHA256 {
+#if !IS_LI2024
 // Differential sizes
-pair<int, int> prop_diff_sizes[10] = {{3, 1}, {3, 1}, {3, 1}, {3, 1},
-                                      {3, 1}, {3, 1}, {6, 3}, {5, 3},
-                                      {3, 3}, {7, 3}};
+pair<int, int> prop_diff_sizes[NUM_OPS] = {{3, 1}, {3, 1}, {3, 1}, {3, 1},
+                                           {3, 1}, {3, 1}, {6, 3}, {5, 3},
+                                           {3, 3}, {7, 3}};
 // Functions by operation IDs
-vector<int> (*prop_functions[10]) (vector<int>) = {
+vector<int> (*prop_functions[NUM_OPS]) (vector<int>) = {
     xor_, xor_, xor_, xor_, maj_, ch_, add_, add_, add_, add_};
 
 int load_1bit_prop_rules (ifstream &db,
@@ -35,4 +36,5 @@ int load_1bit_prop_rules (ifstream &db,
 
   return count;
 }
+#endif
 } // namespace SHA256

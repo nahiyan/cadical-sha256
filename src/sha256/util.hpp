@@ -186,6 +186,19 @@ inline vector<int8_t> gc_values_1bit (char c) {
   }
 }
 
+inline vector<int8_t> gc_values_li2024 (char c) {
+  switch (c) {
+  case '-':
+    return {-1, -1};
+  case 'u':
+    return {1, 1};
+  case 'n':
+    return {-1, 1};
+  default:
+    return {0, 0};
+  }
+}
+
 // Compare two characteristics by their scores
 inline bool compare_gcs (char c1, char c2) {
   auto get_score = [] (char c) -> uint8_t {

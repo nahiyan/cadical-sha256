@@ -13,8 +13,8 @@ using namespace std;
 
 namespace SHA256 {
 #if IS_1BIT
-extern pair<int, int> prop_diff_sizes[10];
-extern vector<int> (*prop_functions[10]) (vector<int>);
+extern pair<int, int> prop_diff_sizes[NUM_OPS];
+extern vector<int> (*prop_functions[NUM_OPS]) (vector<int>);
 inline void custom_1bit_propagate (State &state,
                                    list<int> &propagation_lits,
                                    map<int, Reason> &reasons,

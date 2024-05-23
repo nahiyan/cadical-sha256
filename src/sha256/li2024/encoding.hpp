@@ -19,12 +19,13 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
   // Determine the order
   if (key == "order") {
     state.order = value;
+    state.end_step -= 4;
 
     // Initialize the characteristics
     for (int i = 0; i < state.order + 4; i++) {
       state.steps[i].a.chars = string (32, '?');
       state.steps[i].e.chars = string (32, '?');
-      if (i <= state.order) {
+      if (i < state.order) {
         state.steps[i].w.chars = string (32, '?');
         for (int j = 0; j < 5; j++)
           state.steps[i].b[j].chars = string (32, '?');
@@ -32,6 +33,9 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
           state.steps[i].c[j].chars = string (33, '?');
       }
     }
+
+    // Since this is the last comment, set the operations
+    state.set_operations ();
 
     printf ("Initial state:\n");
     state.soft_refresh ();
@@ -56,7 +60,7 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
   // Offset the steps for A and E
   if (actual_prefix == "xv_" || actual_prefix == "xd_" ||
       actual_prefix == "yv_" || actual_prefix == "yd_")
-    step += 4;
+    step = ABS_STEP (step);
 
   // Pair the prefixes with the words
   vector<pair<string, Word &>> prefix_pairs = {
@@ -102,6 +106,29 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
       var_name = E;
     else if (prefix == "wv_" || prefix == "wd_")
       var_name = W;
+    else if (prefix == "bv0_")
+      var_name = B0;
+    else if (prefix == "bv1_")
+      var_name = B1;
+    else if (prefix == "bv2_")
+      var_name = B2;
+    else if (prefix == "bv3_")
+      var_name = B3;
+    else if (prefix == "bv4_")
+      var_name = B4;
+    else if (prefix == "cv0_")
+      var_name = C0;
+    else if (prefix == "cv1_")
+      var_name = C1;
+    else if (prefix == "cv2_")
+      var_name = C2;
+    else if (prefix == "cv3_")
+      var_name = C3;
+
+    if (var_name == A) {
+      state.start_step = min (step, state.start_step);
+      state.end_step = max (step, state.end_step);
+    }
 
     int id = value;
     state.vars_info[id] = {&word, step, col, var_name};

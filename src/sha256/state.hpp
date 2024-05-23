@@ -23,8 +23,12 @@ public:
   clock_t total_refresh_time = 0;
   deque<vector<int>> current_trail;
   int order;
+#if !IS_LI2024
   uint32_t zero_var_id;
   Word zero_word;
+#else
+  int start_step = INT_MAX, end_step = 0;
+#endif
   Operations operations[64];
   Step steps[64 + 4];
   VarInfo vars_info[MAX_VAR_ID];
@@ -32,7 +36,7 @@ public:
       PartialAssignment (MAX_VAR_ID, &current_trail, vars_info);
 
   // Operation ID, step index, bit position
-  bool marked_operations_wordwise_prop[10][64];
+  bool marked_operations_wordwise_prop[NUM_OPS][64];
   list<list<Marking>> prop_markings_trail;
   list<list<Marking>> two_bit_markings_trail;
 

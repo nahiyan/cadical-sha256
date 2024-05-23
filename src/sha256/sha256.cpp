@@ -100,6 +100,7 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
   //         solver->is_decision (lit) ? 'd' : 'p', is_fixed ? 'f' : 'l',
   //         state.current_trail.size () - 1);
 
+#if !IS_LI2024
   // Log down the stats if it's a decision
   if (solver->is_decision (lit)) {
     assert (!state.current_trail.empty ());
@@ -139,6 +140,7 @@ void Propagator::notify_assignment (int lit, bool is_fixed) {
       break;
     }
   }
+#endif
 }
 
 void Propagator::notify_backtrack (size_t new_level) {

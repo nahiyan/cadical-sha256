@@ -44,7 +44,7 @@ void State::set_operations () {
       this->vars_info[word->ids_g[pos]].operations.push_back (
           {op_id, step, pos});
       int k = 0;
-#if ENC_TYPE == FourBit
+#if IS_4BIT
       for (; k < 4; k++)
 #endif
         this->vars_info[word->char_ids[pos] + k].operations.push_back (
@@ -60,7 +60,7 @@ void State::set_operations () {
       this->vars_info[word->ids_g[pos]].operations.push_back (
           {op_id, step, pos});
       int k = 0;
-#if ENC_TYPE == FourBit
+#if IS_4BIT
       for (; k < 4; k++)
 #endif
         this->vars_info[word->char_ids[pos] + k].operations.push_back (
@@ -69,7 +69,7 @@ void State::set_operations () {
   };
 
   // Set updated operations array
-  for (int i = 0; i < 10; i++)
+  for (int i = 0; i < NUM_OPS; i++)
     for (int j = 0; j < 64; j++)
       marked_operations_strong_prop[i][j] = false;
 
@@ -476,6 +476,82 @@ void State::print_operations () {
   }
 
   // TODO: Print the rest of the operations
+}
+#else
+void State::set_operations () {
+  auto to_vec = [] (uint32_t *ids) {
+    vector<uint32_t> vec (32);
+    for (int i = 0; i < 32; i++)
+      vec[i] = ids[i];
+    return vec;
+  };
+
+  auto to_soft_word = [this] (Word &word, int shift = 0) {
+    SoftWord soft_word;
+    for (int i = 0; i < 32; i++) {
+      int new_index = i + shift;
+      if (new_index < 0 || new_index > 31)
+        new_index = 31;
+
+      assert (word.char_ids[0][new_index] != 0);
+      soft_word.char_ids[0][i] = word.char_ids[0][new_index];
+      soft_word.char_ids[1][i] = word.char_ids[1][new_index];
+      soft_word.chars[i] = &word.chars[new_index];
+      assert (*soft_word.chars[i] != 0);
+      assert (*soft_word.chars[i] == 'u' || *soft_word.chars[i] == 'n' ||
+              *soft_word.chars[i] == '-' || *soft_word.chars[i] == '?');
+    }
+    return soft_word;
+  };
+
+  auto add_var_info_sword = [this] (SoftWord *word, int step,
+                                    OperationId op_id) {
+    for (int pos = 0; pos < 32; pos++)
+      for (int k = 0; k < 2; k++)
+        this->vars_info[word->char_ids[k][pos]].operations.push_back (
+            {op_id, step, pos});
+  };
+
+  auto add_var_info_word = [this] (Word *word, int step,
+                                   OperationId op_id) {
+    for (int pos = 0; pos < 32; pos++)
+      for (int k = 0; k < 2; k++)
+        this->vars_info[word->char_ids[k][pos]].operations.push_back (
+            {op_id, step, pos});
+  };
+
+  // Set updated operations array
+  for (int i = 0; i < NUM_OPS; i++)
+    for (int j = 0; j < 64; j++)
+      marked_operations_wordwise_prop[i][j] = false;
+
+  for (int i = 0; i < order; i++) {
+    if (i >= start_step && i <= end_step) {
+      // add.B2
+      Word *words[] = {
+          &steps[ABS_STEP (i - 4)].e,
+          &steps[i].b[0],
+          &steps[i].c[0],
+      };
+      auto &operands = operations[i].add_b2.inputs;
+
+      for (int j = 0; j < 3; j++)
+        operands[j] = to_soft_word (*words[j]);
+
+      for (int j = 0; j < 2; j++)
+        add_var_info_sword (&operands[j], i, op_add_b2);
+      add_var_info_word (&steps[i].b[2], i, op_add_b2);
+
+      // Set the outputs
+      operations[i].add_b2.outputs[0] = to_soft_word (steps[i].c[0], 1);
+      operations[i].add_b2.outputs[1] = to_soft_word (steps[i].b[2]);
+
+      operations[i].inputs_by_op_id[op_add_b2] =
+          operations[i].add_b2.inputs;
+      operations[i].outputs_by_op_id[op_add_b2] =
+          operations[i].add_b2.outputs;
+    }
+  }
 }
 #endif
 } // namespace SHA256

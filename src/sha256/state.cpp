@@ -38,6 +38,7 @@ inline void State::refresh_char (Word &word, int index) {
   uint8_t v = partial_assignment.get (id_v);
   uint8_t d = partial_assignment.get (id_d);
   refresh_li2024_char (v, d, c);
+  assert (c == 'u' || c == 'n' || c == '-' || c == '?');
 #else
   uint8_t x = partial_assignment.get (id_f);
   uint8_t x_ = partial_assignment.get (id_g);
@@ -52,8 +53,24 @@ inline void State::refresh_char (Word &word, int index) {
   // Mark the operation if the new char has a higher score
   if (c_before == '?' || compare_gcs (c_before, c_after)) {
 #if IS_LI2024
-    uint32_t base_id = v;
+    uint32_t base_id = id_v;
+    auto &operations = vars_info[base_id].operations;
+    for (auto &operation : operations) {
+      auto &op_id = get<0> (operation);
+      auto &step = get<1> (operation);
+      auto &pos = get<2> (operation);
+      prop_markings_trail.back ().push_back ({op_id, step, pos, base_id});
+#if !TWO_BIT_ADD_DIFFS
+      if (op_id < op_add_b2)
 #endif
+        two_bit_markings_trail.back ().push_back (
+            {op_id, step, pos, base_id});
+#if WORDWISE_PROPAGATE
+      if (op_id >= op_add_b2)
+        marked_operations_wordwise_prop[op_id][step] = true;
+#endif
+    }
+#else
     auto &operations = vars_info[base_id].operations;
     for (auto &operation : operations) {
       auto &op_id = get<0> (operation);
@@ -70,6 +87,7 @@ inline void State::refresh_char (Word &word, int index) {
         marked_operations_wordwise_prop[op_id][step] = true;
 #endif
     }
+#endif
   }
 }
 
