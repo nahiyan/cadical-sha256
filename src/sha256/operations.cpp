@@ -527,29 +527,102 @@ void State::set_operations () {
 
   for (int i = 0; i < order; i++) {
     if (i >= start_step && i <= end_step) {
-      // add.B2
-      Word *words[] = {
-          &steps[ABS_STEP (i - 4)].e,
-          &steps[i].b[0],
-          &steps[i].c[0],
-      };
-      auto &operands = operations[i].add_b2.inputs;
+      { // add.B2
+        Word *words[] = {
+            &steps[ABS_STEP (i - 4)].e,
+            &steps[i].b[0],
+            &steps[i].c[0],
+        };
+        auto &operands = operations[i].add_b2.inputs;
 
-      for (int j = 0; j < 3; j++)
-        operands[j] = to_soft_word (*words[j]);
+        for (int j = 0; j < 3; j++)
+          operands[j] = to_soft_word (*words[j]);
 
-      for (int j = 0; j < 2; j++)
-        add_var_info_sword (&operands[j], i, op_add_b2);
-      add_var_info_word (&steps[i].b[2], i, op_add_b2);
+        for (int j = 0; j < 2; j++)
+          add_var_info_sword (&operands[j], i, op_add_b2);
+        add_var_info_word (&steps[i].b[2], i, op_add_b2);
 
-      // Set the outputs
-      operations[i].add_b2.outputs[0] = to_soft_word (steps[i].c[0], 1);
-      operations[i].add_b2.outputs[1] = to_soft_word (steps[i].b[2]);
+        // Set the outputs
+        operations[i].add_b2.outputs[0] = to_soft_word (steps[i].c[0], 1);
+        operations[i].add_b2.outputs[1] = to_soft_word (steps[i].b[2]);
 
-      operations[i].inputs_by_op_id[op_add_b2] =
-          operations[i].add_b2.inputs;
-      operations[i].outputs_by_op_id[op_add_b2] =
-          operations[i].add_b2.outputs;
+        operations[i].inputs_by_op_id[op_add_b2] =
+            operations[i].add_b2.inputs;
+        operations[i].outputs_by_op_id[op_add_b2] =
+            operations[i].add_b2.outputs;
+      }
+      { // add.B3
+        Word *words[] = {
+            &steps[i].b[2],
+            &steps[i].b[1],
+            &steps[i].c[1],
+        };
+        auto &operands = operations[i].add_b3.inputs;
+
+        for (int j = 0; j < 3; j++)
+          operands[j] = to_soft_word (*words[j]);
+
+        for (int j = 0; j < 2; j++)
+          add_var_info_sword (&operands[j], i, op_add_b3);
+        add_var_info_word (&steps[i].b[3], i, op_add_b3);
+
+        // Set the outputs
+        operations[i].add_b3.outputs[0] = to_soft_word (steps[i].c[1], 1);
+        operations[i].add_b3.outputs[1] = to_soft_word (steps[i].b[3]);
+
+        operations[i].inputs_by_op_id[op_add_b3] =
+            operations[i].add_b3.inputs;
+        operations[i].outputs_by_op_id[op_add_b3] =
+            operations[i].add_b3.outputs;
+      }
+      { // add.B4
+        Word *words[] = {
+            &steps[ABS_STEP (i - 4)].a,
+            &steps[i].b[5],
+            &steps[i].c[3],
+        };
+        auto &operands = operations[i].add_b4.inputs;
+
+        for (int j = 0; j < 3; j++)
+          operands[j] = to_soft_word (*words[j]);
+
+        for (int j = 0; j < 2; j++)
+          add_var_info_sword (&operands[j], i, op_add_b4);
+        add_var_info_word (&steps[i].b[4], i, op_add_b4);
+
+        // Set the outputs
+        operations[i].add_b4.outputs[0] = to_soft_word (steps[i].c[3], 1);
+        operations[i].add_b4.outputs[1] = to_soft_word (steps[i].b[4]);
+
+        operations[i].inputs_by_op_id[op_add_b4] =
+            operations[i].add_b4.inputs;
+        operations[i].outputs_by_op_id[op_add_b4] =
+            operations[i].add_b4.outputs;
+      }
+      { // add.B5
+        Word *words[] = {
+            &steps[i].w,
+            &steps[i].b[3],
+            &steps[i].c[2],
+        };
+        auto &operands = operations[i].add_b5.inputs;
+
+        for (int j = 0; j < 3; j++)
+          operands[j] = to_soft_word (*words[j]);
+
+        for (int j = 0; j < 2; j++)
+          add_var_info_sword (&operands[j], i, op_add_b5);
+        add_var_info_word (&steps[i].b[5], i, op_add_b5);
+
+        // Set the outputs
+        operations[i].add_b5.outputs[0] = to_soft_word (steps[i].c[2], 1);
+        operations[i].add_b5.outputs[1] = to_soft_word (steps[i].b[5]);
+
+        operations[i].inputs_by_op_id[op_add_b5] =
+            operations[i].add_b5.inputs;
+        operations[i].outputs_by_op_id[op_add_b5] =
+            operations[i].add_b5.outputs;
+      }
     }
   }
 }

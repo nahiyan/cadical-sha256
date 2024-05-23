@@ -81,10 +81,19 @@ enum VariableName {
   B2,
   B3,
   B4,
+  B5,
+  B6,
+  B7,
+  B8,
+  B9,
   C0,
   C1,
   C2,
   C3,
+  C4,
+  C5,
+  C6,
+  C7,
 #endif
 };
 
@@ -245,6 +254,18 @@ struct Operations {
     SoftWord inputs[3];
     SoftWord outputs[2];
   } add_b2;
+  struct AddB3 {
+    SoftWord inputs[3];
+    SoftWord outputs[2];
+  } add_b3;
+  struct AddB4 {
+    SoftWord inputs[3];
+    SoftWord outputs[2];
+  } add_b4;
+  struct AddB5 {
+    SoftWord inputs[3];
+    SoftWord outputs[2];
+  } add_b5;
   SoftWord *inputs_by_op_id[NUM_OPS];
   SoftWord *outputs_by_op_id[NUM_OPS];
 #endif
@@ -284,8 +305,8 @@ struct Step {
   Word a, e, w, s0, s1, sigma0, sigma1, ch, maj, k, t, add_w_r[2],
       add_t_r[2], add_e_r[1], add_a_r[2];
 #if IS_LI2024
-  Word b[5];
-  Word c[4];
+  Word b[10];
+  Word c[8];
 #endif
 };
 

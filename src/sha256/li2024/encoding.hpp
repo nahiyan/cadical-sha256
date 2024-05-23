@@ -27,9 +27,9 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
       state.steps[i].e.chars = string (32, '?');
       if (i < state.order) {
         state.steps[i].w.chars = string (32, '?');
-        for (int j = 0; j < 5; j++)
+        for (int j = 0; j < 10; j++)
           state.steps[i].b[j].chars = string (32, '?');
-        for (int j = 0; j < 4; j++)
+        for (int j = 0; j < 8; j++)
           state.steps[i].c[j].chars = string (33, '?');
       }
     }
@@ -72,25 +72,19 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
       {"bv2_", state.steps[step].b[2]}, {"bd2_", state.steps[step].b[2]},
       {"bv3_", state.steps[step].b[3]}, {"bd3_", state.steps[step].b[3]},
       {"bv4_", state.steps[step].b[4]}, {"bd4_", state.steps[step].b[4]},
+      {"bv5_", state.steps[step].b[5]}, {"bd5_", state.steps[step].b[5]},
+      {"bv6_", state.steps[step].b[6]}, {"bd6_", state.steps[step].b[6]},
+      {"bv7_", state.steps[step].b[7]}, {"bd7_", state.steps[step].b[7]},
+      {"bv8_", state.steps[step].b[8]}, {"bd8_", state.steps[step].b[8]},
+      {"bv9_", state.steps[step].b[9]}, {"bd9_", state.steps[step].b[9]},
       {"cv0_", state.steps[step].c[0]}, {"cd0_", state.steps[step].c[0]},
       {"cv1_", state.steps[step].c[1]}, {"cd1_", state.steps[step].c[1]},
       {"cv2_", state.steps[step].c[2]}, {"cd2_", state.steps[step].c[2]},
       {"cv3_", state.steps[step].c[3]}, {"cd3_", state.steps[step].c[3]},
-      // {"s0_", state.steps[step].s0},
-      // {"s1_", state.steps[step].s1},
-      // {"sigma0_", state.steps[step].sigma0},
-      // {"sigma1_", state.steps[step].sigma1},
-      // {"maj_", state.steps[step].maj},
-      // {"if_", state.steps[step].ch},
-      // {"T_", state.steps[step].t},
-      // {"K_", state.steps[step].k},
-      // {"add.W.r0_", state.steps[step].add_w_r[0]},
-      // {"add.W.r1_", state.steps[step].add_w_r[1]},
-      // {"add.T.r0_", state.steps[step].add_t_r[0]},
-      // {"add.T.r1_", state.steps[step].add_t_r[1]},
-      // {"add.E.r0_", state.steps[step].add_e_r[0]},
-      // {"add.A.r0_", state.steps[step].add_a_r[0]},
-      // {"add.A.r1_", state.steps[step].add_a_r[1]},
+      {"cv4_", state.steps[step].c[4]}, {"cd4_", state.steps[step].c[4]},
+      {"cv5_", state.steps[step].c[5]}, {"cd5_", state.steps[step].c[5]},
+      {"cv6_", state.steps[step].c[6]}, {"cd6_", state.steps[step].c[6]},
+      {"cv7_", state.steps[step].c[7]}, {"cd7_", state.steps[step].c[7]},
   };
 
   for (auto &pair : prefix_pairs) {
@@ -116,6 +110,16 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
       var_name = B3;
     else if (prefix == "bv4_")
       var_name = B4;
+    else if (prefix == "bv5_")
+      var_name = B5;
+    else if (prefix == "bv6_")
+      var_name = B6;
+    else if (prefix == "bv7_")
+      var_name = B7;
+    else if (prefix == "bv8_")
+      var_name = B8;
+    else if (prefix == "bv9_")
+      var_name = B9;
     else if (prefix == "cv0_")
       var_name = C0;
     else if (prefix == "cv1_")
@@ -124,6 +128,14 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
       var_name = C2;
     else if (prefix == "cv3_")
       var_name = C3;
+    else if (prefix == "cv4_")
+      var_name = C4;
+    else if (prefix == "cv5_")
+      var_name = C5;
+    else if (prefix == "cv6_")
+      var_name = C6;
+    else if (prefix == "cv7_")
+      var_name = C7;
 
     if (var_name == A) {
       state.start_step = min (step, state.start_step);
@@ -135,8 +147,11 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
     int char_id_type =
         (prefix == "xv_" || prefix == "yv_" || prefix == "wv_" ||
          prefix == "bv0_" || prefix == "bv1_" || prefix == "bv2_" ||
-         prefix == "bv3_" || prefix == "bv4_" || prefix == "cv0_" ||
-         prefix == "cv1_" || prefix == "cv2_" || prefix == "cv3_")
+         prefix == "bv3_" || prefix == "bv4_" || prefix == "bv5_" ||
+         prefix == "bv6_" || prefix == "bv7_" || prefix == "bv8_" ||
+         prefix == "bv9_" || prefix == "cv0_" || prefix == "cv1_" ||
+         prefix == "cv2_" || prefix == "cv3_" || prefix == "cv4_" ||
+         prefix == "cv5_" || prefix == "cv6_" || prefix == "cv7_")
             ? 0
             : 1;
     word.char_ids[char_id_type][col] = id;
