@@ -1,7 +1,6 @@
 #ifndef _sha256_graph_hpp_INCLUDED
 #define _sha256_graph_hpp_INCLUDED
 
-#include "util.hpp"
 #include <cassert>
 #include <cinttypes>
 #include <climits>

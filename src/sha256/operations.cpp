@@ -490,8 +490,10 @@ void State::set_operations () {
     SoftWord soft_word;
     for (int i = 0; i < 32; i++) {
       int new_index = i + shift;
-      if (new_index < 0 || new_index > 31)
-        new_index = 31;
+      assert (new_index == 32
+                  ? vars_info[word.char_ids[0][0]].identity.name >= C0 &&
+                        vars_info[word.char_ids[0][0]].identity.name <= C7
+                  : new_index >= 0 && new_index <= 31);
 
       assert (word.char_ids[0][new_index] != 0);
       soft_word.char_ids[0][i] = word.char_ids[0][new_index];

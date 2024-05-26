@@ -195,6 +195,7 @@ void test_rotate_word () {
 }
 
 void test_otf_propagate () {
+#if !IS_LI2024
   {
     auto result = otf_propagate (add_, "-0n10n", "???");
     assert (result.second == "5x-");
@@ -230,9 +231,11 @@ void test_otf_propagate () {
     auto result = otf_propagate (xor_, "-x?", "-");
     assert (result.first == "-xx");
   }
+#endif
 }
 
 void test_otf_2bit_eqs () {
+#if !IS_LI2024
   {
     auto equations = otf_2bit_eqs (
         add_, "-0n10n", "5x-",
@@ -284,6 +287,7 @@ void test_otf_2bit_eqs () {
     assert (equations[1].ids[1] == 4);
     assert (equations[1].diff == 1);
   }
+#endif
 }
 
 void test_consistency_checker () {

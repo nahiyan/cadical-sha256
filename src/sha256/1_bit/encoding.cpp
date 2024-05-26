@@ -1,5 +1,4 @@
 #include "../sha256.hpp"
-#include "../state.hpp"
 #include <cassert>
 #include <regex>
 #include <sstream>

@@ -2,6 +2,7 @@
 #define _sha256_util_hpp_INCLUDED
 
 #include "NTL/vec_GF2.h"
+#include "types.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -98,10 +99,17 @@ vector<T> rotate_vec (vector<T> vec, int amount_, bool is_circular = true) {
   return vec;
 }
 
+#if IS_LI2024
+inline vector<int> add_ (vector<int> inputs) {
+  int sum = accumulate (inputs.begin (), inputs.end (), 0);
+  return {sum >> 1 & 1, sum & 1};
+}
+#else
 inline vector<int> add_ (vector<int> inputs) {
   int sum = accumulate (inputs.begin (), inputs.end (), 0);
   return {sum >> 2 & 1, sum >> 1 & 1, sum & 1};
 }
+#endif
 inline vector<int> ch_ (vector<int> inputs) {
   int x = inputs[0], y = inputs[1], z = inputs[2];
   return {(x & y) ^ (x & z) ^ z};

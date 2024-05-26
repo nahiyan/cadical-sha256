@@ -7,6 +7,7 @@
 #include "4_bit/encoding.hpp"
 #include "4_bit/propagate.hpp"
 #include "li2024/encoding.hpp"
+#include "li2024/propagate.hpp"
 #include "li2024/wordwise_propagate.hpp"
 #include "state.hpp"
 #include "tests.hpp"
@@ -284,8 +285,10 @@ int Propagator::cb_propagate () {
     Timer *prop_timer = new Timer (&stats.total_prop_time);
 #if IS_4BIT
     custom_4bit_propagate (state, propagation_lits, reasons, stats);
-#else
+#elif IS_1BIT
     custom_1bit_propagate (state, propagation_lits, reasons, stats);
+#else
+    custom_li2024_propagate (state, propagation_lits, reasons, stats);
 #endif
     delete prop_timer;
   }
