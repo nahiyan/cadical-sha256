@@ -92,7 +92,12 @@ extern cache::lru_cache<string, pair<string, string>> otf_prop_cache;
 inline pair<string, string>
 otf_propagate (vector<int> (*func) (vector<int> inputs), string inputs,
                string outputs, Stats *stats = NULL) {
+#if IS_LI2024
+  assert (func == add_ ? outputs.size () == 2 : true);
+#else
   assert (func == add_ ? outputs.size () == 3 : true);
+#endif
+
   if (stats != NULL)
     stats->prop_total_calls++;
 

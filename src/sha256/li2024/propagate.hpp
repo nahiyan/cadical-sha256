@@ -37,18 +37,16 @@ inline void custom_li2024_propagate (State &state,
       auto &output_words = state.operations[step_i].outputs_by_op_id[op_id];
       string input_chars, output_chars;
       bool basis_found = false;
-      for (int k = 0; k < 2; k++)
-        for (int i = 0; i < input_size; i++) {
-          input_chars += *input_words[i].chars[bit_pos];
-          if (input_words[i].char_ids[k][bit_pos] == basis)
-            basis_found = true;
-        }
-      for (int k = 0; k < 2; k++)
-        for (int i = 0; i < output_size; i++) {
-          output_chars += output_words[i].chars[bit_pos];
-          if (output_words[i].char_ids[k][bit_pos] == basis)
-            basis_found = true;
-        }
+      for (int i = 0; i < input_size; i++) {
+        input_chars += *input_words[i].chars[bit_pos];
+        if (input_words[i].char_ids[0][bit_pos] == basis)
+          basis_found = true;
+      }
+      for (int i = 0; i < output_size; i++) {
+        output_chars += *output_words[i].chars[bit_pos];
+        if (output_words[i].char_ids[0][bit_pos] == basis)
+          basis_found = true;
+      }
       assert (basis_found);
       auto &function = prop_functions[op_id];
 
@@ -65,6 +63,8 @@ inline void custom_li2024_propagate (State &state,
           q_count == input_size + output_size)
         continue;
 
+      assert (input_chars.size () == input_size);
+      assert (output_chars.size () == output_size);
       // Propagate
       auto output =
           otf_propagate (function, input_chars, output_chars, &stats);
@@ -90,7 +90,7 @@ inline void custom_li2024_propagate (State &state,
                           input_words[x].char_ids[1][bit_pos]};
 
         // Add lits
-        auto table_values = gc_values_1bit (input_chars[x]);
+        auto table_values = gc_values_li2024 (input_chars[x]);
         for (int y = 0; y < 2; y++) {
           auto &id = ids[y];
           int lit = table_values[y] * id;
@@ -104,7 +104,7 @@ inline void custom_li2024_propagate (State &state,
         if (prop_input[x] == '#')
           continue;
 
-        auto prop_table_values = gc_values_1bit (prop_input[x]);
+        auto prop_table_values = gc_values_li2024 (prop_input[x]);
         for (int y = 1; y >= 0; y--) {
           auto &id = ids[y];
           if (prop_table_values[y] == 0)
