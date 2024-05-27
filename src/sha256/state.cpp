@@ -38,7 +38,7 @@ inline void State::refresh_char (Word &word, int index) {
   uint8_t v = partial_assignment.get (id_v);
   uint8_t d = partial_assignment.get (id_d);
   refresh_li2024_char (v, d, c);
-  assert (c == 'u' || c == 'n' || c == '-' || c == '?');
+  assert (c == 'u' || c == 'n' || c == '-' || c == '?' || c == 'x');
 #else
   uint8_t x = partial_assignment.get (id_f);
   uint8_t x_ = partial_assignment.get (id_g);

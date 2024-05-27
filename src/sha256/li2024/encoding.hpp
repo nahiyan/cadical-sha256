@@ -100,41 +100,41 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
       var_name = E;
     else if (prefix == "wv_" || prefix == "wd_")
       var_name = W;
-    else if (prefix == "bv0_")
+    else if (prefix == "bv0_" || prefix == "bd0_")
       var_name = B0;
-    else if (prefix == "bv1_")
+    else if (prefix == "bv1_" || prefix == "bd1_")
       var_name = B1;
-    else if (prefix == "bv2_")
+    else if (prefix == "bv2_" || prefix == "bd2_")
       var_name = B2;
-    else if (prefix == "bv3_")
+    else if (prefix == "bv3_" || prefix == "bd3_")
       var_name = B3;
-    else if (prefix == "bv4_")
+    else if (prefix == "bv4_" || prefix == "bd4_")
       var_name = B4;
-    else if (prefix == "bv5_")
+    else if (prefix == "bv5_" || prefix == "bd5_")
       var_name = B5;
-    else if (prefix == "bv6_")
+    else if (prefix == "bv6_" || prefix == "bd6_")
       var_name = B6;
-    else if (prefix == "bv7_")
+    else if (prefix == "bv7_" || prefix == "bd7_")
       var_name = B7;
-    else if (prefix == "bv8_")
+    else if (prefix == "bv8_" || prefix == "bd8_")
       var_name = B8;
-    else if (prefix == "bv9_")
+    else if (prefix == "bv9_" || prefix == "bd9_")
       var_name = B9;
-    else if (prefix == "cv0_")
+    else if (prefix == "cv0_" || prefix == "cd0_")
       var_name = C0;
-    else if (prefix == "cv1_")
+    else if (prefix == "cv1_" || prefix == "cd1_")
       var_name = C1;
-    else if (prefix == "cv2_")
+    else if (prefix == "cv2_" || prefix == "cd2_")
       var_name = C2;
-    else if (prefix == "cv3_")
+    else if (prefix == "cv3_" || prefix == "cd3_")
       var_name = C3;
-    else if (prefix == "cv4_")
+    else if (prefix == "cv4_" || prefix == "cd4_")
       var_name = C4;
-    else if (prefix == "cv5_")
+    else if (prefix == "cv5_" || prefix == "cd5_")
       var_name = C5;
-    else if (prefix == "cv6_")
+    else if (prefix == "cv6_" || prefix == "cd6_")
       var_name = C6;
-    else if (prefix == "cv7_")
+    else if (prefix == "cv7_" || prefix == "cd7_")
       var_name = C7;
 
     if (var_name == A) {
@@ -157,14 +157,15 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
     word.char_ids[char_id_type][col] = id;
     assert (id > 0);
 
+    int word_size = (var_name >= C0 && var_name <= C7 ? 33 : 32);
     bool all_set = true;
-    for (int i = 0; i < 32; i++)
+    for (int i = 0; i < word_size; i++)
       if (word.char_ids[0][i] == 0 || word.char_ids[1][i] == 0) {
         all_set = false;
         break;
       }
     if (all_set)
-      for (int i = 0; i < 32; i++) {
+      for (int i = 0; i < word_size; i++) {
         solver->add_observed_var (word.char_ids[0][i]);
         solver->add_observed_var (word.char_ids[1][i]);
       }

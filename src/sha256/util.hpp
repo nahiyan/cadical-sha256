@@ -102,6 +102,7 @@ vector<T> rotate_vec (vector<T> vec, int amount_, bool is_circular = true) {
 #if IS_LI2024
 inline vector<int> add_ (vector<int> inputs) {
   int sum = accumulate (inputs.begin (), inputs.end (), 0);
+  assert ((sum >> 2 & 1) == 0);
   return {sum >> 1 & 1, sum & 1};
 }
 #else
@@ -202,6 +203,16 @@ inline vector<int8_t> gc_values_li2024 (char c) {
     return {1, 1};
   case 'n':
     return {-1, 1};
+  case 'x':
+    return {0, 1};
+  case '0':
+    return {0, -1};
+  case '1':
+    return {0, -1};
+  // case '5':
+  //   return {-1, 0};
+  // case 'A':
+  //   return {1, 0};
   default:
     return {0, 0};
   }
