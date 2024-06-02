@@ -125,13 +125,8 @@ inline void custom_li2024_propagate (State &state,
 
       // Construct the antecedent with outputs
       for (long x = 0; x < output_size; x++) {
-        // Ignore the high carry output if addends can't add up to >= 4
-        if (function == add_ && x == 0 &&
-            (input_size - const_zeroes_count) < 4)
-          continue;
-
-        uint32_t ids[] = {output_words[x].char_ids[0][bit_pos],
-                          output_words[x].char_ids[1][bit_pos]};
+        uint32_t ids[] = {output_words[x]->char_ids[0][bit_pos],
+                          output_words[x]->char_ids[1][bit_pos]};
 
         auto table_values = gc_values_li2024 (output_chars[x]);
         bool has_output_antecedent = false;
