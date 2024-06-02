@@ -15,6 +15,10 @@ inline void refresh_li2024_char (uint8_t v, uint8_t d, char &c) {
     c = 'u';
   else if (v == LIT_FALSE && d == LIT_TRUE)
     c = 'n';
+  else if (d == LIT_TRUE)
+    c = 'x';
+  else if (v == LIT_FALSE || d == LIT_FALSE)
+    c = '-';
   else
     c = '?';
 }

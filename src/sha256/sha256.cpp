@@ -308,7 +308,7 @@ int Propagator::cb_propagate () {
   }
 
   // printf ("Debug: propagate %d (var %d)\n", lit,
-  //         state.var_info[abs (lit)].name);
+  //         state.vars_info[abs (lit)].identity.name);
   propagation_lits.pop_front ();
   assert (reason_it->second.antecedent.size () > 0);
 

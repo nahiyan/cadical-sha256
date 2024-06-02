@@ -37,7 +37,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
     return chars;
   };
 
-  for (int op_id = op_add_w; op_id < op_add_t; op_id++)
+  for (int op_id = op_add_w; op_id <= op_add_t; op_id++)
     for (int step_i = 0; step_i < state.order; step_i++) {
       auto &marked_op =
           state.marked_operations_strong_prop[(OperationId) op_id][step_i];

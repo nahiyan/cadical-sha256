@@ -529,101 +529,78 @@ void State::set_operations () {
 
   for (int i = 0; i < order; i++) {
     if (i >= start_step && i <= end_step) {
-      { // add.B2
+      { // add.A
         Word *words[] = {
-            &steps[ABS_STEP (i - 4)].e,
-            &steps[i].b[0],
-            &steps[i].c[0],
+            &steps[ABS_STEP (i)].e, &steps[ABS_STEP (i - 4)].a,
+            &steps[i].b[6], &steps[i].b[7],
+            // Note: Carries aren't included
         };
-        auto &operands = operations[i].add_b2.inputs;
+        auto &operands = operations[i].add_a.inputs;
 
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < 4; j++)
           operands[j] = to_soft_word (*words[j]);
 
-        for (int j = 0; j < 2; j++)
-          add_var_info_sword (&operands[j], i, op_add_b2);
-        add_var_info_word (&steps[i].b[2], i, op_add_b2);
+        for (int j = 0; j < 4; j++)
+          add_var_info_sword (&operands[j], i, op_add_a);
+        add_var_info_word (&steps[ABS_STEP (i)].a, i, op_add_a);
 
         // Set the outputs
-        operations[i].add_b2.outputs[0] = to_soft_word (steps[i].c[0], 1);
-        operations[i].add_b2.outputs[1] = to_soft_word (steps[i].b[2]);
+        // Note: Carries aren't included
+        operations[i].add_a.outputs[2] = &steps[ABS_STEP (i)].a;
 
-        operations[i].inputs_by_op_id[op_add_b2] =
-            operations[i].add_b2.inputs;
-        operations[i].outputs_by_op_id[op_add_b2] =
-            operations[i].add_b2.outputs;
+        operations[i].inputs_by_op_id[op_add_a] =
+            operations[i].add_a.inputs;
+        operations[i].outputs_by_op_id[op_add_a] =
+            operations[i].add_a.outputs;
       }
-      { // add.B3
+      { // add.E
         Word *words[] = {
-            &steps[i].b[2],
-            &steps[i].b[1],
-            &steps[i].c[1],
+            &steps[ABS_STEP (i - 4)].a, &steps[ABS_STEP (i - 4)].e,
+            &steps[i].b[0], &steps[i].b[1], &steps[i].w
+            // Note: K is not included
+            // Note: Carries aren't included
         };
-        auto &operands = operations[i].add_b3.inputs;
+        auto &operands = operations[i].add_e.inputs;
 
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < 5; j++)
           operands[j] = to_soft_word (*words[j]);
 
-        for (int j = 0; j < 2; j++)
-          add_var_info_sword (&operands[j], i, op_add_b3);
-        add_var_info_word (&steps[i].b[3], i, op_add_b3);
+        for (int j = 0; j < 5; j++)
+          add_var_info_sword (&operands[j], i, op_add_e);
+        add_var_info_word (&steps[ABS_STEP (i)].e, i, op_add_e);
 
         // Set the outputs
-        operations[i].add_b3.outputs[0] = to_soft_word (steps[i].c[1], 1);
-        operations[i].add_b3.outputs[1] = to_soft_word (steps[i].b[3]);
+        // Note: Carries aren't included
+        operations[i].add_e.outputs[2] = &steps[ABS_STEP (i)].e;
 
-        operations[i].inputs_by_op_id[op_add_b3] =
-            operations[i].add_b3.inputs;
-        operations[i].outputs_by_op_id[op_add_b3] =
-            operations[i].add_b3.outputs;
+        operations[i].inputs_by_op_id[op_add_e] =
+            operations[i].add_e.inputs;
+        operations[i].outputs_by_op_id[op_add_e] =
+            operations[i].add_e.outputs;
       }
-      { // add.B4
+      if (i >= 16) { // add.W
         Word *words[] = {
-            &steps[ABS_STEP (i - 4)].a,
-            &steps[i].b[5],
-            &steps[i].c[3],
+            &steps[i].mb[0], &steps[i - 7].w, &steps[i].mb[2],
+            &steps[i - 16].w
+            // Note: Carries aren't included
         };
-        auto &operands = operations[i].add_b4.inputs;
+        auto &operands = operations[i].add_w.inputs;
 
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < 4; j++)
           operands[j] = to_soft_word (*words[j]);
 
-        for (int j = 0; j < 2; j++)
-          add_var_info_sword (&operands[j], i, op_add_b4);
-        add_var_info_word (&steps[i].b[4], i, op_add_b4);
+        for (int j = 0; j < 4; j++)
+          add_var_info_sword (&operands[j], i, op_add_w);
+        add_var_info_word (&steps[i].w, i, op_add_w);
 
         // Set the outputs
-        operations[i].add_b4.outputs[0] = to_soft_word (steps[i].c[3], 1);
-        operations[i].add_b4.outputs[1] = to_soft_word (steps[i].b[4]);
+        // Note: Carries aren't included
+        operations[i].add_w.outputs[2] = &steps[i].w;
 
-        operations[i].inputs_by_op_id[op_add_b4] =
-            operations[i].add_b4.inputs;
-        operations[i].outputs_by_op_id[op_add_b4] =
-            operations[i].add_b4.outputs;
-      }
-      { // add.B5
-        Word *words[] = {
-            &steps[i].w,
-            &steps[i].b[3],
-            &steps[i].c[2],
-        };
-        auto &operands = operations[i].add_b5.inputs;
-
-        for (int j = 0; j < 3; j++)
-          operands[j] = to_soft_word (*words[j]);
-
-        for (int j = 0; j < 2; j++)
-          add_var_info_sword (&operands[j], i, op_add_b5);
-        add_var_info_word (&steps[i].b[5], i, op_add_b5);
-
-        // Set the outputs
-        operations[i].add_b5.outputs[0] = to_soft_word (steps[i].c[2], 1);
-        operations[i].add_b5.outputs[1] = to_soft_word (steps[i].b[5]);
-
-        operations[i].inputs_by_op_id[op_add_b5] =
-            operations[i].add_b5.inputs;
-        operations[i].outputs_by_op_id[op_add_b5] =
-            operations[i].add_b5.outputs;
+        operations[i].inputs_by_op_id[op_add_w] =
+            operations[i].add_w.inputs;
+        operations[i].outputs_by_op_id[op_add_w] =
+            operations[i].add_w.outputs;
       }
     }
   }

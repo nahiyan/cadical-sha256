@@ -61,12 +61,12 @@ inline void State::refresh_char (Word &word, int index) {
       auto &pos = get<2> (operation);
       prop_markings_trail.back ().push_back ({op_id, step, pos, base_id});
 #if !TWO_BIT_ADD_DIFFS
-      if (op_id < op_add_b2)
+      if (op_id < op_add_w)
 #endif
         two_bit_markings_trail.back ().push_back (
             {op_id, step, pos, base_id});
 #if WORDWISE_PROPAGATE
-      if (op_id >= op_add_b2)
+      if (op_id >= op_add_w)
         marked_operations_wordwise_prop[op_id][step] = true;
 #endif
     }

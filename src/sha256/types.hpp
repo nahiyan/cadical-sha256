@@ -16,7 +16,7 @@
 #define IS_1BIT false
 
 #if IS_LI2024
-#define NUM_OPS 4
+#define NUM_OPS 9
 #else
 #define NUM_OPS 10
 #endif
@@ -95,6 +95,8 @@ enum VariableName {
   C5,
   C6,
   C7,
+  MB0,
+  MB2,
 #endif
 };
 
@@ -111,10 +113,19 @@ enum OperationId {
   op_add_e,
   op_add_t,
 #else
-  op_add_b2,
-  op_add_b3,
-  op_add_b5,
-  op_add_b4,
+  op_s0,
+  op_s1,
+  op_sigma0,
+  op_sigma1,
+  op_maj,
+  op_ch,
+  op_add_w,
+  op_add_a,
+  op_add_e,
+// op_add_b2,
+// op_add_b3,
+// op_add_b5,
+// op_add_b4,
 #endif
 };
 
@@ -251,29 +262,67 @@ struct Operations {
   SoftWord *inputs_by_op_id[NUM_OPS];
   Word **outputs_by_op_id[NUM_OPS];
 #else
-  struct AddB2 {
-    SoftWord inputs[3];
-    SoftWord outputs[2];
-  } add_b2;
-  struct AddB3 {
-    SoftWord inputs[3];
-    SoftWord outputs[2];
-  } add_b3;
-  struct AddB4 {
-    SoftWord inputs[3];
-    SoftWord outputs[2];
-  } add_b4;
-  struct AddB5 {
-    SoftWord inputs[3];
-    SoftWord outputs[2];
-  } add_b5;
+  // struct S0 {
+  //   SoftWord inputs[3];
+  //   Word *outputs[1];
+  // } s0;
+  // struct S1 {
+  //   SoftWord inputs[3];
+  //   Word *outputs[1];
+  // } s1;
+  // struct Sigma0 {
+  //   SoftWord inputs[3];
+  //   Word *outputs[1];
+  // } sigma0;
+  // struct Sigma1 {
+  //   SoftWord inputs[3];
+  //   Word *outputs[1];
+  // } sigma1;
+  // // All the variable IDs stored in the following soft words are
+  // redundant struct Maj {
+  //   SoftWord inputs[3];
+  //   Word *outputs[1];
+  // } maj;
+  // struct Ch {
+  //   SoftWord inputs[3];
+  //   Word *outputs[1];
+  // } ch;
+  struct AddW {
+    SoftWord inputs[6];
+    Word *outputs[3];
+  } add_w;
+  struct AddE {
+    SoftWord inputs[8];
+    Word *outputs[3];
+  } add_e;
+  struct AddA {
+    SoftWord inputs[6];
+    Word *outputs[3];
+  } add_a;
+  // struct AddB2 {
+  //   SoftWord inputs[3];
+  //   SoftWord outputs[2];
+  // } add_b2;
+  // struct AddB3 {
+  //   SoftWord inputs[3];
+  //   SoftWord outputs[2];
+  // } add_b3;
+  // struct AddB4 {
+  //   SoftWord inputs[3];
+  //   SoftWord outputs[2];
+  // } add_b4;
+  // struct AddB5 {
+  //   SoftWord inputs[3];
+  //   SoftWord outputs[2];
+  // } add_b5;
   SoftWord *inputs_by_op_id[NUM_OPS];
-  SoftWord *outputs_by_op_id[NUM_OPS];
+  Word **outputs_by_op_id[NUM_OPS];
 #endif
 };
 
 struct Reason {
   vector<int> antecedent;
+  pair<string, string> differentials;
 };
 
 struct Equation {
@@ -308,6 +357,7 @@ struct Step {
 #if IS_LI2024
   Word b[10];
   Word c[8];
+  Word mb[5];
 #endif
 };
 

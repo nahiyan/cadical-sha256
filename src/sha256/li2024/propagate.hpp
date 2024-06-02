@@ -43,8 +43,8 @@ inline void custom_li2024_propagate (State &state,
           basis_found = true;
       }
       for (int i = 0; i < output_size; i++) {
-        output_chars += *output_words[i].chars[bit_pos];
-        if (output_words[i].char_ids[0][bit_pos] == basis)
+        output_chars += output_words[i]->chars[bit_pos];
+        if (output_words[i]->char_ids[0][bit_pos] == basis)
           basis_found = true;
       }
       assert (basis_found);

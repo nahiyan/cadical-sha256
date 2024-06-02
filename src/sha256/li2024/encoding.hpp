@@ -31,6 +31,10 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
           state.steps[i].b[j].chars = string (32, '?');
         for (int j = 0; j < 8; j++)
           state.steps[i].c[j].chars = string (33, '?');
+        if (i >= 16) {
+          state.steps[i].mb[0].chars = string (32, '?');
+          state.steps[i].mb[2].chars = string (32, '?');
+        }
       }
     }
 
@@ -64,27 +68,52 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
 
   // Pair the prefixes with the words
   vector<pair<string, Word &>> prefix_pairs = {
-      {"xv_", state.steps[step].a},     {"xd_", state.steps[step].a},
-      {"yv_", state.steps[step].e},     {"yd_", state.steps[step].e},
-      {"wv_", state.steps[step].w},     {"wd_", state.steps[step].w},
-      {"bv0_", state.steps[step].b[0]}, {"bd0_", state.steps[step].b[0]},
-      {"bv1_", state.steps[step].b[1]}, {"bd1_", state.steps[step].b[1]},
-      {"bv2_", state.steps[step].b[2]}, {"bd2_", state.steps[step].b[2]},
-      {"bv3_", state.steps[step].b[3]}, {"bd3_", state.steps[step].b[3]},
-      {"bv4_", state.steps[step].b[4]}, {"bd4_", state.steps[step].b[4]},
-      {"bv5_", state.steps[step].b[5]}, {"bd5_", state.steps[step].b[5]},
-      {"bv6_", state.steps[step].b[6]}, {"bd6_", state.steps[step].b[6]},
-      {"bv7_", state.steps[step].b[7]}, {"bd7_", state.steps[step].b[7]},
-      {"bv8_", state.steps[step].b[8]}, {"bd8_", state.steps[step].b[8]},
-      {"bv9_", state.steps[step].b[9]}, {"bd9_", state.steps[step].b[9]},
-      {"cv0_", state.steps[step].c[0]}, {"cd0_", state.steps[step].c[0]},
-      {"cv1_", state.steps[step].c[1]}, {"cd1_", state.steps[step].c[1]},
-      {"cv2_", state.steps[step].c[2]}, {"cd2_", state.steps[step].c[2]},
-      {"cv3_", state.steps[step].c[3]}, {"cd3_", state.steps[step].c[3]},
-      {"cv4_", state.steps[step].c[4]}, {"cd4_", state.steps[step].c[4]},
-      {"cv5_", state.steps[step].c[5]}, {"cd5_", state.steps[step].c[5]},
-      {"cv6_", state.steps[step].c[6]}, {"cd6_", state.steps[step].c[6]},
-      {"cv7_", state.steps[step].c[7]}, {"cd7_", state.steps[step].c[7]},
+      {"xv_", state.steps[step].a},
+      {"xd_", state.steps[step].a},
+      {"yv_", state.steps[step].e},
+      {"yd_", state.steps[step].e},
+      {"wv_", state.steps[step].w},
+      {"wd_", state.steps[step].w},
+      {"bv0_", state.steps[step].b[0]},
+      {"bd0_", state.steps[step].b[0]},
+      {"bv1_", state.steps[step].b[1]},
+      {"bd1_", state.steps[step].b[1]},
+      {"bv2_", state.steps[step].b[2]},
+      {"bd2_", state.steps[step].b[2]},
+      {"bv3_", state.steps[step].b[3]},
+      {"bd3_", state.steps[step].b[3]},
+      {"bv4_", state.steps[step].b[4]},
+      {"bd4_", state.steps[step].b[4]},
+      {"bv5_", state.steps[step].b[5]},
+      {"bd5_", state.steps[step].b[5]},
+      {"bv6_", state.steps[step].b[6]},
+      {"bd6_", state.steps[step].b[6]},
+      {"bv7_", state.steps[step].b[7]},
+      {"bd7_", state.steps[step].b[7]},
+      {"bv8_", state.steps[step].b[8]},
+      {"bd8_", state.steps[step].b[8]},
+      {"bv9_", state.steps[step].b[9]},
+      {"bd9_", state.steps[step].b[9]},
+      {"cv0_", state.steps[step].c[0]},
+      {"cd0_", state.steps[step].c[0]},
+      {"cv1_", state.steps[step].c[1]},
+      {"cd1_", state.steps[step].c[1]},
+      {"cv2_", state.steps[step].c[2]},
+      {"cd2_", state.steps[step].c[2]},
+      {"cv3_", state.steps[step].c[3]},
+      {"cd3_", state.steps[step].c[3]},
+      {"cv4_", state.steps[step].c[4]},
+      {"cd4_", state.steps[step].c[4]},
+      {"cv5_", state.steps[step].c[5]},
+      {"cd5_", state.steps[step].c[5]},
+      {"cv6_", state.steps[step].c[6]},
+      {"cd6_", state.steps[step].c[6]},
+      {"cv7_", state.steps[step].c[7]},
+      {"cd7_", state.steps[step].c[7]},
+      {"mbv0_", state.steps[step].mb[0]},
+      {"mbd0_", state.steps[step].mb[0]},
+      {"mbv2_", state.steps[step].mb[2]},
+      {"mbd2_", state.steps[step].mb[2]},
   };
 
   for (auto &pair : prefix_pairs) {
@@ -136,6 +165,10 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
       var_name = C6;
     else if (prefix == "cv7_" || prefix == "cd7_")
       var_name = C7;
+    else if (prefix == "mbv0_" || prefix == "mbd0_")
+      var_name = MB0;
+    else if (prefix == "mbv2_" || prefix == "mbd2_")
+      var_name = MB2;
 
     if (var_name == A) {
       state.start_step = min (step, state.start_step);
@@ -151,7 +184,8 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
          prefix == "bv6_" || prefix == "bv7_" || prefix == "bv8_" ||
          prefix == "bv9_" || prefix == "cv0_" || prefix == "cv1_" ||
          prefix == "cv2_" || prefix == "cv3_" || prefix == "cv4_" ||
-         prefix == "cv5_" || prefix == "cv6_" || prefix == "cv7_")
+         prefix == "cv5_" || prefix == "cv6_" || prefix == "cv7_" ||
+         prefix == "mbv0_" || prefix == "mbv2_")
             ? 0
             : 1;
     word.char_ids[char_id_type][col] = id;

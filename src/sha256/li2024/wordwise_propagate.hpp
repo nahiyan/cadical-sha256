@@ -12,8 +12,41 @@ using namespace std;
 
 namespace SHA256 {
 #if IS_LI2024
-// TODO: Fix warnings regarding defining variables in the header
-// string add_masks[4] = {".+.++", "+..+", "+++", "+...++"};
+int add_input_sizes[3] = {4, 4, 5};
+string k[64] = {
+    "00011001111101000101000101000010", "10001001001000101110110010001110",
+    "11110011110111110000001110101101", "10100101110110111010110110010111",
+    "11011010010000110110101010011100", "10001111100010001000111110011010",
+    "00100101010000011111110001001001", "10101011011110100011100011010101",
+    "00011001010101011110000000011011", "10000000110110101100000101001000",
+    "01111101101000011000110000100100", "11000011101111100011000010101010",
+    "00101110101110100111110101001110", "01111111100011010111101100000001",
+    "11100101011000000011101111011001", "00101110100011111101100110000011",
+    "10000011100101101101100100100111", "01100001111000100111110111110111",
+    "01100011101110011000001111110000", "00110011100001010011000000100100",
+    "11110110001101001001011110110100", "01010101001000010010111001010010",
+    "00111011100101010000110100111010", "01011011000100011001111101101110",
+    "01001010100010100111110000011001", "10110110011000111000110000010101",
+    "00010011111001001100000000001101", "11100011111111101001101011111101",
+    "11001111110100000000011101100011", "11100010100010011110010110101011",
+    "10001010110001100101001101100000", "11100110100101001001010000101000",
+    "10100001010100001110110111100100", "00011100100001001101100001110100",
+    "00111111101101100011010010110010", "11001000101100000001110011001010",
+    "00101010110011100101000010100110", "11011101010100000101011001101110",
+    "01110100100100110100001110000001", "10100001001101000100111001001001",
+    "10000101000101111111110101000101", "11010010011001100101100000010101",
+    "00001110110100011101001001000011", "11000101100010100011011011100011",
+    "10011000000101110100100110001011", "00100100011000001001100101101011",
+    "10100001101011000111000000101111", "00001110000001010101011000001000",
+    "01101000100000110010010110011000", "00010000001101101110110001111000",
+    "00110010111011100001001011100100", "10101101001111010000110100101100",
+    "11001101001100000011100010011100", "01010010010101010001101101110010",
+    "11110010010100110011100111011010", "11001111111101100111010000010110",
+    "01110111010000011111000100101110", "11110110110001101010010100011110",
+    "00101000000111100001001100100001", "00010000010000001110001100110001",
+    "01011111111111110111110100001001", "11010111001101100000101000100101",
+    "11101111110001011001111101111101", "01001111000111101000111001100011",
+};
 
 // Wordwise propagate (through branching) words by taking information inside
 // the addition equation
@@ -25,24 +58,25 @@ inline void wordwise_propagate_branch_li2024 (State &state,
   state.soft_refresh ();
   auto _word_chars = [] (Word &word) {
     string chars;
-    for (int i = 31; i >= 0; i--)
+    for (int i = 0; i < 32; i++)
       chars += word.chars[i];
     return chars;
   };
   auto _soft_word_chars = [] (SoftWord &word) {
     string chars;
-    for (int i = 31; i >= 0; i--) {
+    for (int i = 0; i < 32; i++) {
       assert (word.char_ids[0][i] != 0);
       assert (word.char_ids[1][i] != 0);
       chars += *word.chars[i];
       assert (*word.chars[i] == 'u' || *word.chars[i] == 'n' ||
-              *word.chars[i] == '-' || *word.chars[i] == '?');
+              *word.chars[i] == '-' || *word.chars[i] == '?' ||
+              *word.chars[i] == 'x');
     }
     assert (chars.size () == 32);
     return chars;
   };
 
-  for (int op_id = op_add_b2; op_id < op_add_b4; op_id++)
+  for (int op_id = op_add_w; op_id <= op_add_e; op_id++)
     for (int step_i = 0; step_i < state.order; step_i++) {
       auto &marked_op =
           state
@@ -50,19 +84,19 @@ inline void wordwise_propagate_branch_li2024 (State &state,
       if (!marked_op)
         continue;
       marked_op = false;
-      assert (op_id >= op_add_b2);
+      assert (op_id >= op_add_w && op_id <= op_add_e);
 
       // Gather the input and output words
       auto &input_words = state.operations[step_i].inputs_by_op_id[op_id];
       auto &output_word =
-          state.operations[step_i].outputs_by_op_id[op_id][1];
-      int input_size = 2;
+          state.operations[step_i].outputs_by_op_id[op_id][2];
+      int input_size = add_input_sizes[op_id - op_add_w];
 
       // Get the word characteristics
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++)
         words_chars.push_back (_soft_word_chars (*input_words));
-      words_chars.push_back (_soft_word_chars (output_word));
+      words_chars.push_back (_word_chars (*output_word));
 
       // Generate the cache key
       string cache_key;
@@ -90,9 +124,14 @@ inline void wordwise_propagate_branch_li2024 (State &state,
             underived_indices.push_back (i);
             underived_words.push_back (word_chars);
           } else {
-            word_diffs.push_back (i == input_size ? word_diff : -word_diff);
+            word_diffs.push_back (i == input_size ||
+                                          (op_id == op_add_a && i == 1)
+                                      ? word_diff
+                                      : -word_diff);
           }
         }
+        if (op_id == op_add_e)
+          word_diffs.push_back (_word_diff (k[step_i]));
 
         // Skip if underived words is 0 or more than 2
         int underived_count = underived_indices.size ();
@@ -157,12 +196,12 @@ inline void wordwise_propagate_branch_li2024 (State &state,
             uint32_t ids[2];
             if (index == input_size) {
               // Output word
-              ids[0] = output_word.char_ids[0][31 - j];
-              ids[1] = output_word.char_ids[1][31 - j];
+              ids[0] = output_word->char_ids[0][j];
+              ids[1] = output_word->char_ids[1][j];
             } else {
               // Input word
-              ids[0] = output_word.char_ids[0][31 - j];
-              ids[1] = output_word.char_ids[1][31 - j];
+              ids[0] = output_word->char_ids[0][j];
+              ids[1] = output_word->char_ids[1][j];
             }
 
             // Branch on this differential character

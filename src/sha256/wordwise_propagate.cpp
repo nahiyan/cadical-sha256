@@ -394,43 +394,45 @@ vector<string> wordwise_propagate (vector<string> words, int64_t constant) {
   return derived_words;
 }
 
-void prop_with_word_diff (AdditionId equation_id, vector<string *> words) {
-  vector<int> underived_indices;
-  int words_count = words.size ();
-  vector<int64_t> word_diffs (words_count);
-  for (int i = 0; i < words_count; i++) {
-    int64_t int_diff = _word_diff ((char *) words[i]->c_str ());
-    if (int_diff != -1)
-      word_diffs[i] =
-          ((i == 0 || (equation_id == add_a && i == 2)) ? 1 : -1) *
-          int_diff;
-    else
-      underived_indices.push_back (i);
-  }
+// void prop_with_word_diff (AdditionId equation_id, vector<string *> words)
+// {
+//   vector<int> underived_indices;
+//   int words_count = words.size ();
+//   vector<int64_t> word_diffs (words_count);
+//   for (int i = 0; i < words_count; i++) {
+//     int64_t int_diff = _word_diff ((char *) words[i]->c_str ());
+//     if (int_diff != -1)
+//       word_diffs[i] =
+//           ((i == 0 || (equation_id == add_a && i == 2)) ? 1 : -1) *
+//           int_diff;
+//     else
+//       underived_indices.push_back (i);
+//   }
 
-  int underived_count = underived_indices.size ();
-  if (underived_count != 1 && underived_count != 2)
-    return;
-  int64_t constant = 0;
-  for (int i = 0; i < words_count; i++)
-    constant += is_in (i, underived_indices) ? 0 : word_diffs[i];
-  constant = e_mod (constant, int64_t (pow (2, 32)));
+//   int underived_count = underived_indices.size ();
+//   if (underived_count != 1 && underived_count != 2)
+//     return;
+//   int64_t constant = 0;
+//   for (int i = 0; i < words_count; i++)
+//     constant += is_in (i, underived_indices) ? 0 : word_diffs[i];
+//   constant = e_mod (constant, int64_t (pow (2, 32)));
 
-  for (int i = 0; i < underived_count; i++) {
-    auto index = underived_indices[i];
-    if (index == 0 || (equation_id == add_a && index == 2))
-      constant *= -1;
-  }
-  vector<string> underived_words;
-  for (int i = 0; i < underived_count; i++)
-    underived_words.push_back (*words[underived_indices[i]]);
-  auto derived_words = wordwise_propagate (underived_words, constant);
+//   for (int i = 0; i < underived_count; i++) {
+//     auto index = underived_indices[i];
+//     // TODO: Make it work for other forms of encoding, e.g. Li et al.
+//     if (index == 0 || (equation_id == add_a && index == 2))
+//       constant *= -1;
+//   }
+//   vector<string> underived_words;
+//   for (int i = 0; i < underived_count; i++)
+//     underived_words.push_back (*words[underived_indices[i]]);
+//   auto derived_words = wordwise_propagate (underived_words, constant);
 
-  for (int i = 0; i < underived_count; i++) {
-    auto index = underived_indices[i];
-    string new_word = derived_words[i];
-    *words[index] = new_word;
-  }
-}
+//   for (int i = 0; i < underived_count; i++) {
+//     auto index = underived_indices[i];
+//     string new_word = derived_words[i];
+//     *words[index] = new_word;
+//   }
+// }
 
 } // namespace SHA256
