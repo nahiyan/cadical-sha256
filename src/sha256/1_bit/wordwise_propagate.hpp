@@ -146,10 +146,11 @@ inline void wordwise_propagate_branch_1bit (State &state,
         string &propagated_chars = propagated_words[i];
 
         // Try dealing with the MSBs first
-        for (int j = 31; j >= 0; j--)
+        for (int j = 0; j < 32; j++)
           if (original_chars[j] != propagated_chars[j]) {
             assert (compare_gcs (original_chars[j], propagated_chars[j]));
-            // printf ("Strong prop. %d: %c %c\n", op_id, original_chars[j],
+            // printf ("Wordwise prop. %d: %c %c\n", op_id,
+            // original_chars[j],
             //         propagated_chars[j]);
             uint32_t ids[3];
             if (index == input_size) {

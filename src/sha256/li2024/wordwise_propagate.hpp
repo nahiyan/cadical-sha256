@@ -13,6 +13,7 @@ using namespace std;
 namespace SHA256 {
 #if IS_LI2024
 int add_input_sizes[3] = {4, 4, 5};
+// K in little-endian as per our convention
 string k[64] = {
     "00011001111101000101000101000010", "10001001001000101110110010001110",
     "11110011110111110000001110101101", "10100101110110111010110110010111",
@@ -56,15 +57,17 @@ inline void wordwise_propagate_branch_li2024 (State &state,
                                               list<int> &decision_lits,
                                               Stats &stats) {
   state.soft_refresh ();
+  // The following 2 functions will convert the conditions to big-endian for
+  // the wordwise propagation engine
   auto _word_chars = [] (Word &word) {
     string chars;
-    for (int i = 0; i < 32; i++)
+    for (int i = 31; i >= 0; i--)
       chars += word.chars[i];
     return chars;
   };
   auto _soft_word_chars = [] (SoftWord &word) {
     string chars;
-    for (int i = 0; i < 32; i++) {
+    for (int i = 31; i >= 0; i--) {
       assert (word.char_ids[0][i] != 0);
       assert (word.char_ids[1][i] != 0);
       chars += *word.chars[i];
@@ -124,14 +127,18 @@ inline void wordwise_propagate_branch_li2024 (State &state,
             underived_indices.push_back (i);
             underived_words.push_back (word_chars);
           } else {
+            // Everything on the LHS is positive
             word_diffs.push_back (i == input_size ||
                                           (op_id == op_add_a && i == 1)
                                       ? word_diff
                                       : -word_diff);
           }
         }
-        if (op_id == op_add_e)
-          word_diffs.push_back (_word_diff (k[step_i]));
+        if (op_id == op_add_e) {
+          string chars = k[step_i];
+          reverse (chars.begin (), chars.end ());
+          word_diffs.push_back (_word_diff (chars));
+        }
 
         // Skip if underived words is 0 or more than 2
         int underived_count = underived_indices.size ();
@@ -188,29 +195,33 @@ inline void wordwise_propagate_branch_li2024 (State &state,
         string &propagated_chars = propagated_words[i];
 
         // Try dealing with the MSBs first
-        for (int j = 31; j >= 0; j--)
+        for (int j = 0; j < 32; j++)
           if (original_chars[j] != propagated_chars[j]) {
             assert (compare_gcs (original_chars[j], propagated_chars[j]));
-            // printf ("Strong prop. %d: %c %c\n", op_id, original_chars[j],
+            // printf ("Wordwise prop. %d: %c %c\n", op_id,
+            // original_chars[j],
             //         propagated_chars[j]);
             uint32_t ids[2];
             if (index == input_size) {
               // Output word
-              ids[0] = output_word->char_ids[0][j];
-              ids[1] = output_word->char_ids[1][j];
+              ids[0] = output_word->char_ids[0][31 - j];
+              ids[1] = output_word->char_ids[1][31 - j];
             } else {
               // Input word
-              ids[0] = output_word->char_ids[0][j];
-              ids[1] = output_word->char_ids[1][j];
+              ids[0] = input_words[index].char_ids[0][31 - j];
+              ids[1] = input_words[index].char_ids[1][31 - j];
             }
 
             // Branch on this differential character
             auto values = gc_values_li2024 (propagated_chars[j]);
             assert (values.size () == 2);
             for (int k = 1; k >= 0; k--) {
+              if (values[k] == 0)
+                continue;
               if (state.partial_assignment.get (ids[k]) != LIT_UNDEF)
                 continue;
               int lit = values[k] * ids[k];
+              assert (lit != 0);
               decision_lits.push_back (lit);
               assert (state.partial_assignment.get (abs (lit)) ==
                       LIT_UNDEF);

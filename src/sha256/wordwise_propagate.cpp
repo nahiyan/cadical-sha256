@@ -17,6 +17,7 @@
 using namespace std;
 
 namespace SHA256 {
+// * Important: The wordwise propagation engine uses big-endian ordering
 struct ValueWithOrder {
   char value;
   uint8_t order; // Order will be 31 max and 8 bits can hold 0-255

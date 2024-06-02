@@ -20,6 +20,7 @@ void test_int_diff () {
   assert (_word_diff ("nnnnn-nnnA--------nuu-----------") == -1);
   assert (_word_diff ("--------------------------------") == 0);
   assert (_word_diff ("0n0n001001u") == 1409);
+  assert (_word_diff ("u-n") == 3);
 }
 
 void test_adjust_constant () {
