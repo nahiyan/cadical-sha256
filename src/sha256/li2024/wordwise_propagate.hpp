@@ -227,6 +227,49 @@ inline void wordwise_propagate_branch_li2024 (State &state,
                       LIT_UNDEF);
               // printf ("Wordwise propagated (count %ld)\n",
               //         underived_indices.size ());
+
+              // Construct the reason clause
+              Reason reason;
+              int propagated_lit = lit;
+              for (int a = 0; a < input_size; a++) {
+                auto &word = input_words[a];
+                for (int b = 0; b < 32; b++) {
+                  auto values = gc_values_li2024 (*word.chars[b]);
+                  assert (values.size () == 2);
+                  for (int c = 0; c < 2; c++) {
+                    auto &id = word.char_ids[c][b];
+                    int lit = values[c] * id;
+                    if (lit == 0)
+                      continue;
+                    assert (state.partial_assignment.get (id) ==
+                            (lit > 0 ? LIT_TRUE : LIT_FALSE));
+                    reason.antecedent.push_back (-lit);
+                  }
+                }
+              }
+              {
+                auto &word = output_word[i];
+                for (int b = 0; b < 32; b++) {
+                  auto values = gc_values_li2024 (word.chars[b]);
+                  assert (values.size () == 2);
+                  for (int c = 0; c < 2; c++) {
+                    auto &id = word.char_ids[c][b];
+                    int lit = values[c] * id;
+                    if (lit == 0)
+                      continue;
+                    assert (state.partial_assignment.get (id) ==
+                            (lit > 0 ? LIT_TRUE : LIT_FALSE));
+                    reason.antecedent.push_back (-lit);
+                  }
+                }
+              }
+              vector<int> reason_clause = vector (reason.antecedent);
+              reason_clause.push_back (propagated_lit);
+              printf ("Reason clause: ");
+              for (auto &lit : reason_clause)
+                printf ("%d ", lit);
+              printf ("\n");
+
               return;
             }
           }
