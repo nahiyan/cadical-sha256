@@ -479,6 +479,11 @@ void State::print_operations () {
 }
 #else
 void State::set_operations () {
+  // TODO: Free up this heap allocation later
+  char *zero_char = new char;
+  *zero_char = '0';
+  assert (zero_id > 0);
+
   auto to_vec = [] (uint32_t *ids) {
     vector<uint32_t> vec (32);
     for (int i = 0; i < 32; i++)
@@ -529,6 +534,106 @@ void State::set_operations () {
 
   for (int i = 0; i < order; i++) {
     if (i >= start_step && i <= end_step) {
+      {
+        // sigma0
+        Word &word = steps[ABS_STEP (i - 1)].a;
+        SoftWord *operands = operations[i].sigma0.inputs;
+
+        vector<int> indices[3];
+        for (int j = 0; j < 32; j++)
+          for (int k = 0; k < 3; k++)
+            indices[k].push_back (31 - j);
+        indices[0] = rotate_vec (indices[0], 2);
+        indices[1] = rotate_vec (indices[1], 13);
+        indices[2] = rotate_vec (indices[2], 22);
+
+        for (int k = 0; k < 3; k++)
+          for (int j = 0; j < 32; j++) {
+            operands[k].char_ids[0][31 - j] =
+                word.char_ids[0][indices[k][j]];
+            operands[k].char_ids[1][31 - j] =
+                word.char_ids[1][indices[k][j]];
+            operands[k].chars[31 - j] = &word.chars[indices[k][j]];
+          }
+
+        for (int j = 0; j < 3; j++)
+          add_var_info_sword (&operands[j], i, op_sigma0);
+        add_var_info_word (&steps[i].b[6], i, op_sigma0);
+
+        // Set the outputs
+        operations[i].sigma0.outputs[0] = &steps[i].b[6];
+
+        operations[i].inputs_by_op_id[op_sigma0] =
+            operations[i].sigma0.inputs;
+        operations[i].outputs_by_op_id[op_sigma0] =
+            operations[i].sigma0.outputs;
+      }
+      {
+        // sigma1
+        Word &word = steps[ABS_STEP (i - 1)].e;
+        SoftWord *operands = operations[i].sigma1.inputs;
+
+        vector<int> indices[3];
+        for (int j = 0; j < 32; j++)
+          for (int k = 0; k < 3; k++)
+            indices[k].push_back (31 - j);
+        indices[0] = rotate_vec (indices[0], 6);
+        indices[1] = rotate_vec (indices[1], 11);
+        indices[2] = rotate_vec (indices[2], 25);
+
+        for (int k = 0; k < 3; k++)
+          for (int j = 0; j < 32; j++) {
+            operands[k].char_ids[0][31 - j] =
+                word.char_ids[0][indices[k][j]];
+            operands[k].char_ids[1][31 - j] =
+                word.char_ids[1][indices[k][j]];
+            operands[k].chars[31 - j] = &word.chars[indices[k][j]];
+          }
+
+        for (int j = 0; j < 3; j++)
+          add_var_info_sword (&operands[j], i, op_sigma1);
+        add_var_info_word (&steps[i].b[0], i, op_sigma1);
+
+        // Set the outputs
+        operations[i].sigma1.outputs[0] = &steps[i].b[0];
+
+        operations[i].inputs_by_op_id[op_sigma1] =
+            operations[i].sigma1.inputs;
+        operations[i].outputs_by_op_id[op_sigma1] =
+            operations[i].sigma1.outputs;
+      }
+      {
+        // maj
+        auto &operands = operations[i].maj.inputs;
+        for (int j = 1; j <= 3; j++)
+          operands[j - 1] = to_soft_word (steps[ABS_STEP (i - j)].a);
+
+        for (int j = 0; j < 3; j++)
+          add_var_info_sword (&operands[j], i, op_maj);
+        add_var_info_word (&steps[i].b[7], i, op_maj);
+
+        // Set the outputs
+        operations[i].maj.outputs[0] = &steps[i].b[7];
+
+        operations[i].inputs_by_op_id[op_maj] = operations[i].maj.inputs;
+        operations[i].outputs_by_op_id[op_maj] = operations[i].maj.outputs;
+      }
+      {
+        // ch
+        auto &operands = operations[i].ch.inputs;
+        for (int j = 1; j <= 3; j++)
+          operands[j - 1] = to_soft_word (steps[ABS_STEP (i - j)].e);
+
+        for (int j = 0; j < 3; j++)
+          add_var_info_sword (&operands[j], i, op_ch);
+        add_var_info_word (&steps[i].b[1], i, op_ch);
+
+        // Set the outputs
+        operations[i].ch.outputs[0] = &steps[i].b[1];
+
+        operations[i].inputs_by_op_id[op_ch] = operations[i].ch.inputs;
+        operations[i].outputs_by_op_id[op_ch] = operations[i].ch.outputs;
+      }
       { // add.A
         Word *words[] = {
             &steps[ABS_STEP (i)].e, &steps[ABS_STEP (i - 4)].a,
@@ -578,29 +683,108 @@ void State::set_operations () {
         operations[i].outputs_by_op_id[op_add_e] =
             operations[i].add_e.outputs;
       }
-      if (i >= 16) { // add.W
-        Word *words[] = {
-            &steps[i].mb[0], &steps[i - 7].w, &steps[i].mb[2],
-            &steps[i - 16].w
-            // Note: Carries aren't included
-        };
-        auto &operands = operations[i].add_w.inputs;
+      if (i >= 16) {
+        { // s0
+          Word &word = steps[i - 15].w;
+          SoftWord *operands = operations[i].s0.inputs;
 
-        for (int j = 0; j < 4; j++)
-          operands[j] = to_soft_word (*words[j]);
+          vector<int> indices[3];
+          for (int j = 0; j < 32; j++)
+            for (int k = 0; k < 3; k++)
+              indices[k].push_back (31 - j);
+          indices[0] = rotate_vec (indices[0], 7);
+          indices[1] = rotate_vec (indices[1], 18);
+          indices[2] = rotate_vec (indices[2], 3, false);
 
-        for (int j = 0; j < 4; j++)
-          add_var_info_sword (&operands[j], i, op_add_w);
-        add_var_info_word (&steps[i].w, i, op_add_w);
+          for (int k = 0; k < 3; k++)
+            for (int j = 0; j < 32; j++) {
+              operands[k].char_ids[0][31 - j] =
+                  k == 2 && j < 3 ? zero_id
+                                  : word.char_ids[0][indices[k][j]];
+              operands[k].char_ids[1][31 - j] =
+                  k == 2 && j < 3 ? zero_id
+                                  : word.char_ids[1][indices[k][j]];
+              operands[k].chars[31 - j] =
+                  k == 2 && j < 3 ? zero_char : &word.chars[indices[k][j]];
+              assert (operands[k].char_ids[0][31 - j] != 0);
+              assert (operands[k].char_ids[1][31 - j] != 0);
+            }
 
-        // Set the outputs
-        // Note: Carries aren't included
-        operations[i].add_w.outputs[2] = &steps[i].w;
+          for (int j = 0; j < 3; j++)
+            add_var_info_sword (&operands[j], i, op_s0);
+          add_var_info_word (&steps[i].mb[2], i, op_s0);
 
-        operations[i].inputs_by_op_id[op_add_w] =
-            operations[i].add_w.inputs;
-        operations[i].outputs_by_op_id[op_add_w] =
-            operations[i].add_w.outputs;
+          // Set the outputs
+          operations[i].s0.outputs[0] = &steps[i].mb[2];
+
+          operations[i].inputs_by_op_id[op_s0] = operations[i].s0.inputs;
+          operations[i].outputs_by_op_id[op_s0] = operations[i].s0.outputs;
+        }
+        { // s1
+          Word &word = steps[i - 2].w;
+          SoftWord *operands = operations[i].s1.inputs;
+
+          vector<int> indices[3];
+          for (int j = 0; j < 32; j++)
+            for (int k = 0; k < 3; k++)
+              indices[k].push_back (31 - j);
+          indices[0] = rotate_vec (indices[0], 17);
+          indices[1] = rotate_vec (indices[1], 19);
+          indices[2] = rotate_vec (indices[2], 10, false);
+
+          for (int k = 0; k < 3; k++)
+            for (int j = 0; j < 32; j++) {
+              operands[k].char_ids[0][31 - j] =
+                  k == 2 && j < 10 ? zero_id
+                                   : word.char_ids[0][indices[k][j]];
+              operands[k].char_ids[1][31 - j] =
+                  k == 2 && j < 10 ? zero_id
+                                   : word.char_ids[1][indices[k][j]];
+              operands[k].chars[31 - j] =
+                  k == 2 && j < 10 ? zero_char : &word.chars[indices[k][j]];
+            }
+
+          for (int j = 0; j < 3; j++)
+            add_var_info_sword (&operands[j], i, op_s1);
+          add_var_info_word (&steps[i].mb[0], i, op_s1);
+
+          if (i == 20) {
+            assert (vars_info[operands[0].char_ids[0][22]].identity.col ==
+                    7);
+            assert (get<2> (vars_info[operands[0].char_ids[0][22]]
+                                .operations[0]) == 7);
+          }
+
+          // Set the outputs
+          operations[i].s1.outputs[0] = &steps[i].mb[0];
+
+          operations[i].inputs_by_op_id[op_s1] = operations[i].s1.inputs;
+          operations[i].outputs_by_op_id[op_s1] = operations[i].s1.outputs;
+        }
+        { // add.W
+          Word *words[] = {
+              &steps[i].mb[0], &steps[i - 7].w, &steps[i].mb[2],
+              &steps[i - 16].w
+              // Note: Carries aren't included
+          };
+          auto &operands = operations[i].add_w.inputs;
+
+          for (int j = 0; j < 4; j++)
+            operands[j] = to_soft_word (*words[j]);
+
+          for (int j = 0; j < 4; j++)
+            add_var_info_sword (&operands[j], i, op_add_w);
+          add_var_info_word (&steps[i].w, i, op_add_w);
+
+          // Set the outputs
+          // Note: Carries aren't included
+          operations[i].add_w.outputs[2] = &steps[i].w;
+
+          operations[i].inputs_by_op_id[op_add_w] =
+              operations[i].add_w.inputs;
+          operations[i].outputs_by_op_id[op_add_w] =
+              operations[i].add_w.outputs;
+        }
       }
     }
   }

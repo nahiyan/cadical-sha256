@@ -173,6 +173,8 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
     if (var_name == A) {
       state.start_step = min (step, state.start_step);
       state.end_step = max (step, state.end_step);
+    } else if (state.zero_id == -1 && var_name == C0 && col == 0) {
+      state.zero_id = value; // id = value
     }
 
     int id = value;

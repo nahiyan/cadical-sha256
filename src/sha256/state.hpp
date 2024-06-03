@@ -29,6 +29,7 @@ public:
   Word zero_word;
 #else
   int start_step = INT_MAX, end_step = 0;
+  uint32_t zero_id = -1; // ID of the var. that is fixed to false
 #endif
   Operations operations[64];
   Step steps[64 + 4];
@@ -41,7 +42,9 @@ public:
   list<list<Marking>> prop_markings_trail;
   list<list<Marking>> two_bit_markings_trail;
 
+#if !IS_LI2024
   void hard_refresh (bool will_propagate = false);
+#endif
   void soft_refresh ();
   void refresh_char (Word &word, int i);
   void refresh_word (Word &word);

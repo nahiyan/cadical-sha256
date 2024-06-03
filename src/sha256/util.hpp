@@ -100,10 +100,10 @@ vector<T> rotate_vec (vector<T> vec, int amount_, bool is_circular = true) {
 }
 
 #if IS_LI2024
+// TODO: Reconsider this
 inline vector<int> add_ (vector<int> inputs) {
   int sum = accumulate (inputs.begin (), inputs.end (), 0);
-  assert ((sum >> 2 & 1) == 0);
-  return {sum >> 1 & 1, sum & 1};
+  return {sum >> 2 & 1, sum >> 1 & 1, sum & 1};
 }
 #else
 inline vector<int> add_ (vector<int> inputs) {

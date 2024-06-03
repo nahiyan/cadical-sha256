@@ -262,31 +262,31 @@ struct Operations {
   SoftWord *inputs_by_op_id[NUM_OPS];
   Word **outputs_by_op_id[NUM_OPS];
 #else
-  // struct S0 {
-  //   SoftWord inputs[3];
-  //   Word *outputs[1];
-  // } s0;
-  // struct S1 {
-  //   SoftWord inputs[3];
-  //   Word *outputs[1];
-  // } s1;
-  // struct Sigma0 {
-  //   SoftWord inputs[3];
-  //   Word *outputs[1];
-  // } sigma0;
-  // struct Sigma1 {
-  //   SoftWord inputs[3];
-  //   Word *outputs[1];
-  // } sigma1;
-  // // All the variable IDs stored in the following soft words are
-  // redundant struct Maj {
-  //   SoftWord inputs[3];
-  //   Word *outputs[1];
-  // } maj;
-  // struct Ch {
-  //   SoftWord inputs[3];
-  //   Word *outputs[1];
-  // } ch;
+  struct S0 {
+    SoftWord inputs[3];
+    Word *outputs[1];
+  } s0;
+  struct S1 {
+    SoftWord inputs[3];
+    Word *outputs[1];
+  } s1;
+  struct Sigma0 {
+    SoftWord inputs[3];
+    Word *outputs[1];
+  } sigma0;
+  struct Sigma1 {
+    SoftWord inputs[3];
+    Word *outputs[1];
+  } sigma1;
+  // All the variable IDs stored in the following soft words are redundant
+  struct Maj {
+    SoftWord inputs[3];
+    Word *outputs[1];
+  } maj;
+  struct Ch {
+    SoftWord inputs[3];
+    Word *outputs[1];
+  } ch;
   struct AddW {
     SoftWord inputs[6];
     Word *outputs[3];
@@ -352,12 +352,11 @@ struct TwoBit {
 };
 
 struct Step {
+#if IS_LI2024
+  Word a, e, w, b[10], c[8], mb[5];
+#else
   Word a, e, w, s0, s1, sigma0, sigma1, ch, maj, k, t, add_w_r[2],
       add_t_r[2], add_e_r[1], add_a_r[2];
-#if IS_LI2024
-  Word b[10];
-  Word c[8];
-  Word mb[5];
 #endif
 };
 

@@ -29,6 +29,11 @@ inline void custom_li2024_propagate (State &state,
       auto bit_pos = marking_it->bit_pos;
       auto basis = marking_it->basis;
       marking_it = level->erase (marking_it);
+      assert (bit_pos >= 0 && bit_pos <= 31);
+
+      // TODO: Cover addition
+      if (op_id >= op_add_w)
+        continue;
 
       // Construct the differential
       int input_size = prop_diff_sizes[op_id].first,
@@ -70,18 +75,21 @@ inline void custom_li2024_propagate (State &state,
           otf_propagate (function, input_chars, output_chars, &stats);
       string &prop_input = output.first;
       string &prop_output = output.second;
-      // printf ("Prop: %s %s -> %s\n", input_chars.c_str (),
-      //         output_chars.c_str (), prop_output.c_str ());
       if (output_chars == prop_output && input_chars == prop_input) {
         continue;
       }
 
+      // printf ("Prop: %s %s -> %s\n", input_chars.c_str (),
+      //         output_chars.c_str (), prop_output.c_str ());
+
       for (auto &c : input_chars)
-        assert (c == '-' || c == 'u' || c == 'n' || c == '?');
+        assert (c == '-' || c == 'u' || c == 'n' || c == '?' || c == 'x');
 
       // Construct the antecedent with inputs
       Reason reason;
-      int const_zeroes_count = 0;
+      reason.differentials.first += input_chars + "->" + output_chars;
+      reason.differentials.second += prop_input + "->" + prop_output;
+
       for (long x = 0; x < input_size; x++) {
         if (input_chars[x] == '?')
           continue;
@@ -91,6 +99,7 @@ inline void custom_li2024_propagate (State &state,
 
         // Add lits
         auto table_values = gc_values_li2024 (input_chars[x]);
+        assert (table_values.size () == 2);
         for (int y = 0; y < 2; y++) {
           auto &id = ids[y];
           int lit = table_values[y] * id;
@@ -105,6 +114,7 @@ inline void custom_li2024_propagate (State &state,
           continue;
 
         auto prop_table_values = gc_values_li2024 (prop_input[x]);
+        assert (prop_table_values.size () == 2);
         for (int y = 1; y >= 0; y--) {
           auto &id = ids[y];
           if (prop_table_values[y] == 0)

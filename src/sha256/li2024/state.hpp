@@ -9,7 +9,7 @@ using namespace std;
 
 namespace SHA256 {
 inline void refresh_li2024_char (uint8_t v, uint8_t d, char &c) {
-  if (v == LIT_FALSE && d == LIT_FALSE)
+  if (d == LIT_FALSE)
     c = '-';
   else if (v == LIT_TRUE && d == LIT_TRUE)
     c = 'u';
@@ -17,8 +17,6 @@ inline void refresh_li2024_char (uint8_t v, uint8_t d, char &c) {
     c = 'n';
   else if (d == LIT_TRUE)
     c = 'x';
-  else if (v == LIT_FALSE || d == LIT_FALSE)
-    c = '-';
   else
     c = '?';
 }

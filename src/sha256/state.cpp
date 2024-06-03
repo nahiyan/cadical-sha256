@@ -106,6 +106,7 @@ void State::refresh_word (Word &word) {
     refresh_char (word, col);
 }
 
+#if !IS_LI2024
 void State::hard_refresh (bool will_propagate) {
   auto get_soft_word_chars = [] (SoftWord &soft_word) {
     string chars;
@@ -144,7 +145,9 @@ void State::hard_refresh (bool will_propagate) {
     }
   }
 }
+#endif
 
+#if !IS_LI2024
 void State::print () {
   auto reverse_string = [] (string str) -> string {
     string new_str;
@@ -176,3 +179,37 @@ void State::print () {
     printf ("\n");
   }
 }
+#else
+void State::print () {
+  auto reverse_string = [] (string str) -> string {
+    string new_str;
+    for (auto it = str.end (); it-- != str.begin ();)
+      new_str += *it;
+    return new_str;
+  };
+
+  for (int i = -4; i < order; i++) {
+    auto &step = steps[ABS_STEP (i)];
+    printf (i >= 0 && i <= 9 ? " %d " : "%d ", i);
+    printf ("%s %s", reverse_string (step.a.chars).c_str (),
+            reverse_string (step.e.chars).c_str ());
+    if (i >= 0) {
+      auto &step_ = steps[i];
+      printf (" %s", reverse_string (step_.w.chars).c_str ());
+      if (i >= 16) {
+        printf (" %s", reverse_string (step_.mb[2].chars).c_str ());
+        printf (" %s", reverse_string (step_.mb[0].chars).c_str ());
+      } else {
+        printf ("                                 ");
+        printf ("                                 ");
+      }
+      printf (" %s", reverse_string (step_.b[6].chars).c_str ());
+      printf (" %s", reverse_string (step_.b[0].chars).c_str ());
+      printf (" %s", reverse_string (step_.b[7].chars).c_str ());
+      printf (" %s", reverse_string (step_.b[1].chars).c_str ());
+    }
+    printf ("\n");
+  }
+}
+
+#endif
