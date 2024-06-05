@@ -53,6 +53,7 @@ string k[64] = {
 // the addition equation
 cache::lru_cache<string, pair<string, string>>
     wordwise_propagate_cache (100e3);
+// TODO: Fix issues with falsified reason clauses (very rare)
 inline void wordwise_propagate_branch_li2024 (State &state,
                                               list<int> &decision_lits,
                                               Stats &stats) {
@@ -98,7 +99,7 @@ inline void wordwise_propagate_branch_li2024 (State &state,
       // Get the word characteristics
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++)
-        words_chars.push_back (_soft_word_chars (*input_words));
+        words_chars.push_back (_soft_word_chars (input_words[i]));
       words_chars.push_back (_word_chars (*output_word));
 
       // Generate the cache key
@@ -117,23 +118,33 @@ inline void wordwise_propagate_branch_li2024 (State &state,
       vector<int> underived_indices;
       if (!wordwise_propagate_cache.exists (cache_key)) {
         // Calculate the word diffs
+        bool rhs_const_unknown = false, lhs_const_unknown = false;
         vector<string> underived_words;
         vector<int64_t> word_diffs;
         int i = -1;
         for (auto &word_chars : words_chars) {
           i++;
           int64_t word_diff = _word_diff (word_chars);
+          bool is_lhs = i == input_size || (op_id == op_add_a && i == 1);
           if (word_diff == -1) {
             underived_indices.push_back (i);
             underived_words.push_back (word_chars);
+
+            if (is_lhs)
+              lhs_const_unknown = true;
+            else
+              rhs_const_unknown = true;
           } else {
             // Everything on the LHS is positive
-            word_diffs.push_back (i == input_size ||
-                                          (op_id == op_add_a && i == 1)
-                                      ? word_diff
-                                      : -word_diff);
+            word_diffs.push_back (is_lhs ? word_diff : -word_diff);
           }
         }
+
+        // Skip if it involves subtraction
+        if (rhs_const_unknown && lhs_const_unknown) {
+          continue;
+        }
+
         if (op_id == op_add_e) {
           string chars = k[step_i];
           reverse (chars.begin (), chars.end ());
@@ -152,8 +163,9 @@ inline void wordwise_propagate_branch_li2024 (State &state,
         word_diffs_sum = e_mod (word_diffs_sum, int64_t (pow (2, 32)));
 
         // Derive the underived words
-        propagated_words =
-            wordwise_propagate (underived_words, word_diffs_sum);
+        propagated_words = wordwise_propagate (
+            underived_words,
+            lhs_const_unknown ? -word_diffs_sum : word_diffs_sum);
 
         // printf ("Step %2d (Before), %d: ", step_i, op_id);
         // for (auto &chars : words_chars)
@@ -229,46 +241,47 @@ inline void wordwise_propagate_branch_li2024 (State &state,
               //         underived_indices.size ());
 
               // Construct the reason clause
-              Reason reason;
-              int propagated_lit = lit;
-              for (int a = 0; a < input_size; a++) {
-                auto &word = input_words[a];
-                for (int b = 0; b < 32; b++) {
-                  auto values = gc_values_li2024 (*word.chars[b]);
-                  assert (values.size () == 2);
-                  for (int c = 0; c < 2; c++) {
-                    auto &id = word.char_ids[c][b];
-                    int lit = values[c] * id;
-                    if (lit == 0)
-                      continue;
-                    assert (state.partial_assignment.get (id) ==
-                            (lit > 0 ? LIT_TRUE : LIT_FALSE));
-                    reason.antecedent.push_back (-lit);
-                  }
-                }
-              }
-              {
-                auto &word = output_word[i];
-                for (int b = 0; b < 32; b++) {
-                  auto values = gc_values_li2024 (word.chars[b]);
-                  assert (values.size () == 2);
-                  for (int c = 0; c < 2; c++) {
-                    auto &id = word.char_ids[c][b];
-                    int lit = values[c] * id;
-                    if (lit == 0)
-                      continue;
-                    assert (state.partial_assignment.get (id) ==
-                            (lit > 0 ? LIT_TRUE : LIT_FALSE));
-                    reason.antecedent.push_back (-lit);
-                  }
-                }
-              }
-              vector<int> reason_clause = vector (reason.antecedent);
-              reason_clause.push_back (propagated_lit);
-              printf ("Reason clause: ");
-              for (auto &lit : reason_clause)
-                printf ("%d ", lit);
-              printf ("\n");
+              // Reason reason;
+              // int propagated_lit = lit;
+              // for (int a = 0; a < input_size; a++) {
+              //   auto &word = input_words[a];
+              //   for (int b = 0; b < 32; b++) {
+              //     auto values = gc_values_li2024 (*word.chars[b]);
+              //     assert (values.size () == 2);
+              //     for (int c = 0; c < 2; c++) {
+              //       auto &id = word.char_ids[c][b];
+              //       int lit = values[c] * id;
+              //       if (lit == 0)
+              //         continue;
+              //       assert (state.partial_assignment.get (id) ==
+              //               (lit > 0 ? LIT_TRUE : LIT_FALSE));
+              //       reason.antecedent.push_back (-lit);
+              //     }
+              //   }
+              // }
+              // {
+              //   auto &word = output_word[i];
+              //   for (int b = 0; b < 32; b++) {
+              //     auto values = gc_values_li2024 (word.chars[b]);
+              //     assert (values.size () == 2);
+              //     for (int c = 0; c < 2; c++) {
+              //       auto &id = word.char_ids[c][b];
+              //       int lit = values[c] * id;
+              //       if (lit == 0)
+              //         continue;
+              //       assert (state.partial_assignment.get (id) ==
+              //               (lit > 0 ? LIT_TRUE : LIT_FALSE));
+              //       reason.antecedent.push_back (-lit);
+              //     }
+              //   }
+              // }
+              // vector<int> reason_clause = vector (reason.antecedent);
+              // reason_clause.push_back (propagated_lit);
+              // printf ("Reason clause: ");
+              // for (auto &lit : reason_clause)
+              //   if (!state.vars_info[abs (lit)].is_fixed)
+              //     printf ("%d ", lit);
+              // printf ("\n");
 
               return;
             }

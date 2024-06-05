@@ -188,6 +188,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
               if (state.partial_assignment.get (ids[k]) != LIT_UNDEF)
                 continue;
               int lit = values[k] * ids[k];
+              assert (lit != 0);
               decision_lits.push_back (lit);
               assert (state.partial_assignment.get (abs (lit)) ==
                       LIT_UNDEF);
