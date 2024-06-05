@@ -71,7 +71,7 @@ void State::set_operations () {
   // Set updated operations array
   for (int i = 0; i < NUM_OPS; i++)
     for (int j = 0; j < 64; j++)
-      marked_operations_strong_prop[i][j] = false;
+      marked_operations_wordwise_prop[i][j] = false;
 
   // Zero word
   for (int i = 0; i < 32; i++) {

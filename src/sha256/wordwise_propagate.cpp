@@ -146,7 +146,7 @@ vector<string> gen_vars (vector<string> words) {
 }
 
 string brute_force (vector<string> var_cols, int64_t constant,
-                    int64_t min_gt) {
+                    int64_t min_gt, bool can_overflow) {
   auto var_cols_processed = process_var_cols (var_cols);
   vector<ValueWithOrder> vars = get<0> (var_cols_processed);
   int64_t const_value = get<1> (var_cols_processed);
@@ -158,6 +158,12 @@ string brute_force (vector<string> var_cols, int64_t constant,
     for (int j = 0; j < vars_count; j++) {
       values[j] = i >> j & 1;
       sum += values[j] * int64_t (pow (2, vars[j].order));
+    }
+    if (can_overflow) {
+      auto old_sum = sum;
+      sum = e_mod (sum, int64_t (pow (2, var_cols.size ())));
+      if (sum != constant)
+        continue;
     }
     if (min_gt == -1 && sum != constant)
       continue;
@@ -247,19 +253,19 @@ vector<string> apply_grounding (vector<string> words,
           break;
         }
       } else if (is_in (gc, {'7', 'E', '?'})) {
-        if (current_col_set.size () == 1) {
-          char value = *current_col_set.begin ();
-          if (value == 'v')
+        if (current_col_set.size () == 1 && next_col_set.size () == 1) {
+          char value1 = *next_col_set.begin ();
+          char value2 = *current_col_set.begin ();
+          if (value1 == 'v' && value2 == 'v')
             continue;
-          derived_words[j][i] = value == '1' ? (gc == '?'   ? '-'
-                                                : gc == '7' ? '0'
-                                                            : '1')
-                                             : 'n';
-        } else if (next_col_set.size () == 1) {
-          char value = *current_col_set.begin ();
-          if (value == 'v')
-            continue;
-          derived_words[j][i] = 'u';
+
+          if (value1 == '0' && value2 == '0') {
+            derived_words[j][i] = 'n';
+          } else if (value1 == '0' && value2 == '1') {
+            derived_words[j][i] = gc == '?' ? '-' : gc == '7' ? '0' : '1';
+          } else if (value1 == '1' && value2 == '0') {
+            derived_words[j][i] = 'u';
+          }
         }
       }
     }
@@ -330,14 +336,14 @@ vector<string> wordwise_propagate (vector<string> words, int64_t constant) {
     // If it cannot overflow, it should be cut off
     bool island_ends = can_overflow ? false : true;
 
-    bool all_zero_diff = true;
-    for (auto &word : words)
-      all_zero_diff &= is_in (word[i], {'1', '0', '-'});
-    if (bit == 0 && all_zero_diff) {
-      island_ends = true;
-      if (can_overflow)
-        overflow_brute_force_indices.push_back (islands.size ());
-    }
+    // bool all_zero_diff = true;
+    // for (auto &word : words)
+    //   all_zero_diff &= is_in (word[i], {'1', '0', '-'});
+    // if (bit == 0 && all_zero_diff) {
+    //   island_ends = true;
+    //   if (can_overflow)
+    //     overflow_brute_force_indices.push_back (islands.size ());
+    // }
 
     // Flush the stash
     if (i == 0) {
@@ -357,7 +363,7 @@ vector<string> wordwise_propagate (vector<string> words, int64_t constant) {
   // Derive the variable values
   vector<char> var_values;
   int island_index = 0;
-  for (auto &island : islands) {
+  for (Island &island : islands) {
     int64_t sum = 0;
     int n = island.bits.size ();
     for (int i = 0; i < n; i++)
@@ -365,8 +371,8 @@ vector<string> wordwise_propagate (vector<string> words, int64_t constant) {
 
     string propagation;
     if (is_in (island_index, overflow_brute_force_indices)) {
-      int64_t min_gt = int64_t (pow (2, n)) - 1;
-      propagation = brute_force (island.cols, -1, min_gt);
+      // int64_t min_gt = int64_t (pow (2, n)) - 1;
+      propagation = brute_force (island.cols, sum, -1, true);
     } else {
       propagation = brute_force (island.cols, sum);
     }
@@ -385,13 +391,29 @@ vector<string> wordwise_propagate (vector<string> words, int64_t constant) {
     island_index++;
   }
 
+  // printf ("Cols:\n");
+  // for (auto &col : var_cols) {
+  //   printf ("%s\n", col.c_str ());
+  // }
+  // printf ("Values: ");
+  // for (auto &value : var_values) {
+  //   printf ("%c ", value);
+  // }
+  // printf ("\n");
+
   // Fill in missing values
   for (int i = int (var_values.size ()); i < vars_count; i++)
-    var_values.push_back (-1);
+    var_values.push_back ('v');
   assert (int (var_values.size ()) == vars_count);
 
   vector<string> derived_words =
       apply_grounding (words, var_cols, var_values);
+
+  if (islands.size () == 0) {
+    for (int i = 0; i < words.size (); i++)
+      assert (words[i] == derived_words[i]);
+  }
+
   return derived_words;
 }
 

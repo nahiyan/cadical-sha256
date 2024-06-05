@@ -40,25 +40,26 @@ inline void wordwise_propagate_branch_1bit (State &state,
   for (int op_id = op_add_w; op_id <= op_add_t; op_id++)
     for (int step_i = 0; step_i < state.order; step_i++) {
       auto &marked_op =
-          state.marked_operations_strong_prop[(OperationId) op_id][step_i];
+          state
+              .marked_operations_wordwise_prop[(OperationId) op_id][step_i];
       if (!marked_op)
         continue;
       marked_op = false;
-      assert (op_id >= op_add_w);
+      assert (op_id >= op_add_w && op_id <= op_add_t);
 
       // Gather the input and output words
       auto &input_words = state.operations[step_i].inputs_by_op_id[op_id];
       auto &output_word =
           state.operations[step_i].outputs_by_op_id[op_id][2];
       int input_size = add_input_sizes[op_id - op_add_w];
+      // TODO: Try applying the mask
       string mask = add_masks[op_id - op_add_w];
       assert (int (mask.size ()) - 1 == input_size);
-      // TODO: Try applying the mask
 
       // Get the word characteristics
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++)
-        words_chars.push_back (_soft_word_chars (*input_words));
+        words_chars.push_back (_soft_word_chars (input_words[i]));
       words_chars.push_back (_word_chars (*output_word));
 
       // Generate the cache key
@@ -66,8 +67,8 @@ inline void wordwise_propagate_branch_1bit (State &state,
       {
         stringstream ss;
         ss << op_id << " ";
-        for (auto &word_chars : words_chars)
-          ss << word_chars;
+        for (auto &word_chars_ : words_chars)
+          ss << word_chars_;
         cache_key = ss.str ();
         assert (!cache_key.empty ());
       }
@@ -77,18 +78,30 @@ inline void wordwise_propagate_branch_1bit (State &state,
       vector<int> underived_indices;
       if (!wordwise_propagate_cache.exists (cache_key)) {
         // Calculate the word diffs
+        bool input_const_unknown = false, output_const_unknown = false;
         vector<string> underived_words;
         vector<int64_t> word_diffs;
         int i = -1;
-        for (auto &word_chars : words_chars) {
+        for (auto &word_chars_ : words_chars) {
           i++;
-          int64_t word_diff = _word_diff (word_chars);
+          int64_t word_diff = _word_diff (word_chars_);
+          bool is_output = i == input_size;
           if (word_diff == -1) {
             underived_indices.push_back (i);
-            underived_words.push_back (word_chars);
+            underived_words.push_back (word_chars_);
+
+            if (is_output)
+              output_const_unknown = true;
+            else
+              input_const_unknown = true;
           } else {
-            word_diffs.push_back (i == input_size ? word_diff : -word_diff);
+            word_diffs.push_back (is_output ? word_diff : -word_diff);
           }
+        }
+
+        // Skip if it involves subtraction
+        if (input_const_unknown && output_const_unknown) {
+          continue;
         }
 
         // Skip if underived words is 0 or more than 2
@@ -103,8 +116,9 @@ inline void wordwise_propagate_branch_1bit (State &state,
         word_diffs_sum = e_mod (word_diffs_sum, int64_t (pow (2, 32)));
 
         // Derive the underived words
-        propagated_words =
-            strong_propagate (underived_words, word_diffs_sum);
+        propagated_words = wordwise_propagate (
+            underived_words,
+            output_const_unknown ? -word_diffs_sum : word_diffs_sum);
 
         // printf ("Step %2d (Before), %d: ", step_i, op_id);
         // for (auto &chars : words_chars)
@@ -167,6 +181,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
 
             // Branch on this differential character
             auto values = gc_values_1bit (propagated_chars[j]);
+            assert (values.size () == 3);
             for (int k = 2; k >= 0; k--) {
               if (values[k] == 0)
                 continue;
@@ -254,12 +269,12 @@ inline void wordwise_propagate_branch_1bit (State &state,
               // }
               // printf ("\n");
 
-              printf ("Reason clause: ");
-              for (auto &lit : reason_clause) {
-                if (!state.vars_info[abs (lit)].is_fixed)
-                  printf ("%d ", lit);
-              }
-              printf ("\n");
+              // printf ("Reason clause: ");
+              // for (auto &lit : reason_clause) {
+              //   if (!state.vars_info[abs (lit)].is_fixed)
+              //     printf ("%d ", lit);
+              // }
+              // printf ("\n");
 
               return;
             }

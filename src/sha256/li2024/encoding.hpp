@@ -8,6 +8,7 @@
 using namespace std;
 
 namespace SHA256 {
+#if IS_LI2024
 inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
   auto &state = Propagator::state;
 
@@ -209,6 +210,7 @@ inline void add_li2024_variables (string line, CaDiCaL::Solver *&solver) {
     // printf ("Debug: %s %d %d %d\n", key.c_str (), id, step, col);
   }
 }
+#endif
 } // namespace SHA256
 
 #endif
