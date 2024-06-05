@@ -14,16 +14,8 @@
 #include <stack>
 #include <string>
 
-enum EncTypes {
-  OneBit,
-  FourBit,
-  // We use a modified version of Li et al.'s encoding
-  LiEtAl2024,
-};
-
 #define ABS_STEP(i) (i + 4)
 #define IS_4BIT false
-#define ENC_TYPE OneBit
 
 #define SET_PHASE false
 

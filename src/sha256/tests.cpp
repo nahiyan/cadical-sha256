@@ -44,6 +44,8 @@ void test_can_overflow () {
   assert (true == _can_overflow ({"vv", "v", "vv", "vv"}, {0, 0, 1, 1}));
   assert (true == _can_overflow ({"vv", "vv", "vv"}, {0, 0, 0}));
   assert (false == _can_overflow ({"vv", "vv", "v1"}, {0, 0, 0, 1}));
+  assert (true ==
+          _can_overflow ({"v", "vv", "v", "vv1", "vv"}, {0, 0, 1, 0, 0}));
 }
 
 void test_gen_vars () {
@@ -68,6 +70,9 @@ void test_brute_force () {
   assert (brute_force ({"vv", "v"}, 4) == "111");
   assert (brute_force ({"vv", "vv"}, 0, 3) == "vvvv");
   assert (brute_force ({"vv", "vv", "v1"}, 8) == "vvvvv");
+  assert (brute_force ({"vv", "vvv"}, 0, -1, true) == "vvvvv");
+  assert (brute_force ({"v", "vv", "v", "vv1", "vv"}, 4, -1, true) ==
+          "0vvvvvvv");
 }
 
 void test_apply_grounding () {
@@ -140,15 +145,100 @@ void test_wordwise_prop () {
 
   {
     vector<string> expected = {"xu-nnu--uxxu-xn1u---x-00x-u0-1--",
-                               "---------?0-?0--u-u-??n5-u------"};
+                               "---------?0-?0--u-A-???5-u------"};
     auto actual = wordwise_propagate ({"xx-nnx--uxxu-xx1u---x-00x-u0-1--",
                                        "---------?0-?0--u?A-???5-u---?--"},
                                       2896892384);
     assert (expected == actual);
   }
+
   {
     vector<string> expected = {"x???xu1uu-"};
     auto actual = wordwise_propagate ({"x???xx1xx-"}, 70);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"-----------------------------x--",
+                               "?????????????????????????????x--"};
+    auto actual = wordwise_propagate ({"-----------------------------x--",
+                                       "?????????????????????????????x--"},
+                                      0);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"-----x--", "?????x--"};
+    auto actual = wordwise_propagate ({"-----x--", "?????x--"}, 0);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"-----------------------------u--",
+                               "-------------------------nuuuu--"};
+    auto actual = wordwise_propagate ({"-----------------------------x--",
+                                       "-------------------------nuuuu--"},
+                                      0);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"---------------------unnnnnnnn--"};
+    auto actual =
+        wordwise_propagate ({"---------------------?nnxxnnnn--"}, 4);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"xxxuxxxxxxxxxxxu------xxxx------",
+                               "--xxxxx--xx--xx----xxxx-xx------"};
+    assert (_word_diff ("----n11-------un0---------------") == 4160815104);
+    auto actual = wordwise_propagate (
+        {"xxxuxxxxxxxxxxxu------xxxx------",
+         "--xxxxx--xx--xx----xxxx-xx------"},
+        _word_diff ("----n11-------un0---------------"));
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"-----------------------------x--",
+                               "?????????????????????????????x--"};
+    auto actual = wordwise_propagate ({"-----------------------------x--",
+                                       "?????????????????????????????x--"},
+                                      0);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"-----x--", "?????x--"};
+    auto actual = wordwise_propagate ({"-----x--", "?????x--"}, 0);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"-----------------------------u--",
+                               "-------------------------nuuuu--"};
+    auto actual = wordwise_propagate ({"-----------------------------x--",
+                                       "-------------------------nuuuu--"},
+                                      0);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"---------------------unnnnnnnn--"};
+    auto actual =
+        wordwise_propagate ({"---------------------?nnxxnnnn--"}, 4);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"xxxuxxxxxxxxxxxu------xxxx------",
+                               "--xxxxx--xx--xx----xxxx-xx------"};
+    assert (_word_diff ("----n11-------un0---------------") == 4160815104);
+    auto actual = wordwise_propagate (
+        {"xxxuxxxxxxxxxxxu------xxxx------",
+         "--xxxxx--xx--xx----xxxx-xx------"},
+        _word_diff ("----n11-------un0---------------"));
     assert (expected == actual);
   }
 }

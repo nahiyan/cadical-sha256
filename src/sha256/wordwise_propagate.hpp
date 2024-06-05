@@ -16,7 +16,7 @@ bool is_congruent (int64_t a, int64_t b, int64_t m);
 bool _can_overflow (vector<string> vars_colwise, vector<uint8_t> bits);
 vector<string> gen_vars (vector<string> words);
 string brute_force (vector<string> var_cols, int64_t constant,
-                    int64_t min_gt = -1);
+                    int64_t min_gt = -1, bool can_overflow = false);
 vector<string> apply_grounding (vector<string> words,
                                 vector<string> var_cols,
                                 vector<char> values);
