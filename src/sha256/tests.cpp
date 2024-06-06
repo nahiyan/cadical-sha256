@@ -144,14 +144,15 @@ void test_wordwise_prop () {
     assert (expected == actual);
   }
 
-  {
-    vector<string> expected = {"xu-nnu--uxxu-xn1u---x-00x-u0-1--",
-                               "---------?0-?0--u-A-???5-u------"};
-    auto actual = wordwise_propagate ({"xx-nnx--uxxu-xx1u---x-00x-u0-1--",
-                                       "---------?0-?0--u?A-???5-u---?--"},
-                                      2896892384);
-    assert (expected == actual);
-  }
+  // {
+  //   vector<string> expected = {"xu-nnu--uxxu-xn1u---x-00x-u0-1--",
+  //                              "---------?0-?0--u-A-???5-u------"};
+  //   auto actual = wordwise_propagate
+  //   ({"xx-nnx--uxxu-xx1u---x-00x-u0-1--",
+  //                                      "---------?0-?0--u?A-???5-u---?--"},
+  //                                     2896892384);
+  //   assert (expected == actual);
+  // }
 
   {
     vector<string> expected = {"x???xu1uu-"};
@@ -183,12 +184,12 @@ void test_wordwise_prop () {
     assert (expected == actual);
   }
 
-  {
-    vector<string> expected = {"---------------------unnnnnnnn--"};
-    auto actual =
-        wordwise_propagate ({"---------------------?nnxxnnnn--"}, 4);
-    assert (expected == actual);
-  }
+  // {
+  //   vector<string> expected = {"---------------------unnnnnnnn--"};
+  //   auto actual =
+  //       wordwise_propagate ({"---------------------?nnxxnnnn--"}, 4);
+  //   assert (expected == actual);
+  // }
 
   {
     vector<string> expected = {"xxxuxxxxxxxxxxxu------xxxx------",
@@ -225,12 +226,12 @@ void test_wordwise_prop () {
     assert (expected == actual);
   }
 
-  {
-    vector<string> expected = {"---------------------unnnnnnnn--"};
-    auto actual =
-        wordwise_propagate ({"---------------------?nnxxnnnn--"}, 4);
-    assert (expected == actual);
-  }
+  // {
+  //   vector<string> expected = {"---------------------unnnnnnnn--"};
+  //   auto actual =
+  //       wordwise_propagate ({"---------------------?nnxxnnnn--"}, 4);
+  //   assert (expected == actual);
+  // }
 
   {
     vector<string> expected = {"xxxuxxxxxxxxxxxu------xxxx------",

@@ -253,19 +253,34 @@ vector<string> apply_grounding (vector<string> words,
           break;
         }
       } else if (is_in (gc, {'7', 'E', '?'})) {
-        if (current_col_set.size () == 1 && next_col_set.size () == 1) {
-          char value1 = *next_col_set.begin ();
-          char value2 = *current_col_set.begin ();
-          if (value1 == 'v' && value2 == 'v')
-            continue;
+        // if (current_col_set.size () == 1 && next_col_set.size () == 1) {
+        //   char value1 = *next_col_set.begin ();
+        //   char value2 = *current_col_set.begin ();
+        //   if (value1 == 'v' && value2 == 'v')
+        //     continue;
 
-          if (value1 == '0' && value2 == '0') {
-            derived_words[j][i] = 'n';
-          } else if (value1 == '0' && value2 == '1') {
-            derived_words[j][i] = gc == '?' ? '-' : gc == '7' ? '0' : '1';
-          } else if (value1 == '1' && value2 == '0') {
-            derived_words[j][i] = 'u';
-          }
+        //   if (value1 == '0' && value2 == '0') {
+        //     derived_words[j][i] = 'n';
+        //   } else if (value1 == '0' && value2 == '1') {
+        //     derived_words[j][i] = gc == '?' ? '-' : gc == '7' ? '0' :
+        //     '1';
+        //   } else if (value1 == '1' && value2 == '0') {
+        //     derived_words[j][i] = 'u';
+        //   }
+        // }
+        if (current_col_set.size () == 1) {
+          char value = *current_col_set.begin ();
+          if (value == 'v')
+            continue;
+          derived_words[j][i] = value == '1' ? (gc == '?'   ? '-'
+                                                : gc == '7' ? '0'
+                                                            : '1')
+                                             : 'n';
+        } else if (next_col_set.size () == 1) {
+          char value = *current_col_set.begin ();
+          if (value == 'v')
+            continue;
+          derived_words[j][i] = 'u';
         }
       }
     }
