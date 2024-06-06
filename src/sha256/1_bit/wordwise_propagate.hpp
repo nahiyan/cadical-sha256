@@ -156,6 +156,10 @@ inline void wordwise_propagate_branch_1bit (State &state,
       // Deal with the propagated words
       for (int i = 0; i < int (underived_indices.size ()); i++) {
         auto index = underived_indices[i];
+
+        if (mask[index] == '.')
+          continue;
+
         string &original_chars = words_chars[index];
         string &propagated_chars = propagated_words[i];
 
@@ -211,52 +215,52 @@ inline void wordwise_propagate_branch_1bit (State &state,
               // }
 
               // Construct the reason clause
-              Reason reason;
-              // printf ("Debug (%c, %c, %d, %d, %d %d, %d): ",
-              //         original_chars[j], propagated_chars[j], lit,
-              //         input_size, unknown_input, unknown_output, k);
-              int propagated_lit = lit;
-              for (int a = 0; a < input_size; a++) {
-                auto &word = input_words[a];
-                for (int b = 0; b < 32; b++) {
-                  uint32_t ids[] = {word.ids_f[b], word.ids_g[b],
-                                    word.char_ids[b]};
-                  auto values = gc_values_1bit (*word.chars[b]);
-                  // printf ("%c", *word.chars[31 - b]);
-                  assert (values.size () == 3);
-                  for (int c = 0; c < 3; c++) {
-                    int lit = values[c] * ids[c];
-                    if (lit == 0)
-                      continue;
-                    assert (state.partial_assignment.get (ids[c]) ==
-                            (lit > 0 ? LIT_TRUE : LIT_FALSE));
-                    reason.antecedent.push_back (-lit);
-                  }
-                }
-                // printf (" ");
-              }
-              {
-                auto &word = output_word[i];
-                for (int b = 0; b < 32; b++) {
-                  uint32_t ids[] = {word.ids_f[b], word.ids_g[b],
-                                    word.char_ids[b]};
-                  auto values = gc_values_1bit (word.chars[b]);
-                  // printf ("%c", word.chars[31 - b]);
-                  assert (values.size () == 3);
-                  for (int c = 0; c < 3; c++) {
-                    auto &id = ids[c];
-                    int lit = values[c] * id;
-                    if (lit == 0)
-                      continue;
-                    assert (state.partial_assignment.get (ids[c]) ==
-                            (lit > 0 ? LIT_TRUE : LIT_FALSE));
-                    reason.antecedent.push_back (-lit);
-                  }
-                }
-                // printf ("\n");
-              }
-              vector<int> reason_clause = vector (reason.antecedent);
-              reason_clause.push_back (propagated_lit);
+              // Reason reason;
+              // // printf ("Debug (%c, %c, %d, %d, %d %d, %d): ",
+              // //         original_chars[j], propagated_chars[j], lit,
+              // //         input_size, unknown_input, unknown_output, k);
+              // int propagated_lit = lit;
+              // for (int a = 0; a < input_size; a++) {
+              //   auto &word = input_words[a];
+              //   for (int b = 0; b < 32; b++) {
+              //     uint32_t ids[] = {word.ids_f[b], word.ids_g[b],
+              //                       word.char_ids[b]};
+              //     auto values = gc_values_1bit (*word.chars[b]);
+              //     // printf ("%c", *word.chars[31 - b]);
+              //     assert (values.size () == 3);
+              //     for (int c = 0; c < 3; c++) {
+              //       int lit = values[c] * ids[c];
+              //       if (lit == 0)
+              //         continue;
+              //       assert (state.partial_assignment.get (ids[c]) ==
+              //               (lit > 0 ? LIT_TRUE : LIT_FALSE));
+              //       reason.antecedent.push_back (-lit);
+              //     }
+              //   }
+              //   // printf (" ");
+              // }
+              // {
+              //   auto &word = output_word[i];
+              //   for (int b = 0; b < 32; b++) {
+              //     uint32_t ids[] = {word.ids_f[b], word.ids_g[b],
+              //                       word.char_ids[b]};
+              //     auto values = gc_values_1bit (word.chars[b]);
+              //     // printf ("%c", word.chars[31 - b]);
+              //     assert (values.size () == 3);
+              //     for (int c = 0; c < 3; c++) {
+              //       auto &id = ids[c];
+              //       int lit = values[c] * id;
+              //       if (lit == 0)
+              //         continue;
+              //       assert (state.partial_assignment.get (ids[c]) ==
+              //               (lit > 0 ? LIT_TRUE : LIT_FALSE));
+              //       reason.antecedent.push_back (-lit);
+              //     }
+              //   }
+              //   // printf ("\n");
+              // }
+              // vector<int> reason_clause = vector (reason.antecedent);
+              // reason_clause.push_back (propagated_lit);
 
               // printf ("Debug: op_id = %s; step = %d\n",
               //         op_id == op_add_w   ? "add.W"

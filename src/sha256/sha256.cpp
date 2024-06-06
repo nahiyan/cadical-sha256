@@ -292,7 +292,7 @@ int Propagator::cb_propagate () {
     custom_4bit_propagate (state, propagation_lits, reasons, stats);
 #elif IS_1BIT
     custom_1bit_propagate (state, propagation_lits, reasons, stats);
-#else
+#elif IS_LI2024
     custom_li2024_propagate (state, propagation_lits, reasons, stats);
 #endif
     delete prop_timer;
