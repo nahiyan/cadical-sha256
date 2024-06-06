@@ -6,6 +6,7 @@
 #include "4_bit/2_bit.hpp"
 #include "4_bit/encoding.hpp"
 #include "4_bit/propagate.hpp"
+#include "li2024/2_bit.hpp"
 #include "li2024/encoding.hpp"
 #include "li2024/propagate.hpp"
 #include "li2024/wordwise_propagate.hpp"
@@ -248,6 +249,9 @@ inline bool Propagator::custom_block () {
 #elif IS_1BIT
   derive_2bit_equations_1bit (state, two_bit.equations_trail.back (),
                               two_bit, trail_level, stats);
+#elif IS_LI2024
+  derive_2bit_equations_li2024 (state, two_bit.equations_trail.back (),
+                                two_bit, trail_level, stats);
 #endif
 
   int shortest_l_graph_based = INT_MAX;

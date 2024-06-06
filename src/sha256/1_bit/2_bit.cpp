@@ -6,7 +6,7 @@
 #include <sstream>
 
 namespace SHA256 {
-#if !IS_LI2024
+#if IS_1BIT
 // Masks used for constructing 2-bit equations
 string masks_by_op_id[NUM_OPS] = {
     "+++.", "+++.",      "+++.",     "+++.",   "+++.",

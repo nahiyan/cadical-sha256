@@ -128,6 +128,7 @@ inline vector<int> xor_ (vector<int> inputs) {
   return {value};
 }
 
+#if IS_4BIT
 inline uint8_t gc_values_4bit (char c) {
   uint8_t values = 0;
   if (c == '?')
@@ -167,7 +168,9 @@ inline uint8_t gc_values_4bit (char c) {
 
   return values;
 }
+#endif
 
+#if IS_1BIT
 inline vector<int8_t> gc_values_1bit (char c) {
   switch (c) {
   case 'x':
@@ -194,7 +197,9 @@ inline vector<int8_t> gc_values_1bit (char c) {
     return {0, 0, 0};
   }
 }
+#endif
 
+#if IS_LI2024
 inline vector<int8_t> gc_values_li2024 (char c) {
   switch (c) {
   case '-':
@@ -217,6 +222,7 @@ inline vector<int8_t> gc_values_li2024 (char c) {
     return {0, 0};
   }
 }
+#endif
 
 // Compare two characteristics by their scores
 inline bool compare_gcs (char c1, char c2) {

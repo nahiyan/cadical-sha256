@@ -332,7 +332,6 @@ otf_2bit_eqs (vector<int> (*func) (vector<int> inputs), string inputs,
           // c: differential characteristic in the selected placeholder
           auto &c = candidate[positions[j]];
           assert (c == '-' || c == 'x');
-          // TODO: Add 2-block support
           if (block_i == 0)
             c = c == 'x' ? (value == 1 ? 'u' : 'n')
                          : (value == 1 ? '1' : '0');
