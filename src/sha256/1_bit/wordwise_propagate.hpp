@@ -30,10 +30,13 @@ inline void wordwise_propagate_branch_1bit (State &state,
       chars += word.chars[i];
     return chars;
   };
-  auto _soft_word_chars = [] (SoftWord &word) {
+  auto _soft_word_chars = [] (SoftWord &word, bool assume_dash = false) {
     string chars;
     for (int i = 31; i >= 0; i--)
-      chars += *word.chars[i];
+      if (assume_dash)
+        chars += *word.chars[i] == '?' ? '-' : *word.chars[i];
+      else
+        chars += *word.chars[i];
     return chars;
   };
 
@@ -59,8 +62,8 @@ inline void wordwise_propagate_branch_1bit (State &state,
       // Get the word characteristics
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++)
-        words_chars.push_back (_soft_word_chars (input_words[i]));
-      words_chars.push_back (_word_chars (*output_word));
+        words_chars.push_back (_soft_word_chars (input_words[i], true));
+      words_chars.push_back (_word_chars (output_word[0]));
 
       // Generate the cache key
       string cache_key;
@@ -100,9 +103,8 @@ inline void wordwise_propagate_branch_1bit (State &state,
         }
 
         // Skip if it involves subtraction
-        if (input_const_unknown && output_const_unknown) {
+        if (input_const_unknown && output_const_unknown)
           continue;
-        }
 
         // Skip if underived words is 0 or more than 2
         int underived_count = underived_indices.size ();
@@ -214,11 +216,11 @@ inline void wordwise_propagate_branch_1bit (State &state,
               //   printf ("%s: %ld\n", word.c_str (), _word_diff (word));
               // }
 
-              // Construct the reason clause
+              // // Construct the reason clause
               // Reason reason;
-              // // printf ("Debug (%c, %c, %d, %d, %d %d, %d): ",
-              // //         original_chars[j], propagated_chars[j], lit,
-              // //         input_size, unknown_input, unknown_output, k);
+              // printf ("Debug (%c, %c, %d, %d, %d %d, %d): ",
+              //         original_chars[j], propagated_chars[j], lit,
+              //         input_size, unknown_input, unknown_output, k);
               // int propagated_lit = lit;
               // for (int a = 0; a < input_size; a++) {
               //   auto &word = input_words[a];
@@ -226,7 +228,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
               //     uint32_t ids[] = {word.ids_f[b], word.ids_g[b],
               //                       word.char_ids[b]};
               //     auto values = gc_values_1bit (*word.chars[b]);
-              //     // printf ("%c", *word.chars[31 - b]);
+              //     printf ("%c", *word.chars[31 - b]);
               //     assert (values.size () == 3);
               //     for (int c = 0; c < 3; c++) {
               //       int lit = values[c] * ids[c];
@@ -237,7 +239,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
               //       reason.antecedent.push_back (-lit);
               //     }
               //   }
-              //   // printf (" ");
+              //   printf (" ");
               // }
               // {
               //   auto &word = output_word[i];
@@ -245,7 +247,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
               //     uint32_t ids[] = {word.ids_f[b], word.ids_g[b],
               //                       word.char_ids[b]};
               //     auto values = gc_values_1bit (word.chars[b]);
-              //     // printf ("%c", word.chars[31 - b]);
+              //     printf ("%c", word.chars[31 - b]);
               //     assert (values.size () == 3);
               //     for (int c = 0; c < 3; c++) {
               //       auto &id = ids[c];
@@ -257,7 +259,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
               //       reason.antecedent.push_back (-lit);
               //     }
               //   }
-              //   // printf ("\n");
+              //   printf ("\n");
               // }
               // vector<int> reason_clause = vector (reason.antecedent);
               // reason_clause.push_back (propagated_lit);
