@@ -13,6 +13,7 @@ using namespace std;
 namespace SHA256 {
 #if IS_LI2024
 int add_input_sizes[3] = {4, 4, 5};
+string add_masks[3] = {".+.++", "++..+", "++..++"};
 // K in little-endian as per our convention
 string k[64] = {
     "00011001111101000101000101000010", "10001001001000101110110010001110",
@@ -66,12 +67,16 @@ inline void wordwise_propagate_branch_li2024 (State &state,
       chars += word.chars[i];
     return chars;
   };
-  auto _soft_word_chars = [] (SoftWord &word) {
+  auto _soft_word_chars = [] (SoftWord &word, bool assume_dash = false) {
     string chars;
     for (int i = 31; i >= 0; i--) {
       assert (word.char_ids[0][i] != 0);
       assert (word.char_ids[1][i] != 0);
-      chars += *word.chars[i];
+      if (assume_dash)
+        chars += *word.chars[i] == '?' ? '-' : *word.chars[i];
+      else
+        chars += *word.chars[i];
+
       assert (*word.chars[i] == 'u' || *word.chars[i] == 'n' ||
               *word.chars[i] == '-' || *word.chars[i] == '?' ||
               *word.chars[i] == 'x');
@@ -95,11 +100,13 @@ inline void wordwise_propagate_branch_li2024 (State &state,
       auto &output_word =
           state.operations[step_i].outputs_by_op_id[op_id][2];
       int input_size = add_input_sizes[op_id - op_add_w];
+      string mask = add_masks[op_id - op_add_w];
+      assert (int (mask.size ()) - 1 == input_size);
 
       // Get the word characteristics
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++)
-        words_chars.push_back (_soft_word_chars (input_words[i]));
+        words_chars.push_back (_soft_word_chars (input_words[i], true));
       words_chars.push_back (_word_chars (*output_word));
 
       // Generate the cache key
@@ -141,20 +148,19 @@ inline void wordwise_propagate_branch_li2024 (State &state,
         }
 
         // Skip if it involves subtraction
-        if (rhs_const_unknown && lhs_const_unknown) {
+        if (rhs_const_unknown && lhs_const_unknown)
           continue;
-        }
-
-        if (op_id == op_add_e) {
-          string chars = k[step_i];
-          reverse (chars.begin (), chars.end ());
-          word_diffs.push_back (_word_diff (chars));
-        }
 
         // Skip if underived words is 0 or more than 2
         int underived_count = underived_indices.size ();
         if (underived_count == 0 || underived_count > 2)
           continue;
+
+        if (op_id == op_add_e) {
+          string chars = k[step_i];
+          reverse (chars.begin (), chars.end ());
+          word_diffs.push_back (-_word_diff (chars));
+        }
 
         // Calculate the sum of the the word diffs
         int64_t word_diffs_sum = 0;
@@ -203,11 +209,15 @@ inline void wordwise_propagate_branch_li2024 (State &state,
       // Deal with the propagated words
       for (int i = 0; i < int (underived_indices.size ()); i++) {
         auto index = underived_indices[i];
+
+        if (mask[index] == '.')
+          continue;
+
         string &original_chars = words_chars[index];
         string &propagated_chars = propagated_words[i];
 
         // Try dealing with the MSBs first
-        for (int j = 0; j < 32; j++)
+        for (int j = 31; j >= 0; j--)
           if (original_chars[j] != propagated_chars[j]) {
             assert (compare_gcs (original_chars[j], propagated_chars[j]));
             // printf ("Wordwise prop. %d: %c %c\n", op_id,
