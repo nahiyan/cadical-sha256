@@ -272,8 +272,10 @@ inline bool Propagator::custom_block () {
     for (auto &lit : shortest_c_graph_based)
       clause.push_back (lit);
     external_clauses.push_back (clause);
+#if PRINT_BLOCKING_CLAUSE
     printf ("Blocking clause: ");
     print (clause);
+#endif
     return true;
   }
 
@@ -350,10 +352,10 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     }
     reason_clause.push_back (propagated_lit);
 
+#if PRINT_REASON_CLAUSE
     printf ("Reason clause: ");
-    for (auto &lit : reason_clause)
-      printf ("%d ", lit);
-    printf ("\n");
+    print (reason_clause);
+#endif
     // printf ("Differentials: %s; %s\n", reason.differentials.first.c_str
     // (),
     //         reason.differentials.second.c_str ());
