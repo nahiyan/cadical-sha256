@@ -159,8 +159,8 @@ inline void wordwise_propagate_branch_1bit (State &state,
       for (int i = 0; i < int (underived_indices.size ()); i++) {
         auto index = underived_indices[i];
 
-        if (mask[index] == '.')
-          continue;
+        // if (mask[index] == '.')
+        //   continue;
 
         string &original_chars = words_chars[index];
         string &propagated_chars = propagated_words[i];
