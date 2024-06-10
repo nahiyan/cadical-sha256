@@ -55,7 +55,6 @@ inline void wordwise_propagate_branch_1bit (State &state,
       auto &output_word =
           state.operations[step_i].outputs_by_op_id[op_id][2];
       int input_size = add_input_sizes[op_id - op_add_w];
-      // TODO: Try applying the mask
       string mask = add_masks[op_id - op_add_w];
       assert (int (mask.size ()) - 1 == input_size);
 
