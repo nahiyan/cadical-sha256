@@ -215,7 +215,7 @@ inline void wordwise_propagate_branch_1bit (State &state,
               //   printf ("%s: %ld\n", word.c_str (), _word_diff (word));
               // }
 
-#if PRINT_REASON_CLAUSE
+#if PRINT_WP_REASON_CLAUSE
               // Construct the reason clause
               Reason reason;
               // printf ("Debug (%c, %c, %d, %d, %d %d, %d): ",

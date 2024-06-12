@@ -352,7 +352,7 @@ int Propagator::cb_add_reason_clause_lit (int propagated_lit) {
     }
     reason_clause.push_back (propagated_lit);
 
-#if PRINT_REASON_CLAUSE
+#if PRINT_BP_REASON_CLAUSE
     printf ("Reason clause: ");
     print (reason_clause);
 #endif

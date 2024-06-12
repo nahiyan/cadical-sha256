@@ -15,7 +15,8 @@
 #define IS_4BIT false
 #define IS_1BIT false
 
-#define PRINT_REASON_CLAUSE false
+#define PRINT_BP_REASON_CLAUSE false
+#define PRINT_WP_REASON_CLAUSE false
 #define PRINT_BLOCKING_CLAUSE false
 
 #if IS_LI2024
