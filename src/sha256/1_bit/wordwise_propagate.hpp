@@ -13,7 +13,7 @@ using namespace std;
 namespace SHA256 {
 #if IS_1BIT
 // TODO: Fix warnings regarding defining variables in the header
-string add_masks[4] = {".+.++", "+..+", "+++", "+...++"};
+string add_masks[4] = {".+.++", "...+", "+.+", "+...+."};
 int add_input_sizes[4] = {4, 3, 2, 5};
 
 // Wordwise propagate (through branching) words by taking information inside
@@ -61,7 +61,8 @@ inline void wordwise_propagate_branch_1bit (State &state,
       // Get the word characteristics
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++)
-        words_chars.push_back (_soft_word_chars (input_words[i], true));
+        words_chars.push_back (
+            _soft_word_chars (input_words[i], mask[i] == '.'));
       words_chars.push_back (_word_chars (output_word[0]));
 
       // Generate the cache key
