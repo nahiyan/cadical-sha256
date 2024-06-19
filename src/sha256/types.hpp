@@ -11,7 +11,7 @@
 #include <unordered_set>
 #include <vector>
 
-#define IS_LI2024 true
+#define IS_LI2024 false
 #define IS_4BIT false
 #define IS_1BIT false
 
