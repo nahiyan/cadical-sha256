@@ -60,9 +60,21 @@ inline void wordwise_propagate_branch_1bit (State &state,
 
       // Get the word characteristics
       vector<string> words_chars;
-      for (int i = 0; i < input_size; i++)
-        words_chars.push_back (
-            _soft_word_chars (input_words[i], mask[i] == '.'));
+      for (int i = 0; i < input_size; i++) {
+        string chars;
+        for (int j = 31; j >= 0; j--) {
+          char c = *input_words[i].chars[j];
+          if (mask[i] == '.' && c == '?') {
+            assert (state.partial_assignment.get (
+                        input_words[i].char_ids[j]) == LIT_UNDEF);
+            decision_lits.push_back (-input_words[i].char_ids[j]);
+            return;
+          }
+          chars += c;
+        }
+        words_chars.push_back (chars);
+        // words_chars.push_back (_soft_word_chars (input_words[i]));
+      }
       words_chars.push_back (_word_chars (output_word[0]));
 
       // Generate the cache key
