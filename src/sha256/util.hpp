@@ -1,7 +1,6 @@
 #ifndef _sha256_util_hpp_INCLUDED
 #define _sha256_util_hpp_INCLUDED
 
-#include "NTL/vec_GF2.h"
 #include "types.hpp"
 #include <algorithm>
 #include <cassert>
@@ -36,22 +35,22 @@ inline int sum (vector<int> addends) {
   return sum;
 }
 
-inline NTL::GF2 sum (NTL::vec_GF2 &v) {
-  NTL::GF2 sum = NTL::to_GF2 (0);
-  for (int i = 0; i < v.length (); i++)
-    sum += v[i];
+// inline NTL::GF2 sum (NTL::vec_GF2 &v) {
+//   NTL::GF2 sum = NTL::to_GF2 (0);
+//   for (int i = 0; i < v.length (); i++)
+//     sum += v[i];
 
-  return sum;
-}
+//   return sum;
+// }
 
-// TODO: May require refactoring
-inline int sum_dec_from_bin (NTL::vec_GF2 &v) {
-  int sum = 0;
-  for (int i = 0; i < v.length (); i++)
-    sum += NTL::conv<int> (v[i]);
+// // TODO: May require refactoring
+// inline int sum_dec_from_bin (NTL::vec_GF2 &v) {
+//   int sum = 0;
+//   for (int i = 0; i < v.length (); i++)
+//     sum += NTL::conv<int> (v[i]);
 
-  return sum;
-}
+//   return sum;
+// }
 
 inline void print (vector<int> &vec) {
   for (auto &lit : vec)
