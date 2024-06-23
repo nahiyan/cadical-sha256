@@ -14,19 +14,6 @@
 #include <stack>
 #include <string>
 
-#define ABS_STEP(i) (i + 4)
-
-#define SET_PHASE false
-
-#define CUSTOM_PROP false
-#define WORDWISE_PROPAGATE false
-#define CUSTOM_BLOCKING false
-#define TWO_BIT_ADD_DIFFS false
-#define MENDEL_BRANCHING false
-#define MENDEL_BRANCHING_STAGES 3
-
-#define SHOW_DECISION_DIST false
-
 using namespace std;
 
 namespace SHA256 {

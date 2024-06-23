@@ -11,13 +11,28 @@
 #include <unordered_set>
 #include <vector>
 
-#define IS_LI2024 false
-#define IS_4BIT false
-#define IS_1BIT false
+#define ABS_STEP(i) (i + 4)
 
-#define PRINT_BP_REASON_CLAUSE false
-#define PRINT_WP_REASON_CLAUSE false
-#define PRINT_BLOCKING_CLAUSE false
+// Select the encoding type
+#define IS_1BIT false   // 1-bit variant of nejati-collision encoding
+#define IS_LI2024 false // 4-bit variant of nejati-collision encoding
+#define IS_4BIT false   // Li et al. FSE 2024 encoding
+
+// Select the propagation techniques
+#define CUSTOM_PROP false         // Bitsliced propagation
+#define WORDWISE_PROPAGATE false  // Wordwise propagation
+#define CUSTOM_BLOCKING false     // Inconsistency blocking
+#define TWO_BIT_ADD_DIFFS false   // Inconsistency blocking with addition
+#define MENDEL_BRANCHING false    // Mendel et al.'s branching
+#define MENDEL_BRANCHING_STAGES 3 // Stages in Mendel et al.'s branching
+
+#define SET_PHASE false          // Set phase to false for primary variables
+#define SHOW_DECISION_DIST false // Show the decision distribution
+
+#define PRINT_BP_REASON_CLAUSE false // Print the bitsliced reason clauses
+#define PRINT_WP_REASON_CLAUSE false // Print the wordwise reason clauses
+#define PRINT_BLOCKING_CLAUSE \
+  false // Print the inconsistency blocking clauses
 
 #if IS_LI2024
 #define NUM_OPS 9
