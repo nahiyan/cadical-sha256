@@ -211,7 +211,6 @@ int Propagator::cb_decide () {
   Timer timer (&stats.total_cb_time);
 
 #if MENDEL_BRANCHING
-  // if (++mendel_branch_counter % 20 == 0) {
   if (decision_lits.empty ()) {
     state.soft_refresh ();
     Timer *mb_timer = new Timer (&stats.total_mendel_branch_time);
@@ -225,7 +224,6 @@ int Propagator::cb_decide () {
     delete mb_timer;
     stats.mendel_branching_decisions_count += decision_lits.size ();
   }
-  // }
 #endif
 
   if (decision_lits.empty ())
