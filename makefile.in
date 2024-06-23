@@ -17,8 +17,17 @@ LIBS=@LIBS@
 ############################################################################
 
 APP=cadical.cpp mobical.cpp
-SRC=$(sort $(wildcard ../src/*.cpp))
-SUB=$(subst ../src/,,$(SRC))
+SRC_MAIN=$(wildcard ../src/*.cpp)
+SRC_SHA256=$(wildcard ../src/sha256/*.cpp)
+SRC_1BIT=$(wildcard ../src/sha256/1_bit/*.cpp)
+SRC_4BIT=$(wildcard ../src/sha256/4_bit/*.cpp)
+SRC_LI2024=$(wildcard ../src/sha256/li2024/*.cpp)
+SRC=$(sort $(SRC_MAIN) $(SRC_SHA256) $(SRC_1BIT) $(SRC_4BIT) $(SRC_LI2024))
+SUB=$(subst ../src/,,$(SRC_MAIN)) \
+     $(subst ../src/sha256/,sha256/,$(SRC_SHA256)) \
+     $(subst ../src/sha256/1_bit/,sha256/1_bit/,$(SRC_1BIT)) \
+     $(subst ../src/sha256/4_bit/,sha256/4_bit/,$(SRC_4BIT)) \
+     $(subst ../src/sha256/li2024/,sha256/li2024/,$(SRC_LI2024))
 LIB=$(filter-out $(APP),$(SUB))
 OBJ=$(LIB:.cpp=.o)
 DIR=../$(shell pwd|sed -e 's,.*/,,')
@@ -34,6 +43,18 @@ all: libcadical.a cadical mobical
 
 %.o: ../src/%.cpp ../src/*.hpp makefile
 	$(COMPILE) -c $<
+
+sha256/%.o: ../src/sha256/%.cpp ../src/sha256/*.hpp makefile
+	$(COMPILE) -c $< -o $@
+
+sha256/1bit/%.o: ../src/sha256/1_bit/%.cpp ../src/sha256/1_bit/*.hpp makefile
+	$(COMPILE) -c $< -o $@
+
+sha256/4bit/%.o: ../src/sha256/4_bit/%.cpp ../src/sha256/4_bit/*.hpp makefile
+	$(COMPILE) -c $< -o $@
+
+sha256/li2024/%.o: ../src/sha256/li2024/%.cpp ../src/sha256/li2024/*.hpp makefile
+	$(COMPILE) -c $< -o $@
 
 #--------------------------------------------------------------------------#
 

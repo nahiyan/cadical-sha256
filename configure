@@ -32,11 +32,9 @@ m32=no
 
 #--------------------------------------------------------------------------#
 
-if [ -f ./scripts/colors.sh ]
-then
+if [ -f ./scripts/colors.sh ]; then
   . ./scripts/colors.sh
-elif [ -f ../scripts/colors.sh ]
-then
+elif [ -f ../scripts/colors.sh ]; then
   . ../scripts/colors.sh
 else
   BAD=""
@@ -45,9 +43,8 @@ else
   NORMAL=""
 fi
 
-die () {
-  if [ -f configure.log ]
-  then
+die() {
+  if [ -f configure.log ]; then
     checklog=" (check also 'configure.log')"
   else
     checklog=""
@@ -56,14 +53,13 @@ die () {
   exit 1
 }
 
-msg () {
+msg() {
   cecho "${BOLD}configure:${NORMAL} $*"
 }
 
 # if we can find the 'color.sh' script source it and overwrite color codes
 
-for dir in . ..
-do
+for dir in . ..; do
   [ -f $dir/scripts/colors.sh ] || continue
   . $dir/scripts/colors.sh || exit 1
   break
@@ -73,8 +69,8 @@ done
 
 # Parse and handle command line options.
 
-usage () {
-cat << EOF
+usage() {
+  cat <<EOF
 usage: configure [ <option> ... ]
 
 where '<option>' is one of the following
@@ -124,52 +120,54 @@ code to a new platform and are usually not necessary to change.
 
 --no-unlocked      force compilation without unlocked IO
 EOF
-exit 0
+  exit 0
 }
 
 #--------------------------------------------------------------------------#
 
-while [ $# -gt 0 ]
-do
+while [ $# -gt 0 ]; do
   case $1 in
 
-    -h|--help) usage;;
+  -h | --help) usage ;;
 
-    -a|--all) all=yes;;
+  -a | --all) all=yes ;;
 
-    -g|--debug) debug=yes;;
-    -c|--check) check=yes;;
-    -l|--log|--logging) logging=yes;;
+  -g | --debug) debug=yes ;;
+  -c | --check) check=yes ;;
+  -l | --log | --logging) logging=yes ;;
 
-    -l*) libs="$libs $1";;
+  -l*) libs="$libs $1" ;;
 
-    -p|--pedantic) pedantic=yes;;
-    -q|--quiet) quiet=yes;;
+  -p | --pedantic) pedantic=yes ;;
+  -q | --quiet) quiet=yes ;;
 
-    --no-contracts | --no-contract) contracts=no;;
-    --no-tracing | --no-trace) tracing=no;;
+  --no-contracts | --no-contract) contracts=no ;;
+  --no-tracing | --no-trace) tracing=no ;;
 
-    --coverage) coverage=yes;;
-    --profile) profile=yes;;
+  --coverage) coverage=yes ;;
+  --profile) profile=yes ;;
 
-    --competition) competition=yes;;
+  --competition) competition=yes ;;
 
-    --no-unlocked) unlocked=no;;
+  --no-unlocked) unlocked=no ;;
 
-    -m32) options="$options $1";m32=yes;;
-    -f*|-ggdb3|-O|-O1|-O2|-O3) options="$options $1";;
-    -s|--symbols) options="$options -ggdb3";;
-    -static*) options="$options $1";;
+  -m32)
+    options="$options $1"
+    m32=yes
+    ;;
+  -f* | -ggdb3 | -O | -O1 | -O2 | -O3) options="$options $1" ;;
+  -s | --symbols) options="$options -ggdb3" ;;
+  -static*) options="$options $1" ;;
 
-    CXX=*)
-      CXX="`expr \"$1\" : 'CXX=\(.*\)'`"
-      ;;
+  CXX=*)
+    CXX="$(expr \"$1\" : 'CXX=\(.*\)')"
+    ;;
 
-    CXXFLAGS=*)
-      CXXFLAGS="`expr \"$1\" : 'CXXFLAGS=\(.*\)'`"
-      ;;
+  CXXFLAGS=*)
+    CXXFLAGS="$(expr \"$1\" : 'CXXFLAGS=\(.*\)')"
+    ;;
 
-    *) die "invalid option '$1' (try '-h')";;
+  *) die "invalid option '$1' (try '-h')" ;;
 
   esac
   shift
@@ -177,21 +175,18 @@ done
 
 #--------------------------------------------------------------------------#
 
-if [ $quiet = yes ]
-then
+if [ $quiet = yes ]; then
   [ $logging = yes ] && die "can not combine '-q' with '-l'"
 fi
 
-if [ $all = yes ]
-then
+if [ $all = yes ]; then
   [ $check = yes ] && die "'-a' subsumes '-c'"
   [ $debug = yes ] && die "'-a' subsumes '-g'"
   [ $logging = yes ] && die "'-a' subsumes '-l'"
   check=yes
   debug=yes
   logging=yes
-elif [ $debug = yes ]
-then
+elif [ $debug = yes ]; then
   [ $check = yes ] && die "'-g' subsumes '-c'"
   check=yes
 fi
@@ -200,37 +195,42 @@ fi
 
 # Generate and enter 'build' directory if not already in sub-directory.
 
-build_in_default_build_sub_directory () {
-  if [ -d build ]
-  then
+build_in_default_build_sub_directory() {
+  if [ -d build ]; then
     msg "reusing default 'build' directory"
   else
-    mkdir build 2>/dev/null || \
-    die "failed to generate 'build' directory"
+    mkdir build 2>/dev/null ||
+      die "failed to generate 'build' directory"
+    mkdir -p build/sha256 2>/dev/null ||
+      die "failed to generate 'build' directory"
+    mkdir -p build/sha256/1_bit 2>/dev/null ||
+      die "failed to generate 'build' directory"
+    mkdir -p build/sha256/4_bit 2>/dev/null ||
+      die "failed to generate 'build' directory"
+    mkdir -p build/sha256/li2024 2>/dev/null ||
+      die "failed to generate 'build' directory"
     msg "making default 'build' directory"
   fi
   cd build
-  msg "building in default ${HILITE}'`pwd`'${NORMAL}"
+  msg "building in default ${HILITE}'$(pwd)'${NORMAL}"
   build=build
 }
 
-if [ -f configure -a -f makefile.in -a -d src ]
-then
-  root="`pwd`"
+if [ -f configure -a -f makefile.in -a -d src ]; then
+  root="$(pwd)"
   build_in_default_build_sub_directory
-elif [ -f ../configure -a -f ../makefile.in -a -d ../src ]
-then
-  cwd="`pwd`"
-  build=`basename "$cwd"`
-  root=`dirname "$cwd"`
+elif [ -f ../configure -a -f ../makefile.in -a -d ../src ]; then
+  cwd="$(pwd)"
+  build=$(basename "$cwd")
+  root=$(dirname "$cwd")
   case x"$build" in
-    xsrc|xtest|xscripts)
-      cd ..
-      build_in_default_build_sub_directory
-      ;;
-    *)
-      msg "building in ${HILITE}'$build'${NORMAL} sub-directory"
-      ;;
+  xsrc | xtest | xscripts)
+    cd ..
+    build_in_default_build_sub_directory
+    ;;
+  *)
+    msg "building in ${HILITE}'$build'${NORMAL} sub-directory"
+    ;;
   esac
 else
   die "call 'configure' from root of CaDiCaL source or a sub-directory"
@@ -242,8 +242,7 @@ msg "root directory '$root'"
 
 src="$root/src"
 
-if [ -d "$src" ]
-then
+if [ -d "$src" ]; then
   msg "source directory '$src'"
 else
   die "could not find source director '$src'"
@@ -257,32 +256,29 @@ fi
 [ x"$CXXFLAGS" = x ] || CXXFLAGS="$CXXFLAGS "
 
 case x"$CXX" in
-  x*g++*|x*clang++*) CXXFLAGS="${CXXFLAGS}-Wall -Wextra";;
-  *) CXXFLAGS="${CXXFLAGS}-W";;
+x*g++* | x*clang++*) CXXFLAGS="${CXXFLAGS}-Wall -Wextra" ;;
+*) CXXFLAGS="${CXXFLAGS}-W" ;;
 esac
 
-if [ $debug = yes ]
-then
+if [ $debug = yes ]; then
   CXXFLAGS="$CXXFLAGS -g"
 else
   case x"$CXX" in
-    x*g++*|x*clang++*) CXXFLAGS="$CXXFLAGS -O3";;
-    *) CXXFLAGS="$CXXFLAGS -O";;
+  x*g++* | x*clang++*) CXXFLAGS="$CXXFLAGS -O3" ;;
+  *) CXXFLAGS="$CXXFLAGS -O" ;;
   esac
 fi
 
-if [ $m32 = yes ]
-then
+if [ $m32 = yes ]; then
   case x"$CXX" in
-    x*g++*)
-      options="$options -mpc64"
-      msg "forcing portable 64-bit FPU mode ('-mpc64') for '$CXX'"
-      ;;
+  x*g++*)
+    options="$options -mpc64"
+    msg "forcing portable 64-bit FPU mode ('-mpc64') for '$CXX'"
+    ;;
   esac
 fi
 
-if [ $competition = yes ]
-then
+if [ $competition = yes ]; then
   quiet=yes
   contracts=no
   tracing=no
@@ -293,11 +289,11 @@ fi
 [ $quiet = yes ] && CXXFLAGS="$CXXFLAGS -DQUIET"
 [ $profile = yes ] && CXXFLAGS="$CXXFLAGS -pg"
 [ $coverage = yes ] && CXXFLAGS="$CXXFLAGS -ftest-coverage -fprofile-arcs"
-if [ $pedantic = yes ]
-then
+if [ $pedantic = yes ]; then
   CXXFLAGS="$CXXFLAGS --pedantic -Werror -std=c++11"
   case x"$CXX" in
-    x*g++*|x*clang++*) CXXFLAGS="${CXXFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS"
+  x*g++* | x*clang++*)
+    CXXFLAGS="${CXXFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS"
     ;;
   esac
 fi
@@ -309,21 +305,19 @@ CXXFLAGS="$CXXFLAGS$options"
 #--------------------------------------------------------------------------#
 
 case x"$CXX" in
-  x*g++* | x*clang++*) WERROR="-Werror -pedantic";;
-  *) WERROR="";;
+x*g++* | x*clang++*) WERROR="-Werror -pedantic" ;;
+*) WERROR="" ;;
 esac
 
 # Check that compilation flags work.
 
 feature=./configure-hello-world
-cat <<EOF > $feature.cpp
+cat <<EOF >$feature.cpp
 #include <iostream>
 int main () { std::cout << "hello world" << std::endl; }
 EOF
-if $CXX $CXXFLAGS $WERROR -o $feature.exe $feature.cpp 2>>configure.log
-then
-  if [ ! "`$feature.exe 2>>configure.log|tr -d '\r'`" = "hello world" ]
-  then
+if $CXX $CXXFLAGS $WERROR -o $feature.exe $feature.cpp 2>>configure.log; then
+  if [ ! "$($feature.exe 2>>configure.log | tr -d '\r')" = "hello world" ]; then
     die "execution of '$feature.exe' failed"
   fi
 else
@@ -345,7 +339,7 @@ fi
 # '-std=c++11' instead.
 
 feature=./configure-requires-c++11
-cat <<EOF > $feature.cpp
+cat <<EOF >$feature.cpp
 #include <cstdio>
 #include <vector>
 
@@ -365,20 +359,16 @@ unsigned f (const std::vector<unsigned> & a) {
 
 int main () { MACRO ("%d", 42); return 0; }
 EOF
-if $CXX $CXXFLAGS $WERROR -o $feature.exe $feature.cpp 2>>configure.log
-then
-  if [ "`$feature.exe 2>>configure.log|tr -d '\r'`" = 42 ]
-  then
+if $CXX $CXXFLAGS $WERROR -o $feature.exe $feature.cpp 2>>configure.log; then
+  if [ "$($feature.exe 2>>configure.log | tr -d '\r')" = 42 ]; then
     msg "compiler supports all required C99/C++11 extensions"
   else
     die "checking compilation without '-std=c++11' failed"
   fi
 else
   CXXFLAGS="$CXXFLAGS -std=c++11"
-  if $CXX $CXXFLAGS -o $feature.exe $feature.cpp 2>>configure.log
-  then
-    if [ "`$feature.exe 2>>configure.log|tr -d '\r'`" = 42 ]
-    then
+  if $CXX $CXXFLAGS -o $feature.exe $feature.cpp 2>>configure.log; then
+    if [ "$($feature.exe 2>>configure.log | tr -d '\r')" = 42 ]; then
       msg "using '-std=c++11' for all required C99/C++11 extensions"
     else
       die "checking compilation with '-std=c++11' failed"
@@ -392,10 +382,9 @@ fi
 
 # Unlocked IO is much faster but not necessarily supported.
 
-if [ $unlocked = yes ]
-then
+if [ $unlocked = yes ]; then
   feature=./configure-have-unlocked-io
-cat <<EOF > $feature.cpp
+  cat <<EOF >$feature.cpp
 #include <cstdio>
 int main () {
   const char * path = "$feature.log";
@@ -410,10 +399,8 @@ int main () {
   return 0;
 }
 EOF
-  if $CXX $CXXFLAGS -o $feature.exe $feature.cpp 2>>configure.log
-  then
-    if $feature.exe
-    then
+  if $CXX $CXXFLAGS -o $feature.exe $feature.cpp 2>>configure.log; then
+    if $feature.exe; then
       msg "unlocked IO with '{putc,getc}_unlocked' seems to work"
     else
       msg "not using unlocked IO (running '$feature.exe' failed)"
@@ -437,20 +424,20 @@ msg "compiling with ${HILITE}'$CXX $CXXFLAGS'${NORMAL}"
 
 rm -f makefile
 sed \
--e "2c\\
+  -e "2c\\
 # This 'makefile' is generated from '../makefile.in'." \
--e "s,@CXX@,$CXX," \
--e "s#@CXXFLAGS@#$CXXFLAGS#" \
--e "s#@LIBS@#$libs#" \
-../makefile.in > makefile
+  -e "s,@CXX@,$CXX," \
+  -e "s#@CXXFLAGS@#$CXXFLAGS#" \
+  -e "s#@LIBS@#$libs#" \
+  ../makefile.in >makefile
 
 msg "generated '$build/makefile' from '../makefile.in'"
 
 #--------------------------------------------------------------------------#
 
-build="`pwd`"
-makefile="`dirname "$build"`/makefile"
-cat <<EOF > "$makefile"
+build="$(pwd)"
+makefile="$(dirname "$build")/makefile"
+cat <<EOF >"$makefile"
 CADICALBUILD=$build
 all:
 	\$(MAKE) -C "\$(CADICALBUILD)"
@@ -484,8 +471,7 @@ msg "... '$build/makefile'"
 
 #--------------------------------------------------------------------------#
 
-if [ -f $src/makefile ]
-then
+if [ -f $src/makefile ]; then
   msg "removing '$src/makefile'"
   rm -f $src/makefile
 fi
