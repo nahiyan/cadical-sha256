@@ -62,16 +62,19 @@ inline void wordwise_propagate_branch_1bit (State &state,
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++) {
         string chars;
+        bool should_stop = false;
         for (int j = 31; j >= 0; j--) {
           char c = *input_words[i].chars[j];
           if (mask[i] == '.' && c == '?') {
             assert (state.partial_assignment.get (
                         input_words[i].char_ids[j]) == LIT_UNDEF);
             decision_lits.push_back (-input_words[i].char_ids[j]);
-            return;
+            should_stop = true;
           }
           chars += c;
         }
+        if (should_stop)
+          return;
         words_chars.push_back (chars);
         // words_chars.push_back (_soft_word_chars (input_words[i]));
       }
