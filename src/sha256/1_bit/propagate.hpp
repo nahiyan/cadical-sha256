@@ -13,12 +13,18 @@ using namespace std;
 
 namespace SHA256 {
 #if IS_1BIT
-extern pair<int, int> prop_diff_sizes[NUM_OPS];
-extern vector<int> (*prop_functions[NUM_OPS]) (vector<int>);
 inline void custom_1bit_propagate (State &state,
                                    list<int> &propagation_lits,
                                    map<int, Reason> &reasons,
                                    Stats &stats) {
+  // Differential sizes
+  pair<int, int> prop_diff_sizes[NUM_OPS] = {{3, 1}, {3, 1}, {3, 1}, {3, 1},
+                                             {3, 1}, {3, 1}, {6, 3}, {5, 3},
+                                             {3, 3}, {7, 3}};
+  // Functions by operation IDs
+  vector<int> (*prop_functions[NUM_OPS]) (vector<int>) = {
+      xor_, xor_, xor_, xor_, maj_, ch_, add_, add_, add_, add_};
+
   assert (propagation_lits.empty ());
   for (auto level = state.prop_markings_trail.end ();
        level-- != state.prop_markings_trail.begin ();) {
@@ -193,8 +199,6 @@ inline void custom_1bit_propagate (State &state,
     }
   }
 }
-int load_1bit_prop_rules (ifstream &db,
-                          cache::lru_cache<string, string> &cache);
 #endif
 } // namespace SHA256
 
