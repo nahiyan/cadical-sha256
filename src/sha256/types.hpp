@@ -15,8 +15,8 @@
 
 // Select the encoding type
 #define IS_1BIT false   // 1-bit variant of nejati-collision encoding
-#define IS_LI2024 false // 4-bit variant of nejati-collision encoding
-#define IS_4BIT false   // Li et al. FSE 2024 encoding
+#define IS_LI2024 false // Li et al. FSE 2024 encoding
+#define IS_4BIT false   // 4-bit variant of nejati-collision encoding
 
 // Select the propagation techniques
 #define CUSTOM_PROP false         // Bitsliced propagation
