@@ -1,9 +1,6 @@
 #ifndef _sha256_2_bit_hpp_INCLUDED
 #define _sha256_2_bit_hpp_INCLUDED
 
-#include "NTL/GF2.h"
-#include "NTL/mat_GF2.h"
-#include "NTL/vec_GF2.h"
 #include "lru_cache.hpp"
 #include "propagate.hpp"
 #include "state.hpp"
@@ -137,144 +134,144 @@ inline vector<Equation> check_consistency (list<Equation *> &equations,
   return conflicting_equations;
 }
 
-// Create the augmented matrix from equations
-inline void make_aug_matrix (map<int, int> &aug_matrix_var_map,
-                             list<Equation *> &equations,
-                             NTL::mat_GF2 &coeff_matrix,
-                             NTL::vec_GF2 &rhs) {
-  int variables_n = aug_matrix_var_map.size ();
-  int equations_n = equations.size ();
-  coeff_matrix.SetDims (equations_n, variables_n);
-  rhs.SetLength (equations_n);
+// // Create the augmented matrix from equations
+// inline void make_aug_matrix (map<int, int> &aug_matrix_var_map,
+//                              list<Equation *> &equations,
+//                              NTL::mat_GF2 &coeff_matrix,
+//                              NTL::vec_GF2 &rhs) {
+//   int variables_n = aug_matrix_var_map.size ();
+//   int equations_n = equations.size ();
+//   coeff_matrix.SetDims (equations_n, variables_n);
+//   rhs.SetLength (equations_n);
 
-  // Construct the coefficient matrix
-  int eq_index = 0;
-  for (auto &equation : equations) {
-    int &x = aug_matrix_var_map[equation->ids[0]];
-    int &y = aug_matrix_var_map[equation->ids[1]];
-    for (int col_index = 0; col_index < variables_n; col_index++)
-      coeff_matrix[eq_index][col_index] =
-          NTL::to_GF2 (col_index == x || col_index == y ? 1 : 0);
+//   // Construct the coefficient matrix
+//   int eq_index = 0;
+//   for (auto &equation : equations) {
+//     int &x = aug_matrix_var_map[equation->ids[0]];
+//     int &y = aug_matrix_var_map[equation->ids[1]];
+//     for (int col_index = 0; col_index < variables_n; col_index++)
+//       coeff_matrix[eq_index][col_index] =
+//           NTL::to_GF2 (col_index == x || col_index == y ? 1 : 0);
 
-    rhs.put (eq_index, equation->diff);
-    eq_index++;
-  }
-}
+//     rhs.put (eq_index, equation->diff);
+//     eq_index++;
+//   }
+// }
 
-// Detect inconsistencies from nullspace vectors
-inline int find_inconsistency_from_nullspace_vectors (
-    list<Equation *> equations, NTL::mat_GF2 &coeff_matrix,
-    NTL::vec_GF2 &rhs, NTL::mat_GF2 &nullspace_vectors,
-    NTL::vec_GF2 *&inconsistency) {
-  int coeff_n = coeff_matrix.NumCols ();
-  int inconsistent_eq_n = 0;
-  int least_hamming_weight = INT_MAX;
-  int nullspace_vectors_n = nullspace_vectors.NumRows ();
-  int equations_n = equations.size ();
-  for (int index = 0; index < nullspace_vectors_n; index++) {
-    auto &nullspace_vector = nullspace_vectors[index];
-    assert (nullspace_vector.length () == equations_n);
+// // Detect inconsistencies from nullspace vectors
+// inline int find_inconsistency_from_nullspace_vectors (
+//     list<Equation *> equations, NTL::mat_GF2 &coeff_matrix,
+//     NTL::vec_GF2 &rhs, NTL::mat_GF2 &nullspace_vectors,
+//     NTL::vec_GF2 *&inconsistency) {
+//   int coeff_n = coeff_matrix.NumCols ();
+//   int inconsistent_eq_n = 0;
+//   int least_hamming_weight = INT_MAX;
+//   int nullspace_vectors_n = nullspace_vectors.NumRows ();
+//   int equations_n = equations.size ();
+//   for (int index = 0; index < nullspace_vectors_n; index++) {
+//     auto &nullspace_vector = nullspace_vectors[index];
+//     assert (nullspace_vector.length () == equations_n);
 
-    // Initialize the values to 0
-    NTL::GF2 rhs_sum = NTL::to_GF2 (0);
-    NTL::vec_GF2 coeff_sums;
-    coeff_sums.SetLength (coeff_n);
-    for (int x = 0; x < coeff_n; x++)
-      coeff_sums[x] = 0;
+//     // Initialize the values to 0
+//     NTL::GF2 rhs_sum = NTL::to_GF2 (0);
+//     NTL::vec_GF2 coeff_sums;
+//     coeff_sums.SetLength (coeff_n);
+//     for (int x = 0; x < coeff_n; x++)
+//       coeff_sums[x] = 0;
 
-    // Go through the nullspace vector and add the equations and RHS
-    for (int eq_index = 0; eq_index < equations_n; eq_index++) {
-      if (nullspace_vector[eq_index] == 0)
-        continue;
+//     // Go through the nullspace vector and add the equations and RHS
+//     for (int eq_index = 0; eq_index < equations_n; eq_index++) {
+//       if (nullspace_vector[eq_index] == 0)
+//         continue;
 
-      // Add the coefficients of the equations
-      coeff_sums += coeff_matrix[eq_index];
+//       // Add the coefficients of the equations
+//       coeff_sums += coeff_matrix[eq_index];
 
-      // Add the RHS
-      rhs_sum += rhs[eq_index];
-    }
+//       // Add the RHS
+//       rhs_sum += rhs[eq_index];
+//     }
 
-    // Mismatching RHS sum and coefficients sum is a contradiction
-    if (rhs_sum != sum (coeff_sums)) {
-      int hamming_weight = 0;
-      for (int x = 0; x < equations_n; x++)
-        hamming_weight += NTL::conv<int> (nullspace_vector[x]);
+//     // Mismatching RHS sum and coefficients sum is a contradiction
+//     if (rhs_sum != sum (coeff_sums)) {
+//       int hamming_weight = 0;
+//       for (int x = 0; x < equations_n; x++)
+//         hamming_weight += NTL::conv<int> (nullspace_vector[x]);
 
-      if (hamming_weight < least_hamming_weight) {
-        inconsistency = &nullspace_vector;
-        least_hamming_weight = hamming_weight;
-      }
+//       if (hamming_weight < least_hamming_weight) {
+//         inconsistency = &nullspace_vector;
+//         least_hamming_weight = hamming_weight;
+//       }
 
-      inconsistent_eq_n++;
-    }
-  }
+//       inconsistent_eq_n++;
+//     }
+//   }
 
-  // printf ("Least Hamming weight: %d\n", least_hamming_weight);
+//   // printf ("Least Hamming weight: %d\n", least_hamming_weight);
 
-  return inconsistent_eq_n;
-}
+//   return inconsistent_eq_n;
+// }
 
-// Use NTL to find cycles of inconsistent equations
-inline bool block_inconsistency (list<Equation *> equations,
-                                 map<int, int> &aug_matrix_var_map,
-                                 PartialAssignment &partial_assignment,
-                                 vector<vector<int>> &external_clauses) {
-  // Make the augmented matrix
-  NTL::mat_GF2 coeff_matrix;
-  NTL::vec_GF2 rhs;
-  // If coeff_matrix is A and rhs is B, aug. matrix is [A|B]
-  make_aug_matrix (aug_matrix_var_map, equations, coeff_matrix, rhs);
+// // Use NTL to find cycles of inconsistent equations
+// inline bool block_inconsistency (list<Equation *> equations,
+//                                  map<int, int> &aug_matrix_var_map,
+//                                  PartialAssignment &partial_assignment,
+//                                  vector<vector<int>> &external_clauses) {
+//   // Make the augmented matrix
+//   NTL::mat_GF2 coeff_matrix;
+//   NTL::vec_GF2 rhs;
+//   // If coeff_matrix is A and rhs is B, aug. matrix is [A|B]
+//   make_aug_matrix (aug_matrix_var_map, equations, coeff_matrix, rhs);
 
-  // Find the basis of the coefficient matrix's left kernel
-  NTL::mat_GF2 left_kernel_basis;
-  NTL::kernel (left_kernel_basis, coeff_matrix);
-  auto equations_n = left_kernel_basis.NumCols ();
-  assert (equations_n == equations.size ());
-  // printf ("Basis dimension: %ld %ld\n", left_kernel_basis.NumRows (),
-  //         left_kernel_basis.NumCols ());
+//   // Find the basis of the coefficient matrix's left kernel
+//   NTL::mat_GF2 left_kernel_basis;
+//   NTL::kernel (left_kernel_basis, coeff_matrix);
+//   auto equations_n = left_kernel_basis.NumCols ();
+//   assert (equations_n == equations.size ());
+//   // printf ("Basis dimension: %ld %ld\n", left_kernel_basis.NumRows (),
+//   //         left_kernel_basis.NumCols ());
 
-  // TODO: Add combinations of the basis vectors
+//   // TODO: Add combinations of the basis vectors
 
-  // Check for inconsistencies
-  NTL::vec_GF2 *inconsistency = NULL;
-  find_inconsistency_from_nullspace_vectors (
-      equations, coeff_matrix, rhs, left_kernel_basis, inconsistency);
-  if (inconsistency == NULL)
-    return false;
+//   // Check for inconsistencies
+//   NTL::vec_GF2 *inconsistency = NULL;
+//   find_inconsistency_from_nullspace_vectors (
+//       equations, coeff_matrix, rhs, left_kernel_basis, inconsistency);
+//   if (inconsistency == NULL)
+//     return false;
 
-  // Blocking inconsistencies
-  auto &inconsistency_deref = *inconsistency;
+//   // Blocking inconsistencies
+//   auto &inconsistency_deref = *inconsistency;
 
-  // Store lits in a set to avoid duplicates
-  set<int> clause_lits;
-  int eq_index = 0;
-  // printf ("Constructing conflict clause\n");
-  for (auto &equation : equations) {
-    if (inconsistency_deref[eq_index++] == 0)
-      continue;
+//   // Store lits in a set to avoid duplicates
+//   set<int> clause_lits;
+//   int eq_index = 0;
+//   // printf ("Constructing conflict clause\n");
+//   for (auto &equation : equations) {
+//     if (inconsistency_deref[eq_index++] == 0)
+//       continue;
 
-    // cout << equation->ids[0] << (equation->diff == 0 ? " = " : "=/=")
-    //      << equation->ids[1] << endl;
+//     // cout << equation->ids[0] << (equation->diff == 0 ? " = " : "=/=")
+//     //      << equation->ids[1] << endl;
 
-    auto &antecedent = equation->antecedent;
-    assert (!antecedent.empty ());
-    for (auto &lit : antecedent) {
-      auto value = partial_assignment.get (abs ((int) lit));
-      assert (value == (lit > 0 ? LIT_FALSE : LIT_TRUE));
-      clause_lits.insert (lit);
-    }
-  }
-  assert (!clause_lits.empty ());
+//     auto &antecedent = equation->antecedent;
+//     assert (!antecedent.empty ());
+//     for (auto &lit : antecedent) {
+//       auto value = partial_assignment.get (abs ((int) lit));
+//       assert (value == (lit > 0 ? LIT_FALSE : LIT_TRUE));
+//       clause_lits.insert (lit);
+//     }
+//   }
+//   assert (!clause_lits.empty ());
 
-  // Push the blocking/conflict clause
-  vector<int> clause;
-  for (auto &lit : clause_lits)
-    clause.push_back (lit);
-  assert (!clause.empty ());
-  external_clauses.push_back (clause);
+//   // Push the blocking/conflict clause
+//   vector<int> clause;
+//   for (auto &lit : clause_lits)
+//     clause.push_back (lit);
+//   assert (!clause.empty ());
+//   external_clauses.push_back (clause);
 
-  return true;
-}
+//   return true;
+// }
 
 extern cache::lru_cache<string, pair<string, string>> otf_2bit_cache;
 inline vector<Equation>
