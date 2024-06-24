@@ -229,7 +229,7 @@ int Propagator::cb_decide () {
   if (decision_lits.empty ())
     return 0;
   int &lit = decision_lits.front ();
-  // assert (state.partial_assignment.get (abs (lit)) == LIT_UNDEF);
+  assert (state.partial_assignment.get (abs (lit)) == LIT_UNDEF);
   decision_lits.pop_front ();
   stats.decisions_count++;
   // printf ("Debug: decision %d\n", lit);
@@ -286,7 +286,6 @@ int Propagator::cb_propagate () {
 #if CUSTOM_PROP
   if (propagation_lits.empty ()) {
     state.soft_refresh ();
-    // if (++prop_counter % 20 == 0)
     Timer *prop_timer = new Timer (&stats.total_prop_time);
 #if IS_4BIT
     custom_4bit_propagate (state, propagation_lits, reasons, stats);
@@ -388,9 +387,6 @@ bool Propagator::cb_has_external_clause () {
     return true;
 
 #if CUSTOM_BLOCKING
-  // if (++block_counter % 20 != 0)
-  //   return false;
-
   // Check for 2-bit inconsistencies here
   return custom_block ();
 #else
