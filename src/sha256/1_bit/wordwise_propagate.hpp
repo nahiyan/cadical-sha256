@@ -58,25 +58,21 @@ inline void wordwise_propagate_branch_1bit (State &state,
       string mask = add_masks[op_id - op_add_w];
       assert (int (mask.size ()) - 1 == input_size);
 
+      // Variables assumed to be false
+      vector<int> false_assumed_vars;
+
       // Get the word characteristics
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++) {
-        string chars;
-        bool should_stop = false;
         for (int j = 31; j >= 0; j--) {
           char c = *input_words[i].chars[j];
           if (mask[i] == '.' && c == '?') {
             assert (state.partial_assignment.get (
                         input_words[i].char_ids[j]) == LIT_UNDEF);
-            decision_lits.push_back (-input_words[i].char_ids[j]);
-            should_stop = true;
+            false_assumed_vars.push_back (input_words[i].char_ids[j]);
           }
-          chars += c;
         }
-        if (should_stop)
-          return;
-        words_chars.push_back (chars);
-        // words_chars.push_back (_soft_word_chars (input_words[i]));
+        words_chars.push_back (_soft_word_chars (input_words[i], true));
       }
       words_chars.push_back (_word_chars (output_word[0]));
 
@@ -213,6 +209,12 @@ inline void wordwise_propagate_branch_1bit (State &state,
               decision_lits.push_back (lit);
               assert (state.partial_assignment.get (abs (lit)) ==
                       LIT_UNDEF);
+
+              // Branch on the variables assumed to be false
+              for (auto &var_id : false_assumed_vars) {
+                decision_lits.push_back (-var_id);
+              }
+
               // printf ("Wordwise propagated (count %ld)\n",
               //         underived_indices.size ());
 
