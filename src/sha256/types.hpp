@@ -120,7 +120,7 @@ enum VariableName {
 };
 
 enum OperationId {
-#if !IS_LI2024
+#if IS_1BIT || IS_4BIT
   op_s0,
   op_s1,
   op_sigma0,
@@ -131,7 +131,7 @@ enum OperationId {
   op_add_a,
   op_add_e,
   op_add_t,
-#else
+#elif IS_LI2024
   op_s0,
   op_s1,
   op_sigma0,
