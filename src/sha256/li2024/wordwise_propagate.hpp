@@ -54,7 +54,6 @@ string k[64] = {
 // the addition equation
 cache::lru_cache<string, pair<string, string>>
     wordwise_propagate_cache (100e3);
-// TODO: Fix issues with falsified reason clauses (very rare)
 inline void wordwise_propagate_branch_li2024 (State &state,
                                               list<int> &decision_lits,
                                               Stats &stats) {
