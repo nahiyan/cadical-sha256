@@ -106,7 +106,8 @@ inline void wordwise_propagate_branch_li2024 (State &state,
       // Get the word characteristics
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++)
-        words_chars.push_back (_soft_word_chars (input_words[i], true));
+        words_chars.push_back (
+            _soft_word_chars (input_words[i], mask[i] == '.'));
       words_chars.push_back (_word_chars (*output_word));
 
       // Generate the cache key
@@ -294,7 +295,6 @@ inline void wordwise_propagate_branch_li2024 (State &state,
                   printf ("%d ", lit);
               printf ("\n");
 #endif
-
               return;
             }
           }
