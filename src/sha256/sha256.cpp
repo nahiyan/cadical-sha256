@@ -48,32 +48,34 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
 #if IS_4BIT
   printf ("4-bit encoding isn't supported anymore.\n");
   exit (0);
-}
+#elif !IS_1BIT && !IS_LI2024
+  printf ("None of the encoding modes are enabled.\n");
+  exit (0);
 #endif
 
 #if CUSTOM_PROP
-printf ("Bitsliced propagation turned on.\n");
+  printf ("Bitsliced propagation turned on.\n");
 #endif
 #if CUSTOM_BLOCKING
-printf ("Custom blocking turned on.\n");
+  printf ("Custom blocking turned on.\n");
 #endif
 #if WORDWISE_PROPAGATE
-printf ("Wordwise propagation (branch-based) turned on.\n");
+  printf ("Wordwise propagation (branch-based) turned on.\n");
 #endif
 #if TWO_BIT_ADD_DIFFS
-printf ("2-bit addition differentials turned on.\n");
+  printf ("2-bit addition differentials turned on.\n");
 #endif
 #if MENDEL_BRANCHING
-printf ("Mendel's branching turned on (%d stage[s]).\n",
-        MENDEL_BRANCHING_STAGES);
+  printf ("Mendel's branching turned on (%d stage[s]).\n",
+          MENDEL_BRANCHING_STAGES);
 #endif
 
 #if SET_PHASE
-printf ("Phase set to false for state and message variables.\n");
+  printf ("Phase set to false for state and message variables.\n");
 #endif
 
 #ifdef LOGGING
-printf ("Logging is enabled!\n");
+  printf ("Logging is enabled!\n");
 #endif
 }
 
