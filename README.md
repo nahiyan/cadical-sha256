@@ -23,12 +23,14 @@ file.
 To build the project, you can use CMake (recommended) or the original
 CaDiCaL build scripts.
 
-If you want to build through CMake, run the following command in the root of this project:
+If you want to build through CMake, run the following command in the root of
+this project:
 ```bash
 cmake -Bbuild . && cmake --build build
 ```
 
-If you want to build using the original CaDiCaL way, run the following command in the root of this project:
+If you want to build using the original CaDiCaL way, run the following command
+in the root of this project:
 ```bash
 ./configure && make
 ```
