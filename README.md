@@ -47,7 +47,7 @@ python verify_from_log.py encoding.cnf < log.txt
 
 # Existing Benchmarks
 
-Existing benchmark with and without the programmatic techniques are available at
-[GitHub repository](https://github.com/nahiyan/sha256-data). The programmatic
+Existing benchmarks with and without the programmatic techniques are available
+at [GitHub repository](https://github.com/nahiyan/sha256-data). The programmatic
 SAT results should be reproducible with this variant of the programmatic SAT
 solver with the respective configurations.
