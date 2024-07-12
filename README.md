@@ -1,8 +1,22 @@
 # CaDiCaL with SHA-256 Routines
 
-This variant of CaDiCaL SAT Solver has SHA-256 cryptanalysis routines embedded. The purpose of this project is to find SHA-256 semi-free-start collisions more efficiently than a pure CaDiCaL approach.
+This variant of CaDiCaL 1.8.0 SAT Solver has SHA-256 cryptanalysis routines
+embedded. The purpose of this project is to find SHA-256 semi-free-start
+collisions more efficiently than a pure CaDiCaL approach.
 
-Please note that this solver is designed to only work with specific SAT encodings. See the [Nejati Collision Encoder](https://github.com/nahiyan/cryptanalysis/tree/master/encoders/nejati-collision).
+Please note that this solver is designed to only work with specific SAT
+encodings, specifically the [SHA-256 Collision
+Encoder by Saeed Nejati](https://github.com/nahiyan/cryptanalysis/tree/master/encoders/nejati-collision).
+
+# Getting Started
+
+## Configure
+
+By default, the programmatic techniques are turned off and the encoding type
+isn't specified. To provide the information, please edit the pre-processor
+directives in the
+[src/sha256/types.hpp](https://github.com/nahiyan/cadical-sha256/blob/master/src/sha256/types.hpp)
+file.
 
 ## Build
 
@@ -19,6 +33,20 @@ If you want to build using the original CaDiCaL way, run the following command i
 ./configure && make
 ```
 
-## Configuration
+## Verify
 
-By default the programmatic techniques are turned off. Edit the pre-processor directives in the `src/sha256/types.hpp` file.
+The SAT solutions can be verified from the log file of the solver (and the
+encoding) using a [Python
+script](https://github.com/nahiyan/cryptanalysis/blob/master/collision/verify_from_log.py).
+For example, if you have a log file `log.txt` and an encoding file
+`encoding.cnf`, the following command can be used to verify the solution:
+
+```bash
+python verify_from_log.py encoding.cnf < log.txt
+```
+
+# Existing Benchmark
+
+An existing benchmark with and without the programmatic techniques is available
+at another [GitHub repository](https://github.com/nahiyan/sha256-data). The
+results should be reproducible with this varant of the programmatic SAT solver with the respective configurations.
