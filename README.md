@@ -45,9 +45,9 @@ For example, if you have a log file `log.txt` and an encoding file
 python verify_from_log.py encoding.cnf < log.txt
 ```
 
-# Existing Benchmark
+# Existing Benchmarks
 
-An existing benchmark with and without the programmatic techniques is available
-at another [GitHub repository](https://github.com/nahiyan/sha256-data). The
-programmatic SAT results should be reproducible with this variant of the
-programmatic SAT solver with the respective configurations.
+Existing benchmark with and without the programmatic techniques are available at
+[GitHub repository](https://github.com/nahiyan/sha256-data). The programmatic
+SAT results should be reproducible with this variant of the programmatic SAT
+solver with the respective configurations.
