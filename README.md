@@ -49,4 +49,5 @@ python verify_from_log.py encoding.cnf < log.txt
 
 An existing benchmark with and without the programmatic techniques is available
 at another [GitHub repository](https://github.com/nahiyan/sha256-data). The
-results should be reproducible with this varant of the programmatic SAT solver with the respective configurations.
+programmatic SAT results should be reproducible with this variant of the
+programmatic SAT solver with the respective configurations.
