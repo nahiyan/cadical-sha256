@@ -39,7 +39,7 @@ The SAT solutions can be verified from the log file of the solver (and the
 encoding) using a [Python
 script](https://github.com/nahiyan/cryptanalysis/blob/master/collision/verify_from_log.py).
 For example, if you have a log file `log.txt` and an encoding file
-`encoding.cnf`, the following command can be used to verify the solution:
+`encoding.cnf`, the following command can verify the solution:
 
 ```bash
 python verify_from_log.py encoding.cnf < log.txt
