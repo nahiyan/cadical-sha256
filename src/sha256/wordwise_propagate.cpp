@@ -280,8 +280,6 @@ vector<string> apply_grounding (vector<string> words,
           char value = *current_col_set.begin ();
           if (value == 'v')
             continue;
-          // TODO: Fix propagating to 'n' for value = 0, it isn't
-          // necessarily true
           derived_words[j][i] = value == '1' ? (gc == '?'   ? '-'
                                                 : gc == '7' ? '0'
                                                             : '1')
@@ -298,8 +296,6 @@ vector<string> apply_grounding (vector<string> words,
                                                : (gc == '?'   ? 'D'
                                                   : gc == '7' ? '5'
                                                               : 'C');
-          // derived_words[j][i] = value == '1' ? 'u' : (gc == '?' ? 'D' :
-          // gc == '7' ? );
         }
       }
     }
