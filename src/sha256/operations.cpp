@@ -474,8 +474,6 @@ void State::print_operations () {
       }
     }
   }
-
-  // TODO: Print the rest of the operations
 }
 #else
 void State::set_operations () {
