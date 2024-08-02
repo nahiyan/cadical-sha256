@@ -39,7 +39,7 @@ inline void State::refresh_char (Word &word, int index) {
   uint8_t d = partial_assignment.get (id_d);
   refresh_li2024_char (v, d, c);
   assert (c == 'u' || c == 'n' || c == '-' || c == '?' || c == 'x');
-#else
+#elif IS_1BIT
   uint8_t x = partial_assignment.get (id_f);
   uint8_t x_ = partial_assignment.get (id_g);
   uint8_t diff = partial_assignment.get (base_id);

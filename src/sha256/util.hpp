@@ -4,6 +4,7 @@
 #include "types.hpp"
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <numeric>
 #include <string>
@@ -253,6 +254,22 @@ inline uint64_t to_uint64_t (uint32_t x, uint32_t y) {
 inline void from_uint64_t (uint64_t z, uint32_t &x, uint32_t &y) {
   x = z >> 32;
   y = z & 0xffffffff;
+}
+
+// Represent the words (in both block) as integers through their
+// differential characteristics and return their difference
+inline int64_t _word_diff (string chars) {
+  size_t n = chars.size ();
+  int64_t value = 0;
+  for (size_t i = 0; i < n; i++) {
+    char gc = chars[n - 1 - i];
+    if (!is_in (gc, {'u', 'n', '-', '1', '0'}))
+      return -1;
+
+    value += (gc == 'u' ? 1 : gc == 'n' ? -1 : 0) * int64_t (pow (2, i));
+  }
+
+  return e_mod (value, pow (2, n));
 }
 } // namespace SHA256
 

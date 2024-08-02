@@ -34,6 +34,9 @@
 #define PRINT_BLOCKING_CLAUSE \
   false // Print the inconsistency blocking clauses
 
+// Assume the auxiliary variables to be dashes during wordwise propagation
+#define WP_ASSUME_DASH true
+
 #if IS_LI2024
 #define NUM_OPS 9
 #else

@@ -79,6 +79,14 @@ void test_apply_grounding () {
 }
 void test_wordwise_prop () {
   {
+    vector<string> expected = {"-----------------------------x--",
+                               "?????--??????????????????????x--"};
+    auto actual = wordwise_propagate ({"-----------------------------x--",
+                                       "??????-??????????????????????x--"},
+                                      0);
+    assert (expected == actual);
+  }
+  {
     vector<string> expected = {"--uunu-nx--x", "--u--n-B-BB-"};
     auto actual =
         wordwise_propagate ({"--xxxx-xx--x", "--B--D-BBBB-"}, 1147);

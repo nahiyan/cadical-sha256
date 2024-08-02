@@ -1,6 +1,5 @@
 #include "wordwise_propagate.hpp"
 #include "sha256.hpp"
-#include "types.hpp"
 #include "util.hpp"
 #include <cassert>
 #include <cmath>
@@ -22,22 +21,6 @@ struct ValueWithOrder {
   char value;
   uint8_t order; // Order will be 31 max and 8 bits can hold 0-255
 };
-
-// Represent the words (in both block) as integers through their
-// differential characteristics and return their difference
-int64_t _word_diff (string chars) {
-  size_t n = chars.size ();
-  int64_t value = 0;
-  for (size_t i = 0; i < n; i++) {
-    char gc = chars[n - 1 - i];
-    if (!is_in (gc, {'u', 'n', '-', '1', '0'}))
-      return -1;
-
-    value += (gc == 'u' ? 1 : gc == 'n' ? -1 : 0) * int64_t (pow (2, i));
-  }
-
-  return e_mod (value, pow (2, n));
-}
 
 int64_t adjust_constant (string word, int64_t constant,
                          vector<char> adjustable_gcs) {
@@ -79,13 +62,39 @@ process_var_cols (vector<string> var_cols) {
 }
 
 bool _can_overflow (vector<string> var_cols, vector<uint8_t> bits) {
+  auto count_vars = [] (vector<string> cols) {
+    int vars_count = 0;
+    for (auto &col : cols) {
+      for (auto &c : col) {
+        if (c != 'v')
+          continue;
+        vars_count++;
+      }
+    }
+
+    return vars_count;
+  };
+
   int bits_count = bits.size ();
-  int64_t value = 0, max_value = 0;
-  for (int i = 0; i < bits_count; i++) {
+  int64_t value = 0;
+  int64_t max_value = (int64_t (1) << bits_count) - 1;
+
+  // Trivial overflow check using the last column in the stash. If the last
+  // column has 1 variable, bit under the column is 1, and there is no high
+  // carry affecting this column, it can't overflow. This is because the
+  // addends can never sum up to 2 and induce a carry.
+  int last_index = var_cols.size () - 1;
+  if (var_cols[last_index].size () == 1 && last_index - 2 >= 0 &&
+      var_cols[last_index - 2].size () < 4 && bits[last_index] == 1)
+    return false;
+
+  // Trick to skip the check if there are too many variables
+  if (count_vars (var_cols) > WP_VARS_LIMIT)
+    return true;
+
+  // Calculate the value
+  for (int i = 0; i < bits_count; i++)
     value += bits[i] * int64_t (pow (2, i));
-    // TODO: You don't need a loop to calculate the max value
-    max_value += int64_t (pow (2, i));
-  }
 
   auto var_cols_processed = process_var_cols (var_cols);
   vector<ValueWithOrder> vars = get<0> (var_cols_processed);
@@ -160,7 +169,6 @@ string brute_force (vector<string> var_cols, int64_t constant,
       sum += values[j] * int64_t (pow (2, vars[j].order));
     }
     if (can_overflow) {
-      auto old_sum = sum;
       sum = e_mod (sum, int64_t (pow (2, var_cols.size ())));
       if (sum != constant)
         continue;
@@ -272,15 +280,26 @@ vector<string> apply_grounding (vector<string> words,
           char value = *current_col_set.begin ();
           if (value == 'v')
             continue;
+          // TODO: Fix propagating to 'n' for value = 0, it isn't
+          // necessarily true
           derived_words[j][i] = value == '1' ? (gc == '?'   ? '-'
                                                 : gc == '7' ? '0'
                                                             : '1')
-                                             : 'n';
-        } else if (next_col_set.size () == 1) {
+                                             : 'x';
+        }
+        if (next_col_set.size () == 1) {
           char value = *current_col_set.begin ();
           if (value == 'v')
             continue;
-          derived_words[j][i] = 'u';
+          if (derived_words[j][i] == 'x')
+            derived_words[j][i] = value == '0' ? 'n' : '1';
+          else if (is_in (derived_words[j][i], {'?', '7', '5'}))
+            derived_words[j][i] = value == '1' ? 'u'
+                                               : (gc == '?'   ? 'D'
+                                                  : gc == '7' ? '5'
+                                                              : 'C');
+          // derived_words[j][i] = value == '1' ? 'u' : (gc == '?' ? 'D' :
+          // gc == '7' ? );
         }
       }
     }
@@ -340,25 +359,12 @@ vector<string> wordwise_propagate (vector<string> words, int64_t constant) {
     stash.bits.push_back (bit);
     stash.cols.push_back (var_cols[i]);
 
-    // Limit the number of variables
-    int vars_count = count_vars (stash.cols);
-    if (vars_count > 10)
-      break;
-
     // Check if it can overflow
+    // TODO: Improve the efficiency by incrementally checking
     bool can_overflow = _can_overflow (stash.cols, stash.bits);
 
     // If it cannot overflow, it should be cut off
     bool island_ends = can_overflow ? false : true;
-
-    // bool all_zero_diff = true;
-    // for (auto &word : words)
-    //   all_zero_diff &= is_in (word[i], {'1', '0', '-'});
-    // if (bit == 0 && all_zero_diff) {
-    //   island_ends = true;
-    //   if (can_overflow)
-    //     overflow_brute_force_indices.push_back (islands.size ());
-    // }
 
     // Flush the stash
     if (i == 0) {
@@ -375,21 +381,32 @@ vector<string> wordwise_propagate (vector<string> words, int64_t constant) {
     }
   }
 
+  printf ("Islands count: %ld\n", islands.size ());
+
   // Derive the variable values
   vector<char> var_values;
-  int island_index = 0;
+  int island_index = -1;
   for (Island &island : islands) {
-    int64_t sum = 0;
-    int n = island.bits.size ();
-    for (int i = 0; i < n; i++)
-      sum += island.bits[i] * int64_t (pow (2, i));
+    island_index++;
 
     string propagation;
-    if (is_in (island_index, overflow_brute_force_indices)) {
-      // int64_t min_gt = int64_t (pow (2, n)) - 1;
-      propagation = brute_force (island.cols, sum, -1, true);
+    if (count_vars (island.cols) <= WP_VARS_LIMIT) {
+      int64_t sum = 0;
+      int n = island.bits.size ();
+      for (int i = 0; i < n; i++)
+        sum += island.bits[i] * int64_t (pow (2, i));
+
+      if (is_in (island_index, overflow_brute_force_indices)) {
+        // int64_t min_gt = int64_t (pow (2, n)) - 1;
+        propagation = brute_force (island.cols, sum, -1, true);
+      } else {
+        propagation = brute_force (island.cols, sum);
+      }
     } else {
-      propagation = brute_force (island.cols, sum);
+      // Skip if there are too many variables
+      for (auto &col : island.cols)
+        for (auto &var : col)
+          propagation.push_back ('v');
     }
 
     int local_index = 0;
@@ -402,8 +419,6 @@ vector<string> wordwise_propagate (vector<string> words, int64_t constant) {
         var_values.push_back (value);
       }
     }
-
-    island_index++;
   }
 
   // printf ("Cols:\n");

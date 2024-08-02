@@ -3,6 +3,7 @@
 
 #include "../lru_cache.hpp"
 #include "../state.hpp"
+#include "../types.hpp"
 #include "../util.hpp"
 #include "../wordwise_propagate.hpp"
 #include <sstream>
@@ -61,8 +62,12 @@ inline void wordwise_propagate_branch_1bit (State &state,
       // Get the word characteristics
       vector<string> words_chars;
       for (int i = 0; i < input_size; i++)
+#if WP_ASSUME_DASH
         words_chars.push_back (
             _soft_word_chars (input_words[i], mask[i] == '.'));
+#else
+        words_chars.push_back (_soft_word_chars (input_words[i]));
+#endif
       words_chars.push_back (_word_chars (output_word[0]));
 
       // Generate the cache key

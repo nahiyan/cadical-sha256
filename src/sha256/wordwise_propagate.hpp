@@ -1,10 +1,11 @@
 #ifndef _sha256_wordwise_propagate_hpp_INCLUDED
 #define _sha256_wordwise_propagate_hpp_INCLUDED
 
-#include "types.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
+
+#define WP_VARS_LIMIT 10
 
 using namespace std;
 
