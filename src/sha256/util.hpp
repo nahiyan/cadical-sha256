@@ -36,23 +36,6 @@ inline int sum (vector<int> addends) {
   return sum;
 }
 
-// inline NTL::GF2 sum (NTL::vec_GF2 &v) {
-//   NTL::GF2 sum = NTL::to_GF2 (0);
-//   for (int i = 0; i < v.length (); i++)
-//     sum += v[i];
-
-//   return sum;
-// }
-
-// // TODO: May require refactoring
-// inline int sum_dec_from_bin (NTL::vec_GF2 &v) {
-//   int sum = 0;
-//   for (int i = 0; i < v.length (); i++)
-//     sum += NTL::conv<int> (v[i]);
-
-//   return sum;
-// }
-
 inline void print (vector<int> &vec) {
   for (auto &lit : vec)
     printf ("%d ", lit);
