@@ -270,7 +270,7 @@ void test_wordwise_prop () {
 
 void test_group_wordwise_prop () {
   test_word_diff ();
-  // test_adjust_constant ();
+  test_normalize_madd_sum ();
   // test_is_congruent ();
   // test_can_overflow ();
   // test_gen_vars ();

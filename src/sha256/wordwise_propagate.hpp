@@ -35,9 +35,6 @@ class WWPropagate {
 public:
   static vector<string> propagate (vector<string> cond_words, int64_t sum,
                                    int limit = -1) {
-    // TODO: Implement limit of number of conditions to propagate. E.g.
-    // limit = 1 means that it'd stop after 1 condition has been propagated.
-
     // Normalize the modular addition sum
     int64_t normalized_sum = sum;
     for (auto &word : cond_words)
@@ -88,9 +85,10 @@ public:
       printf ("\n");
     }
 
-    // TODO: Derive vars through breadth-first brute force
+    // TODO: Implement limit of number of breadths to brute force.
+    // TODO: Derive vars through breadth-first brute force.
 
-    // Propagate the conditions from the vars
+    // Propagate the conditions from the vars.
     for (int iters = 1; iters > 0; iters--) {
       for (auto &col : vars_colwise) {
         for (WWVar &var : col) {
