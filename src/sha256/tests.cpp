@@ -27,27 +27,21 @@ void test_normalize_madd_sum () {
   assert (y == 2196);
 }
 
-// void test_is_congruent () {
-//   assert (true == is_congruent (2, 0, 2));
-//   assert (false == is_congruent (2, 1, 2));
-//   assert (true == is_congruent (16, 2, 2));
-//   assert (false == is_congruent (16, 1, 16));
-// }
-
-// void test_can_overflow () {
-//   assert (false == _can_overflow ({"v"}, {0}));
-//   assert (true == _can_overflow ({"vv"}, {0}));
-//   assert (false == _can_overflow ({"vv", "v"}, {0, 1}));
-//   assert (true == _can_overflow ({"vv", "v"}, {0, 0}));
-//   assert (true == _can_overflow ({"vv", "v", "v"}, {0, 0, 0}));
-//   assert (true == _can_overflow ({"vv", "v", "vv"}, {0, 0, 1}));
-//   assert (true == _can_overflow ({"vv", "v", "vv", "vv"}, {0, 0, 1, 1}));
-//   assert (true == _can_overflow ({"vv", "vv", "vv"}, {0, 0, 0}));
-//   assert (false == _can_overflow ({"vv", "vv", "v1"}, {0, 0, 0, 1}));
-//   assert (true ==
-//           _can_overflow ({"v", "vv", "v", "vv1", "vv"}, {0, 0, 1, 0,
-//           0}));
-// }
+void test_derive_reg_var () {
+  WWVarsColwise vars_colwise;
+  vector<string> cond_words = {"-----------------------------x--",
+                               "??????-??????????????????????x--"};
+  WWPropagate::derive_reg_vars (cond_words, &vars_colwise);
+  for (int i = 0; i <= 2; i++)
+    assert (vars_colwise[i].size () == 0);
+  assert (vars_colwise[3].size () == 3);
+  for (int i = 4; i <= 24; i++)
+    assert (vars_colwise[i].size () == 2);
+  assert (vars_colwise[25].size () == 1);
+  assert (vars_colwise[26].size () == 1);
+  for (int i = 27; i <= 31; i++)
+    assert (vars_colwise[i].size () == 2);
+}
 
 // void test_gen_vars () {
 //   {
@@ -76,10 +70,15 @@ void test_normalize_madd_sum () {
 //           "0vvvvvvv");
 // }
 
-void test_apply_grounding () {
-  // TODO: Add tests
-}
 void test_wordwise_prop () {
+  {
+    vector<string> expected = {"0nun1n--uu--n--nuuu0u--uu-uuuu0-"};
+    auto actual = WWPropagate::propagate (
+        {"0nun1x--ux--n--nxxu0x--ux-uuxu0-"}, 3434604988);
+    fflush (stdout);
+    assert (expected == actual);
+  }
+
   {
     vector<string> expected = {"-----------------------------x--",
                                "-------??????????????????????x--"};
@@ -88,28 +87,49 @@ void test_wordwise_prop () {
                                  "??????-??????????????????????x--"},
                                 0);
     assert (expected == actual);
-    exit (0);
   }
+
+  {
+    vector<string> expected = {"x???xu1uu-"};
+    auto actual = WWPropagate::propagate ({"x???xx1xx-"}, 70);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"-----------------------------x--",
+                               "?????????????????????????????x--"};
+    auto actual = WWPropagate::propagate (expected, 0);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"-----------------------------u--",
+                               "-------------------------nuuuu--"};
+    auto actual =
+        WWPropagate::propagate ({"-----------------------------x--",
+                                 "-------------------------nuuuu--"},
+                                0);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"-u-------uu-uu-u0u1--u-0-n---n0-"};
+    auto actual = WWPropagate::propagate (
+        {"-u-?-----uu-uu-u0u1?-u-0-n?--n0-"}, 1080902588);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"---nuu1ununnn-1unnnnnn-n--0-1---"};
+    auto actual = WWPropagate::propagate (
+        {"---nuu1ununnn-1uxnxnxn-x--0-1---"}, 4236772096);
+    assert (expected == actual);
+  }
+
   //   {
   //     vector<string> expected = {"--uunu-nx--x", "--u--n-B-BB-"};
   //     auto actual =
   //         wordwise_propagate ({"--xxxx-xx--x", "--B--D-BBBB-"}, 1147);
-  //     assert (expected == actual);
-  //   }
-
-  //   {
-  //     vector<string> expected = {"-u-------uu-uu-u0u1--u-0-n---n0-"};
-  //     auto actual = wordwise_propagate
-  //     ({"-u-?-----uu-uu-u0u1?-u-0-n?--n0-"},
-  //                                       1080902588);
-  //     assert (expected == actual);
-  //   }
-
-  //   {
-  //     vector<string> expected = {"---nuu1ununnn-1unnnnnn-n--0-1---"};
-  //     auto actual = wordwise_propagate
-  //     ({"---nuu1ununnn-1uxnxnxn-x--0-1---"},
-  //                                       4236772096);
   //     assert (expected == actual);
   //   }
 
@@ -153,14 +173,6 @@ void test_wordwise_prop () {
   //     assert (expected == actual);
   //   }
 
-  //   {
-  //     vector<string> expected = {"0nun1n--uu--n--nuuu0u--uu-uuuu0-"};
-  //     auto actual = wordwise_propagate
-  //     ({"0nun1x--ux--n--nxxu0x--ux-uuxu0-"},
-  //                                       3434604988);
-  //     assert (expected == actual);
-  //   }
-
   //   // {
   //   //   vector<string> expected = {"xu-nnu--uxxu-xn1u---x-00x-u0-1--",
   //   //                              "---------?0-?0--u-A-???5-u------"};
@@ -170,38 +182,6 @@ void test_wordwise_prop () {
   //   //                                     2896892384);
   //   //   assert (expected == actual);
   //   // }
-
-  //   {
-  //     vector<string> expected = {"x???xu1uu-"};
-  //     auto actual = wordwise_propagate ({"x???xx1xx-"}, 70);
-  //     assert (expected == actual);
-  //   }
-
-  //   {
-  //     vector<string> expected = {"-----------------------------x--",
-  //                                "?????????????????????????????x--"};
-  //     auto actual = wordwise_propagate
-  //     ({"-----------------------------x--",
-  //                                        "?????????????????????????????x--"},
-  //                                       0);
-  //     assert (expected == actual);
-  //   }
-
-  //   {
-  //     vector<string> expected = {"-----x--", "?????x--"};
-  //     auto actual = wordwise_propagate ({"-----x--", "?????x--"}, 0);
-  //     assert (expected == actual);
-  //   }
-
-  //   {
-  //     vector<string> expected = {"-----------------------------u--",
-  //                                "-------------------------nuuuu--"};
-  //     auto actual = wordwise_propagate
-  //     ({"-----------------------------x--",
-  //                                        "-------------------------nuuuu--"},
-  //                                       0);
-  //     assert (expected == actual);
-  //   }
 
   //   // {
   //   //   vector<string> expected = {"---------------------unnnnnnnn--"};
@@ -219,32 +199,6 @@ void test_wordwise_prop () {
   //         {"xxxuxxxxxxxxxxxu------xxxx------",
   //          "--xxxxx--xx--xx----xxxx-xx------"},
   //         _word_diff ("----n11-------un0---------------"));
-  //     assert (expected == actual);
-  //   }
-
-  //   {
-  //     vector<string> expected = {"-----------------------------x--",
-  //                                "?????????????????????????????x--"};
-  //     auto actual = wordwise_propagate
-  //     ({"-----------------------------x--",
-  //                                        "?????????????????????????????x--"},
-  //                                       0);
-  //     assert (expected == actual);
-  //   }
-
-  //   {
-  //     vector<string> expected = {"-----x--", "?????x--"};
-  //     auto actual = wordwise_propagate ({"-----x--", "?????x--"}, 0);
-  //     assert (expected == actual);
-  //   }
-
-  //   {
-  //     vector<string> expected = {"-----------------------------u--",
-  //                                "-------------------------nuuuu--"};
-  //     auto actual = wordwise_propagate
-  //     ({"-----------------------------x--",
-  //                                        "-------------------------nuuuu--"},
-  //                                       0);
   //     assert (expected == actual);
   //   }
 
@@ -271,6 +225,7 @@ void test_wordwise_prop () {
 void test_group_wordwise_prop () {
   test_word_diff ();
   test_normalize_madd_sum ();
+  test_derive_reg_var ();
   // test_is_congruent ();
   // test_can_overflow ();
   // test_gen_vars ();
