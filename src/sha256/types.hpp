@@ -36,6 +36,7 @@
 
 // Assume the auxiliary variables to be dashes during wordwise propagation
 #define WP_ASSUME_DASH true
+#define WP_BRUTE_FORCE true
 
 #if IS_LI2024
 #define NUM_OPS 9

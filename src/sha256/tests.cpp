@@ -79,6 +79,16 @@ void test_derive_var () {
 
 void test_wordwise_prop () {
   {
+    vector<string> expected = {"----------xx---xx---------------",
+                               "x-u-u????????xxxx---------------"};
+    auto actual =
+        WWPropagate::propagate ({"----------xx---xx---------------",
+                                 "x-???????????xxxx---------------"},
+                                0);
+    assert (expected == actual);
+  }
+
+  {
     vector<string> expected = {"-----------------------------x--",
                                "-------??????????????????????x--"};
     auto actual =

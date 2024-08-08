@@ -51,7 +51,7 @@ public:
       cols[i].sum = normalized_sum >> i & 1;
   }
   static vector<string> propagate (vector<string> cond_words, int64_t sum,
-                                   int limit = -1) {
+                                   bool brute_force_on = true) {
     assert (!cond_words.empty ());
     // Normalize the modular addition sum
     int64_t normalized_sum = sum;
@@ -93,21 +93,8 @@ public:
       }
     }
 
-    // int i = -1;
-    // for (auto &col : cols) {
-    //   i++;
-    //   printf ("%d: ", i);
-    //   for (auto &var : col.vars)
-    //     printf ("%c", var.value == -1
-    //                       ? (var.cond_ptr == nullptr ? 'c' : 'v')
-    //                       : (var.value == 0   ? '0'
-    //                          : var.value == 1 ? '1'
-    //                                           : '?'));
-    //   printf ("\n");
-    // }
-
-    // TODO: Impose a limit on the brute force search.
-    brute_force (&cols, limit);
+    if (brute_force_on)
+      brute_force (&cols);
 
     // Propagate the conditions from the vars.
     for (int iters = 1; iters > 0; iters--) {
@@ -169,13 +156,13 @@ public:
   }
 
   // Breadth-first brute force
-  static void brute_force (WWCols *cols_, int limit) {
+  static void brute_force (WWCols *cols_, bool limit = false) {
     WWCols &cols = *cols_;
     assert (!cols.empty ());
     int cols_count = cols.size ();
 
     // Process the columns
-    for (int iters = 1; iters > 0; iters--) {
+    for (int iters = 1; iters > 0; !limit ? iters-- : iters = 0) {
       for (int col_index = 0; col_index < cols_count; col_index++) {
         // Current col.
         WWCol &col = cols[col_index];
@@ -233,14 +220,18 @@ public:
           possible_high_carry_values.insert (sum >> 2 & 1);
         }
 
+        // Catch contradictions
+        if (solutions.empty () && unknown_var_count > 0)
+          return;
+
         // Derive the reg. vars.
         for (long i = 0; i < col.vars.size (); i++) {
           // int index = unknown_var_indices[i];
-          WWVar &var = cols[col_index].vars[i];
-          if (cols[col_index].vars[i].value == -1) {
+          WWVar &var = col.vars[i];
+          if (col.vars[i].value == -1) {
             assert (!possible_var_values[i].empty ());
             if (possible_var_values[i].size () == 1) {
-              iters = var.value == -1 ? 2 : 0;
+              iters = 2;
               var.value = *possible_var_values[i].begin ();
             }
           }
@@ -386,6 +377,38 @@ public:
         cols[col_index + 2].vars.push_back (var);
       }
     }
+  }
+
+  static void print (vector<string> *cond_words_, WWCols cols) {
+    if (cond_words_ != nullptr) {
+      auto &cond_words = *cond_words_;
+      for (auto &cond_word : cond_words)
+        printf ("%s\n", cond_word.c_str ());
+    }
+
+    for (int i = 0; i < WP_COL_SIZE_LIMIT; i++) {
+      string line;
+      for (int j = cols.size () - 1; j >= 0; j--) {
+        auto &col = cols[j];
+        if (i < col.vars.size ()) {
+          auto &var = col.vars[i];
+          line += var.value == -1
+                      ? (var.is_low_carry || var.is_high_carry ? 'c' : 'v')
+                      : (var.value == 1 ? '1' : '0');
+        } else {
+          line += " ";
+        }
+      }
+      bool found_vars = false;
+      for (auto &c : line)
+        found_vars |= c != ' ';
+      if (found_vars)
+        printf ("%s\n", line.c_str ());
+    }
+
+    for (int j = cols.size () - 1; j >= 0; j--)
+      printf ("%d", cols[j].sum);
+    printf ("\n");
   }
 };
 } // namespace SHA256

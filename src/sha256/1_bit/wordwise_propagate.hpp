@@ -125,7 +125,8 @@ inline void wordwise_propagate_branch_1bit (State &state,
         // Derive the underived words
         propagated_words = WWPropagate::propagate (
             underived_words,
-            output_const_unknown ? -word_diffs_sum : word_diffs_sum);
+            output_const_unknown ? -word_diffs_sum : word_diffs_sum,
+            WP_BRUTE_FORCE);
 
         // printf ("Step %2d (Before), %d: ", step_i, op_id);
         // for (auto &chars : words_chars)

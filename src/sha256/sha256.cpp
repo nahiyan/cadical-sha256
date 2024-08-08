@@ -260,7 +260,7 @@ inline bool Propagator::custom_block () {
     if (entry.second < trail_level)
       continue;
 
-    if (entry.first.size () >= shortest_l_graph_based)
+    if (int (entry.first.size ()) >= shortest_l_graph_based)
       continue;
 
     shortest_l_graph_based = entry.first.size ();
