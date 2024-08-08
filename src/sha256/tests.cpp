@@ -27,58 +27,57 @@ void test_normalize_madd_sum () {
   assert (y == 2196);
 }
 
-void test_derive_reg_var () {
-  WWVarsColwise vars_colwise;
-  vector<string> cond_words = {"-----------------------------x--",
-                               "??????-??????????????????????x--"};
-  WWPropagate::derive_reg_vars (cond_words, &vars_colwise);
-  for (int i = 0; i <= 2; i++)
-    assert (vars_colwise[i].size () == 0);
-  assert (vars_colwise[3].size () == 3);
-  for (int i = 4; i <= 24; i++)
-    assert (vars_colwise[i].size () == 2);
-  assert (vars_colwise[25].size () == 1);
-  assert (vars_colwise[26].size () == 1);
-  for (int i = 27; i <= 31; i++)
-    assert (vars_colwise[i].size () == 2);
+void test_derive_var () {
+  {
+    // -----------------------------x--
+    // ??????-??????????????????????x--
+    // vvvvvv vvvvvvvvvvvvvvvvvvvvvv
+    // vvvvv vvvvvvvvvvvvvvvvvvvvvvv
+    // cccc  ccccccccccccccccccccccv
+    // 11111110000000000000000000000000
+    vector<string> cond_words = {"-----------------------------x--",
+                                 "??????-??????????????????????x--"};
+    WWCols cols;
+    WWPropagate::init_cols (cols, cond_words[0].size (), 4261412864);
+    WWPropagate::derive_reg_vars (cond_words, &cols);
+    for (int i = 0; i <= 2; i++)
+      assert (cols[i].vars.size () == 0);
+    assert (cols[3].vars.size () == 3);
+    for (int i = 4; i <= 24; i++)
+      assert (cols[i].vars.size () == 2);
+    assert (cols[25].vars.size () == 1);
+    assert (cols[26].vars.size () == 1);
+    for (int i = 27; i <= 31; i++)
+      assert (cols[i].vars.size () == 2);
+  }
+  {
+    // --xxxx-xx--x
+    // --B--D-BBBB-
+    //  vvvv vv  v
+    //   v  v vvvv
+    // cc       c
+    // 100010010100
+    vector<string> cond_words = {"--xxxx-xx--x", "--B--D-BBBB-"};
+    WWCols cols;
+    WWPropagate::init_cols (cols, cond_words[0].size (), 2196);
+    WWPropagate::derive_reg_vars (cond_words, &cols);
+    WWPropagate::derive_carr_vars (&cols);
+    assert (cols[0].vars.empty ());
+    assert (cols[1].vars.size () == 2);
+    assert (cols[2].vars.size () == 2);
+    assert (cols[3].vars.size () == 1);
+    assert (cols[4].vars.size () == 2);
+    assert (cols[5].vars.size () == 1);
+    assert (cols[6].vars.size () == 1);
+    assert (cols[7].vars.size () == 1);
+    assert (cols[8].vars.size () == 1);
+    assert (cols[9].vars.size () == 2);
+    assert (cols[10].vars.size () == 2);
+    assert (cols[11].vars.size () == 1);
+  }
 }
 
-// void test_gen_vars () {
-//   {
-//     vector<string> expected = {
-//         "",  "vv1", "vv", "",   "v1", "vv", "v", "",   "1",
-//         "v", "v",   "v",  "vv", "vv", "vv", "v", "vv", "",
-//     };
-//     auto actual = gen_vars ({"-uxxu-xx1u---x-00x",
-//     "--?0-?0--u?A-???5-"}); assert (actual == expected);
-//   }
-
-//   {
-//     vector<string> expected = {"v", "vv", "vv", "vv", "v",
-//                                "",  "v",  "v",  "",   ""};
-//     auto actual = gen_vars ({"x???xx1xx-"});
-//   }
-// }
-
-// void test_brute_force () {
-//   assert (brute_force ({"vv", "v"}, 2) == "vvv");
-//   assert (brute_force ({"vv", "v"}, 4) == "111");
-//   assert (brute_force ({"vv", "vv"}, 0, 3) == "vvvv");
-//   assert (brute_force ({"vv", "vv", "v1"}, 8) == "vvvvv");
-//   assert (brute_force ({"vv", "vvv"}, 0, -1, true) == "vvvvv");
-//   assert (brute_force ({"v", "vv", "v", "vv1", "vv"}, 4, -1, true) ==
-//           "0vvvvvvv");
-// }
-
 void test_wordwise_prop () {
-  {
-    vector<string> expected = {"0nun1n--uu--n--nuuu0u--uu-uuuu0-"};
-    auto actual = WWPropagate::propagate (
-        {"0nun1x--ux--n--nxxu0x--ux-uuxu0-"}, 3434604988);
-    fflush (stdout);
-    assert (expected == actual);
-  }
-
   {
     vector<string> expected = {"-----------------------------x--",
                                "-------??????????????????????x--"};
@@ -86,6 +85,13 @@ void test_wordwise_prop () {
         WWPropagate::propagate ({"-----------------------------x--",
                                  "??????-??????????????????????x--"},
                                 0);
+    assert (expected == actual);
+  }
+
+  {
+    vector<string> expected = {"0nun1n--uu--n--nuuu0u--uu-uuuu0-"};
+    auto actual = WWPropagate::propagate (
+        {"0nun1x--ux--n--nxxu0x--ux-uuxu0-"}, 3434604988);
     assert (expected == actual);
   }
 
@@ -126,12 +132,12 @@ void test_wordwise_prop () {
     assert (expected == actual);
   }
 
-  //   {
-  //     vector<string> expected = {"--uunu-nx--x", "--u--n-B-BB-"};
-  //     auto actual =
-  //         wordwise_propagate ({"--xxxx-xx--x", "--B--D-BBBB-"}, 1147);
-  //     assert (expected == actual);
-  //   }
+  {
+    vector<string> expected = {"--uunu-nx--x", "--u--n-B-BB-"};
+    auto actual =
+        WWPropagate::propagate ({"--xxxx-xx--x", "--B--D-BBBB-"}, 1147);
+    assert (expected == actual);
+  }
 
   //   {
   //     vector<string> expected = {"x-n-nn-xxn-u-u--uuuux-u---x-x---",
@@ -225,7 +231,7 @@ void test_wordwise_prop () {
 void test_group_wordwise_prop () {
   test_word_diff ();
   test_normalize_madd_sum ();
-  test_derive_reg_var ();
+  test_derive_var ();
   // test_is_congruent ();
   // test_can_overflow ();
   // test_gen_vars ();
