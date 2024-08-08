@@ -7,73 +7,85 @@
 #include <string>
 #include <vector>
 
-#define WP_VARS_LIMIT 10
+// #define WP_VARS_LIMIT 10
 // The limit for the number of variables in a column
-#define WP_COL_SIZE_LIMIT 4
+#define WP_COL_SIZE_LIMIT 6
 
 using namespace std;
 
 namespace SHA256 {
-// Note: Cond. words have big-endian ordering
 // Note: Rest is little-endian for simplicity
+// Note: Cond. words have big-endian ordering
+
+// A Boolean variable describing the modular difference
 struct WWVar {
   string *cond_word_ptr;
   char *cond_ptr;
   int8_t value = -1;
 
   // Relevant for variables related to any in {?, 7, E}
-  bool is_lower_var = false;
-  int higher_var_index = -1;
+  bool is_low_q7e_var = false;
+  int high_q7e_var_index = -1;
+
   // Relevant for carry variables
-  bool is_high_carry = false;
   bool is_low_carry = false;
+  bool is_high_carry = false;
 };
-typedef vector<vector<WWVar>> WWVarsColwise;
-class WWSubproblem {
-  // The word size in a subproblem is the width of the subproblem
-  vector<string> word_conds;
-  int64_t sum;
-  WWVarsColwise vars_colwise;
+struct WWCol {
+  vector<WWVar> vars;
+  // GF(2) sum of all the variables
+  int8_t sum;
+  // Index of the carry var. 1 col. back.
+  int low_carry_index = -1;
+  // Index of the carry var. 2 cols. back
+  int high_carry_index = -1;
 };
+// Variables organized by columns
+typedef vector<WWCol> WWCols;
 class WWPropagate {
 public:
+  static void init_cols (WWCols &cols, long cols_count,
+                         long normalized_sum) {
+    cols.resize (cols_count);
+    for (int i = 0; i < cols.size (); i++)
+      cols[i].sum = normalized_sum >> i & 1;
+  }
   static vector<string> propagate (vector<string> cond_words, int64_t sum,
                                    int limit = -1) {
+    assert (!cond_words.empty ());
     // Normalize the modular addition sum
     int64_t normalized_sum = sum;
     for (auto &word : cond_words)
       normalized_sum = normalize_sum (normalized_sum, word);
 
-    printf ("%ld\n", normalized_sum);
-
     // Derive the regular variables and carries
-    WWVarsColwise vars_colwise;
-    derive_reg_vars (cond_words, &vars_colwise);
-    derive_carr_vars (&vars_colwise, normalized_sum);
+    WWCols cols;
+    init_cols (cols, cond_words[0].size (), normalized_sum);
+    derive_reg_vars (cond_words, &cols);
+    derive_carr_vars (&cols);
 
     // Derive vars in the unit columns (i.e. columns with only 1 variable)
     for (int iters = 1; iters > 0; iters--) {
-      for (long col_index = 0; col_index < vars_colwise.size ();
-           col_index++) {
-        vector<WWVar> &col = vars_colwise[col_index];
+      for (long col_index = 0; col_index < cols.size (); col_index++) {
+        WWCol &col = cols[col_index];
+        assert (col.vars.size () <= WP_COL_SIZE_LIMIT);
         int unknown_vars = 0, known_vars_sum = 0;
-        for (auto &var : col) {
+        for (auto &var : col.vars) {
           unknown_vars += var.value == -1;
           known_vars_sum += var.value == -1 ? 0 : var.value;
         }
         known_vars_sum &= 1;
-        int8_t col_sum = normalized_sum >> col_index & 1;
         // We aim for a unit column
         if (unknown_vars != 1)
           continue;
-        for (auto &var : col) {
+        for (auto &var : col.vars) {
           if (var.value != -1)
             continue;
-          var.value = col_sum ^ known_vars_sum;
-          assert ((var.value ^ known_vars_sum) == col_sum);
-          if (*var.cond_ptr == '?' && var.higher_var_index != -1 &&
+          var.value = col.sum ^ known_vars_sum;
+          assert ((var.value ^ known_vars_sum) == col.sum);
+          if (var.is_low_q7e_var && var.high_q7e_var_index != -1 &&
               var.value == 1) {
-            vars_colwise[col_index + 1][var.higher_var_index].value = 0;
+            cols[col_index + 1].vars[var.high_q7e_var_index].value = 0;
             iters = 2;
           }
           break;
@@ -81,27 +93,26 @@ public:
       }
     }
 
-    int i = -1;
-    for (auto &col : vars_colwise) {
-      i++;
-      printf ("%d: ", i);
-      for (auto &var : col)
-        printf ("%c", var.value == -1
-                          ? (var.cond_ptr == nullptr ? 'c' : 'v')
-                          : (var.value == 0   ? '0'
-                             : var.value == 1 ? '1'
-                                              : '?'));
-      printf ("\n");
-    }
+    // int i = -1;
+    // for (auto &col : cols) {
+    //   i++;
+    //   printf ("%d: ", i);
+    //   for (auto &var : col.vars)
+    //     printf ("%c", var.value == -1
+    //                       ? (var.cond_ptr == nullptr ? 'c' : 'v')
+    //                       : (var.value == 0   ? '0'
+    //                          : var.value == 1 ? '1'
+    //                                           : '?'));
+    //   printf ("\n");
+    // }
 
-    // TODO: Implement limit of number of breadths to brute force.
-    // TODO: Derive vars through breadth-first brute force.
-    bf_brute_force (&vars_colwise, normalized_sum, limit);
+    // TODO: Impose a limit on the brute force search.
+    brute_force (&cols, limit);
 
     // Propagate the conditions from the vars.
     for (int iters = 1; iters > 0; iters--) {
-      for (auto &col : vars_colwise) {
-        for (WWVar &var : col) {
+      for (auto &col : cols) {
+        for (WWVar &var : col.vars) {
           if (var.cond_ptr == nullptr)
             continue;
           char &cond = *var.cond_ptr;
@@ -115,29 +126,29 @@ public:
               continue;
             switch (cond) {
             case '3':
-              cond = value == '0' ? '0' : 'u';
+              cond = value == 0 ? '0' : 'u';
               break;
             case '5':
-              cond = value == '0' ? 'n' : '0';
+              cond = value == 0 ? 'n' : '0';
               break;
             case 'A':
-              cond = value == '0' ? '1' : 'u';
+              cond = value == 0 ? '1' : 'u';
               break;
             case 'B':
-              cond = value == '0' ? '-' : 'u';
+              cond = value == 0 ? '-' : 'u';
               break;
             case 'C':
-              cond = value == '0' ? 'n' : '1';
+              cond = value == 0 ? 'n' : '1';
               break;
             case 'D':
-              cond = value == '0' ? 'n' : '-';
+              cond = value == 0 ? 'n' : '-';
               break;
             }
           } else if (is_in (cond, {'7', 'E', '?'})) {
             if (value == -1)
               continue;
 
-            if (var.is_lower_var) {
+            if (var.is_low_q7e_var) {
               cond = value == 0 ? 'x'
                                 : (cond == '7'   ? '0'
                                    : cond == 'E' ? '1'
@@ -158,86 +169,124 @@ public:
   }
 
   // Breadth-first brute force
-  static void bf_brute_force (WWVarsColwise *vars_colwise_,
-                              int64_t normalized_sum, int limit) {
-    WWVarsColwise &vars_colwise = *vars_colwise_;
-    int cols_count = vars_colwise.size ();
+  static void brute_force (WWCols *cols_, int limit) {
+    WWCols &cols = *cols_;
+    assert (!cols.empty ());
+    int cols_count = cols.size ();
 
-    // Variables constrained to be fixed
-    typedef map<int, int8_t> WWConstraints;
+    // Process the columns
+    for (int iters = 1; iters > 0; iters--) {
+      for (int col_index = 0; col_index < cols_count; col_index++) {
+        // Current col.
+        WWCol &col = cols[col_index];
+        assert (col.vars.size () <= WP_COL_SIZE_LIMIT);
 
-    assert (!vars_colwise.empty ());
-    queue<pair<int, WWConstraints>> queue ({{0, {}}});
-    while (!queue.empty ()) {
-      auto &front = queue.front ();
-      int col_index = front.first;
-      WWConstraints &constraints = front.second;
-      queue.pop ();
-      vector<WWVar> &col = vars_colwise[col_index];
-      int8_t col_sum = normalized_sum >> col_index & 1;
-      bool has_next_col = col_index + 1 < cols_count;
-      bool has_next_next_col = col_index + 2 < cols_count;
+        // Get the indices of the unknown vars.
+        vector<int> unknown_var_indices;
+        int known_var_sum = 0;
+        for (long i = 0; i < col.vars.size (); i++) {
+          if (col.vars[i].value == -1) {
+            unknown_var_indices.push_back (i);
+            continue;
+          }
+          known_var_sum += col.vars[i].value;
+        }
+        long unknown_var_count = unknown_var_indices.size ();
 
-      // Analyze the variables and constraints in the column
-      int8_t known_vars_sum = 0;
-      vector<int> indices;
-      for (int i = 0; i < int (col.size ()); i++) {
-        auto constraints_res = constraints.find (i);
-        if (constraints_res != constraints.end ()) {
-          known_vars_sum ^= constraints_res->second;
-          continue;
+        // Enumerate the solutions
+        set<int8_t> possible_var_values[col.vars.size ()];
+        set<int8_t> possible_low_carry_values, possible_high_carry_values;
+        vector<int> solutions;
+        for (int i = 0;
+             i < pow (2, unknown_var_count) && unknown_var_count > 0; i++) {
+          int combination_sum = 0;
+          for (int j = 0; j < unknown_var_count; j++)
+            combination_sum += i >> j & 1;
+
+          int sum = combination_sum + known_var_sum;
+          if ((sum & 1) != col.sum)
+            continue;
+
+          // Is the low carry known?
+          if (col.low_carry_index != -1) {
+            assert (col_index + 1 < cols_count);
+            int8_t &low_carry =
+                cols[col_index + 1].vars[col.low_carry_index].value;
+            if (low_carry != -1 && low_carry != (sum >> 1 & 1))
+              continue;
+          }
+          // Is the high carry known?
+          if (col.high_carry_index != -1) {
+            assert (col_index + 2 < cols_count);
+            int8_t &high_carry =
+                cols[col_index + 2].vars[col.high_carry_index].value;
+            if (high_carry != -1 && high_carry != (sum >> 2 & 1))
+              continue;
+          }
+
+          solutions.push_back (i);
+          for (int j = 0; j < unknown_var_count; j++) {
+            int index = unknown_var_indices[j];
+            possible_var_values[index].insert (i >> j & 1);
+          }
+          possible_low_carry_values.insert (sum >> 1 & 1);
+          possible_high_carry_values.insert (sum >> 2 & 1);
         }
 
-        if (col[i].value == -1)
-          indices.push_back (i);
-        else
-          known_vars_sum ^= col[i].value;
+        // Derive the reg. vars.
+        for (long i = 0; i < col.vars.size (); i++) {
+          // int index = unknown_var_indices[i];
+          WWVar &var = cols[col_index].vars[i];
+          if (cols[col_index].vars[i].value == -1) {
+            assert (!possible_var_values[i].empty ());
+            if (possible_var_values[i].size () == 1) {
+              iters = var.value == -1 ? 2 : 0;
+              var.value = *possible_var_values[i].begin ();
+            }
+          }
+
+          // Vars. in {?, 7, E} can't be (1, 1)
+          if (var.is_low_q7e_var && var.value == 1 &&
+              var.high_q7e_var_index != -1) {
+            assert (col_index + 1 < cols_count);
+            cols[col_index + 1].vars[var.high_q7e_var_index].value = 0;
+            iters =
+                cols[col_index + 1].vars[var.high_q7e_var_index].value == -1
+                    ? 2
+                    : 0;
+          }
+        }
+
+        // Derive the carries
+        if (possible_low_carry_values.size () == 1 &&
+            col_index + 1 < cols_count) {
+          assert (!possible_low_carry_values.empty ());
+          int low_carry_index = col.low_carry_index;
+          if (*possible_low_carry_values.begin () == 1)
+            assert (low_carry_index != -1);
+          if (low_carry_index != -1) {
+            iters = cols[col_index + 1].vars[low_carry_index].value == -1
+                        ? 2
+                        : iters;
+            cols[col_index + 1].vars[low_carry_index].value =
+                *possible_low_carry_values.begin ();
+          }
+        }
+        if (possible_high_carry_values.size () == 1 &&
+            col_index + 2 < cols_count) {
+          assert (!possible_high_carry_values.empty ());
+          int high_carry_index = col.high_carry_index;
+          if (*possible_high_carry_values.begin () == 1)
+            assert (high_carry_index != -1);
+          if (high_carry_index != -1) {
+            iters = cols[col_index + 2].vars[high_carry_index].value == -1
+                        ? 2
+                        : iters;
+            cols[col_index + 2].vars[high_carry_index].value =
+                *possible_high_carry_values.begin ();
+          }
+        }
       }
-
-      // New constraints for the next column
-      set<map<int, int8_t>> next_cols_constraints,
-          next_next_cols_constraints;
-
-      // Enumerate all the solutions
-      vector<int> solutions;
-      // bool has_low_carry = false, has_high_carry = false;
-      for (int i = 0; i < pow (2, indices.size ()); i++) {
-        int sum = 0;
-        for (int j = 0; j < indices.size (); j++)
-          sum += i >> j & 1;
-
-        int8_t sum_lsb = sum & 1;
-        if ((sum_lsb ^ known_vars_sum) != col_sum)
-          continue;
-
-        bool has_low_carry = (sum_lsb >> 1 & 1) == 1;
-        bool has_high_carry = (sum_lsb >> 2 & 1) == 1;
-
-        solutions.push_back (i);
-      }
-
-      // if (has_low_carry && has_next_col) {
-      //   int carry_index = -1;
-      //   for (int i = 0; i < vars_colwise[col_index + 1].size (); i++) {
-      //     if (vars_colwise[col_index + 1][i].is_low_carry) {
-      //       carry_index = i;
-      //       break;
-      //     }
-      //   }
-      //   assert (carry_index != -1);
-      //   queue.push ({col_index + 1, {{carry_index, 1}}});
-      // }
-      // if (has_high_carry && has_next_next_col) {
-      //   int carry_index = -1;
-      //   for (int i = 0; i < vars_colwise[col_index + 2].size (); i++) {
-      //     if (vars_colwise[col_index + 2][i].is_high_carry) {
-      //       carry_index = i;
-      //       break;
-      //     }
-      //   }
-      //   assert (carry_index != -1);
-      //   queue.push ({col_index + 2, {{carry_index, 1}}});
-      // }
     }
   }
 
@@ -264,12 +313,10 @@ public:
 
   // Derive the regular variables.
   // Regular variables are ones related directly to the conditions.
-  static void derive_reg_vars (vector<string> &cond_words,
-                               WWVarsColwise *vars_colwise_) {
+  static void derive_reg_vars (vector<string> &cond_words, WWCols *cols_) {
     assert (!cond_words.empty ());
-    long cols_count = cond_words[0].size ();
-    WWVarsColwise &vars_colwise = *vars_colwise_;
-    vars_colwise.resize (cols_count);
+    WWCols &cols = *cols_;
+    long cols_count = cols.size ();
 
     // Note: x is the condition index
     // Note: col is the column index
@@ -278,60 +325,65 @@ public:
       for (auto &cond_word : cond_words) {
         char &cond = cond_word[cols_count - 1 - col_index];
         if (cond == 'x' && has_next_col) {
-          vars_colwise[col_index + 1].push_back ({&cond_word, &cond, -1});
+          cols[col_index + 1].vars.push_back ({&cond_word, &cond, -1});
         } else if (is_in (cond, {'?', '7', 'E'})) {
           WWVar var{&cond_word, &cond, -1};
-          var.is_lower_var = true;
+          var.value = -1;
+          var.is_low_q7e_var = true;
 
           // Add the higher variable if there's space
           if (has_next_col) {
-            vars_colwise[col_index + 1].push_back ({&cond_word, &cond, -1});
-            var.higher_var_index = vars_colwise[col_index + 1].size () - 1;
+            cols[col_index + 1].vars.push_back ({&cond_word, &cond, -1});
+            var.high_q7e_var_index = cols[col_index + 1].vars.size () - 1;
           }
-          vars_colwise[col_index].push_back (var);
+          cols[col_index].vars.push_back (var);
         } else if (is_in (cond, {'3', '5', 'A', 'B', 'C', 'D'})) {
-          vars_colwise[col_index].push_back ({&cond_word, &cond, -1});
+          cols[col_index].vars.push_back ({&cond_word, &cond, -1});
         }
       }
     }
   }
 
   // Derive the carry variables.
-  static void derive_carr_vars (WWVarsColwise *vars_colwise_,
-                                int64_t normalized_sum) {
-    WWVarsColwise &vars_colwise = *vars_colwise_;
-    for (long col_index = 0; col_index < vars_colwise.size ();
-         col_index++) {
+  static void derive_carr_vars (WWCols *cols_) {
+    WWCols &cols = *cols_;
+    for (long col_index = 0; col_index < cols.size (); col_index++) {
+      // Current col.
+      WWCol &col = cols[col_index];
       // Variables in the current column
-      auto &vars = vars_colwise[col_index];
-      assert (vars.size () <= 6);
+      vector<WWVar> &vars = cols[col_index].vars;
+      assert (vars.size () <= WP_COL_SIZE_LIMIT);
       if (vars.empty ()) // Skip empty columns
         continue;
 
-      int8_t col_sum = normalized_sum >> col_index & 1;
-      bool has_next_col = col_index + 1 < vars_colwise.size ();
-      bool has_next_next_col = col_index + 2 < vars_colwise.size ();
+      bool has_next_col = col_index + 1 < cols.size ();
+      bool has_next_next_col = col_index + 2 < cols.size ();
 
       // Check if any combination can induce a carry
-      bool has_low_carry = false;
-      bool has_high_carry = false;
-      for (int j = 0; j < vars.size (); j++) {
-        if ((j & 1) != col_sum)
+      bool has_low_carry = false, has_high_carry = false;
+      for (int i = 0; i < pow (2, vars.size ()); i++) {
+        int sum = 0;
+        for (int j = 0; j < vars.size (); j++) {
+          sum += i >> j & 1;
+        }
+        if ((sum & 1) != col.sum)
           continue;
-        has_low_carry |= (j >> 1 & 1) == 1;
-        has_high_carry |= (j >> 2 & 1) == 1;
+        has_low_carry |= (sum >> 1 & 1) == 1;
+        has_high_carry |= (sum >> 2 & 1) == 1;
       }
       // Low carry
       if (has_low_carry && has_next_col) {
         WWVar var{nullptr, nullptr, -1};
         var.is_low_carry = true;
-        vars_colwise[col_index + 1].push_back (var);
+        col.low_carry_index = cols[col_index + 1].vars.size ();
+        cols[col_index + 1].vars.push_back (var);
       }
       // High carry
       if (has_high_carry && has_next_next_col) {
         WWVar var{nullptr, nullptr, -1};
         var.is_high_carry = true;
-        vars_colwise[col_index + 2].push_back (var);
+        col.high_carry_index = cols[col_index + 2].vars.size ();
+        cols[col_index + 2].vars.push_back (var);
       }
     }
   }
