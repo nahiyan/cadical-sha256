@@ -61,6 +61,13 @@ Propagator::Propagator (CaDiCaL::Solver *solver) {
 #endif
 #if WORDWISE_PROPAGATE
   printf ("Wordwise propagation (branch-based) turned on.\n");
+#if WP_ASSUME_DASH
+  printf ("Assuming '?' in auxiliary variables to be '-' in wordwise "
+          "propagation.\n");
+#endif
+#if WP_BRUTE_FORCE
+  printf ("Brute force search enabled in wordwise propagation.\n");
+#endif
 #endif
 #if TWO_BIT_ADD_DIFFS
   printf ("2-bit addition differentials turned on.\n");
