@@ -169,9 +169,10 @@ inline void wordwise_propagate_branch_li2024 (State &state,
         word_diffs_sum = e_mod (word_diffs_sum, int64_t (pow (2, 32)));
 
         // Derive the underived words
-        propagated_words = wordwise_propagate (
+        propagated_words = WWPropagate::propagate (
             underived_words,
-            lhs_const_unknown ? -word_diffs_sum : word_diffs_sum);
+            lhs_const_unknown ? -word_diffs_sum : word_diffs_sum,
+            WP_BRUTE_FORCE);
 
         // printf ("Step %2d (Before), %d: ", step_i, op_id);
         // for (auto &chars : words_chars)
